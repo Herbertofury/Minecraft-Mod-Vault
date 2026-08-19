@@ -1,0 +1,262 @@
+name: C2ME OpenCL Radium Compatibility Build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'c2me-build/**'
+      - '.github/workflows/c2me-opencl-radium-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout build trigger
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.8
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+
+      - name: Fetch pinned sources and exact c2meF base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/udbwhdjwbdj/c2me-opencl-forge1201.git src
+          cd src
+          git checkout 342c5035d7251ca987c962a14997a21a36eace44
+          mkdir -p ../downloads libs
+          cd ../downloads
+          C2ME_URL="$(curl -fsSL https://api.modrinth.com/v2/version/h9trYS7V | jq -r '.files[] | select(.primary == true) | .url')"
+          curl -fsSL "$C2ME_URL" -o c2meF-0.2.0+alpha.12-all.jar
+          echo 'ad44f615a4b15afd1d6a4d907ccab1c3855451a1  c2meF-0.2.0+alpha.12-all.jar' | sha1sum -c -
+          unzip -j c2meF-0.2.0+alpha.12-all.jar 'META-INF/jarjar/*.jar' -d ../src/libs
+
+      - name: Fetch OpenCL build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd src/libs
+          curl -fsSLO https://repo1.maven.org/maven2/org/lwjgl/lwjgl-opencl/3.3.3/lwjgl-opencl-3.3.3.jar
+          curl -fsSLO https://repo1.maven.org/maven2/org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives-windows.jar
+          curl -fsSLO https://repo1.maven.org/maven2/org/lwjgl/lwjgl-zstd/3.3.3/lwjgl-zstd-3.3.3.jar
+          curl -fsSLO https://repo1.maven.org/maven2/org/lwjgl/lwjgl-zstd/3.3.3/lwjgl-zstd-3.3.3-natives-windows.jar
+
+      - name: Build DFC and OpenCL modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd src
+          gradle --no-daemon --stacktrace :c2me_opts_dfc:reobfJar :c2me_opts_accel_opencl:reobfJar
+          find c2me_opts_dfc/build/libs c2me_opts_accel_opencl/build/libs -maxdepth 1 -type f -name '*.jar' -print -exec unzip -t {} \;
+
+      - name: Assemble all-in-one C2ME jar and flatten module JarJar dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import hashlib, io, json, os, re, zipfile
+          from pathlib import Path
+
+          root = Path('.')
+          base = root / 'downloads/c2meF-0.2.0+alpha.12-all.jar'
+          out = root / 'out/c2meF-0.2.0+alpha.12.1-opencl-radiumcompat-all.jar'
+
+          def choose_jar(folder, token):
+              jars = sorted(Path(folder).glob('*.jar'))
+              jars = [p for p in jars if token in p.name and not p.name.endswith('-sources.jar')]
+              if not jars:
+                  raise SystemExit(f'No built jar containing {token} in {folder}')
+              return jars[-1]
+
+          dfc = choose_jar('src/c2me_opts_dfc/build/libs', 'opts-dfc')
+          opencl = choose_jar('src/c2me_opts_accel_opencl/build/libs', 'opts-accel-opencl')
+
+          with zipfile.ZipFile(base, 'r') as z:
+              base_metadata = json.loads(z.read('META-INF/jarjar/metadata.json'))
+              base_entries = {i.filename: z.read(i.filename) for i in z.infolist()}
+
+          original_nested = {}
+          for entry in base_metadata['jars']:
+              path = entry['path']
+              original_nested[path] = hashlib.sha256(base_entries[path]).hexdigest()
+
+          extra_entries = []
+          flattened_dependency_bytes = {}
+
+          def clean_module(module_path):
+              with zipfile.ZipFile(module_path, 'r') as zin:
+                  module_entries = {i.filename: zin.read(i.filename) for i in zin.infolist()}
+                  nested_meta = None
+                  if 'META-INF/jarjar/metadata.json' in module_entries:
+                      nested_meta = json.loads(module_entries['META-INF/jarjar/metadata.json'])
+                      for dep in nested_meta.get('jars', []):
+                          dep_path = dep['path']
+                          if dep_path not in module_entries:
+                              raise SystemExit(f'{module_path}: missing nested dependency {dep_path}')
+                          flat_name = f"META-INF/jarjar/{Path(dep_path).name}"
+                          dep_copy = json.loads(json.dumps(dep))
+                          dep_copy['path'] = flat_name
+                          payload = module_entries[dep_path]
+                          if flat_name in flattened_dependency_bytes and flattened_dependency_bytes[flat_name] != payload:
+                              raise SystemExit(f'Conflicting flattened dependency bytes for {flat_name}')
+                          flattened_dependency_bytes[flat_name] = payload
+                          extra_entries.append(dep_copy)
+
+                  buf = io.BytesIO()
+                  with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zout:
+                      for name, payload in module_entries.items():
+                          if name == 'META-INF/jarjar/metadata.json' or name.startswith('META-INF/jarjar/'):
+                              continue
+                          zout.writestr(name, payload)
+                  return buf.getvalue()
+
+          dfc_bytes = clean_module(dfc)
+          opencl_bytes = clean_module(opencl)
+          dfc_name = f'META-INF/jarjar/{dfc.name}'
+          opencl_name = f'META-INF/jarjar/{opencl.name}'
+
+          def mod_entry(artifact, path):
+              return {
+                  'identifier': {'group': 'c2me', 'artifact': artifact},
+                  'version': {'range': '[0.2.0,)', 'artifactVersion': '0.2.0+alpha.12.1'},
+                  'path': path,
+                  'isObfuscated': True,
+              }
+
+          additions = [
+              mod_entry('c2me_opts_dfc', dfc_name),
+              mod_entry('c2me_opts_accel_opencl', opencl_name),
+          ]
+
+          # Deduplicate by JarJar identifier. Existing exact dependencies win only if byte-identical.
+          final_meta = list(base_metadata['jars'])
+          seen = {(x['identifier']['group'], x['identifier']['artifact']): x for x in final_meta}
+          for entry in extra_entries + additions:
+              key = (entry['identifier']['group'], entry['identifier']['artifact'])
+              if key in seen:
+                  existing = seen[key]
+                  if existing['path'] != entry['path']:
+                      # MixinExtras already exists in c2meF and is compile-only for these modules. Keep c2meF's copy.
+                      if key == ('io.github.llamalad7', 'mixinextras-forge'):
+                          continue
+                      raise SystemExit(f'Duplicate JarJar identifier {key}: {existing["path"]} vs {entry["path"]}')
+                  continue
+              final_meta.append(entry)
+              seen[key] = entry
+
+          marker = '''C2ME Forge 1.20.1 custom OpenCL build\nBase c2meF: 0.2.0+alpha.12 (SHA-1 ad44f615a4b15afd1d6a4d907ccab1c3855451a1)\nOpenCL source commit: 342c5035d7251ca987c962a14997a21a36eace44\nRadium compatibility target: 0.12.4+git.26c9d8e\nRequired Radium overrides: mixin.alloc.nbt=false; mixin.world.chunk_access=false\n'''.encode()
+
+          with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zout:
+              for name, payload in base_entries.items():
+                  if name == 'META-INF/jarjar/metadata.json':
+                      continue
+                  zout.writestr(name, payload)
+              zout.writestr(dfc_name, dfc_bytes)
+              zout.writestr(opencl_name, opencl_bytes)
+              for path, payload in flattened_dependency_bytes.items():
+                  if path in base_entries:
+                      if base_entries[path] != payload:
+                          raise SystemExit(f'Existing outer dependency conflicts with {path}')
+                      continue
+                  zout.writestr(path, payload)
+              zout.writestr('META-INF/jarjar/metadata.json', json.dumps({'jars': final_meta}, indent=2).encode())
+              zout.writestr('META-INF/c2me-opencl-radium-compat.txt', marker)
+
+          with zipfile.ZipFile(out, 'r') as z:
+              metadata = json.loads(z.read('META-INF/jarjar/metadata.json'))
+              names = set(z.namelist())
+              for item in metadata['jars']:
+                  if item['path'] not in names:
+                      raise SystemExit(f'Metadata path missing: {item["path"]}')
+              for path, digest in original_nested.items():
+                  got = hashlib.sha256(z.read(path)).hexdigest()
+                  if got != digest:
+                      raise SystemExit(f'Original c2meF nested jar changed: {path}')
+              if dfc_name not in names or opencl_name not in names:
+                  raise SystemExit('DFC/OpenCL module absent from final jar')
+
+          report = []
+          report.append('C2ME OpenCL + Radium compatibility build verification')
+          report.append(f'Output: {out.name}')
+          report.append(f'SHA-256: {hashlib.sha256(out.read_bytes()).hexdigest()}')
+          report.append(f'Preserved original nested c2meF jars byte-for-byte: {len(original_nested)}')
+          report.append(f'Final JarJar entries: {len(final_meta)}')
+          report.append(f'DFC module: {dfc.name}')
+          report.append(f'OpenCL module: {opencl.name}')
+          report.append('Required Radium overrides:')
+          report.append('  mixin.alloc.nbt=false')
+          report.append('  mixin.world.chunk_access=false')
+          report.append('')
+          report.append('Final nested paths:')
+          for item in final_meta:
+              report.append(f"  {item['identifier']['group']}:{item['identifier']['artifact']} -> {item['path']}")
+          (root / 'out/BUILD-VERIFICATION.txt').write_text('\n'.join(report) + '\n')
+          print('\n'.join(report[:9]))
+          PY
+          unzip -t out/c2meF-0.2.0+alpha.12.1-opencl-radiumcompat-all.jar
+
+      - name: Download exact Radium and prepare compatibility configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          RADIUM_URL="$(curl -fsSL https://api.modrinth.com/v2/version/n947JjJH | jq -r '.files[] | select(.primary == true) | .url')"
+          curl -fsSL "$RADIUM_URL" -o downloads/radium-mc1.20.1-0.12.4+git.26c9d8e.jar
+          echo 'b42584e2672d6b5329959ec2b0f342395b19389fed0ee4d86ea71072f42f77a0  downloads/radium-mc1.20.1-0.12.4+git.26c9d8e.jar' | sha256sum -c -
+          mkdir -p out/config
+          cat > out/config/lithium.properties <<'EOF'
+          # C2ME OpenCL Forge 1.20.1 compatibility overrides for Radium 0.12.4+git.26c9d8e
+          # C2ME keeps its async chunk-access implementation and CompoundTag allocation optimization.
+          mixin.world.chunk_access=false
+          mixin.alloc.nbt=false
+          EOF
+
+      - name: Headless Forge + exact Radium startup smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p testserver
+          cd testserver
+          curl -fsSLo forge-installer.jar https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.0/forge-1.20.1-47.4.0-installer.jar
+          java -jar forge-installer.jar --installServer
+          mkdir -p mods config
+          cp ../out/c2meF-0.2.0+alpha.12.1-opencl-radiumcompat-all.jar mods/
+          cp ../downloads/radium-mc1.20.1-0.12.4+git.26c9d8e.jar mods/
+          cp ../out/config/lithium.properties config/
+          echo 'eula=true' > eula.txt
+          set +e
+          timeout 150s bash -c '(sleep 95; echo stop) | ./run.sh nogui' > server-console.log 2>&1
+          rc=$?
+          set -e
+          cat server-console.log
+          cp server-console.log ../out/FORGE-SMOKE-TEST.log
+          if ! grep -Eq 'Done \([0-9.]+s\)! For help, type "help"|Done \([0-9.]+s\)!' server-console.log; then
+            echo 'Server never reached the Done state' >&2
+            exit 1
+          fi
+          if grep -Eiq 'Mixin apply failed|InvalidMixinException|InjectionError|Critical injection failure|Overwrite conflict|MixinTransformerError|NoClassDefFoundError|ClassNotFoundException|ModLoadingException|Failed to complete lifecycle event' server-console.log; then
+            echo 'Fatal/mixin/class-loading signature detected in server log' >&2
+            exit 1
+          fi
+          echo "Smoke-test process exit code: $rc" >> ../out/BUILD-VERIFICATION.txt
+          echo 'Headless Forge 47.4.0 server reached Done with exact Radium + compatibility config.' >> ../out/BUILD-VERIFICATION.txt
+
+      - name: Upload verified build
+        uses: actions/upload-artifact@v4
+        with:
+          name: c2me-opencl-radiumcompat-forge1201
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
