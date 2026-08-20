@@ -1,0 +1,149 @@
+name: MMV v0.9.0 toolchain and knowledge bridge
+
+on:
+  push:
+    branches:
+      - automation/mmv-v090-toolchain-bridge
+    paths:
+      - .github/workflows/mmv-v090-toolchain-bridge.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mmv-v090-toolchain-bridge
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out bridge branch
+        uses: actions/checkout@v4
+
+      - name: Install current Go toolchain
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.0'
+          check-latest: true
+          cache: false
+
+      - name: Build and verify current pure-Go SQLite bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/mmv-v090-bridge
+          mkdir -p /tmp/mmv-v090-bridge/module /tmp/mmv-v090-bridge/output/knowledge-seeds
+          cd /tmp/mmv-v090-bridge/module
+          cat > go.mod <<'EOF'
+          module mmv-v090-toolchain-bridge
+
+          go 1.25.0
+
+          require modernc.org/sqlite v1.57.0
+          EOF
+          cat > main.go <<'EOF'
+          package main
+
+          import (
+              "database/sql"
+              "fmt"
+              "os"
+
+              _ "modernc.org/sqlite"
+          )
+
+          func main() {
+              db, err := sql.Open("sqlite", "file::memory:?cache=shared")
+              if err != nil { panic(err) }
+              defer db.Close()
+              statements := []string{
+                  `PRAGMA foreign_keys = ON`,
+                  `CREATE TABLE parent(id INTEGER PRIMARY KEY, name TEXT NOT NULL)`,
+                  `CREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER NOT NULL REFERENCES parent(id))`,
+                  `CREATE VIRTUAL TABLE facts_fts USING fts5(title, body)`,
+                  `INSERT INTO parent(name) VALUES ('minecraft')`,
+                  `INSERT INTO child(parent_id) VALUES (1)`,
+                  `INSERT INTO facts_fts(title, body) VALUES ('migration', 'upgrade downgrade compatibility repair')`,
+              }
+              for _, statement := range statements {
+                  if _, err := db.Exec(statement); err != nil { panic(err) }
+              }
+              var sqliteVersion string
+              if err := db.QueryRow(`SELECT sqlite_version()`).Scan(&sqliteVersion); err != nil { panic(err) }
+              var matches int
+              if err := db.QueryRow(`SELECT count(*) FROM facts_fts WHERE facts_fts MATCH 'compatibility'`).Scan(&matches); err != nil { panic(err) }
+              if matches != 1 { panic(fmt.Sprintf("unexpected FTS result count: %d", matches)) }
+              fmt.Printf("sqlite=%s fts5=%d foreign_keys=ok\n", sqliteVersion, matches)
+              if err := os.WriteFile("SQLITE-RUNTIME-VERIFICATION.txt", []byte(fmt.Sprintf("PASS\nsqlite=%s\nfts5_matches=%d\nforeign_keys=ok\n", sqliteVersion, matches)), 0o644); err != nil { panic(err) }
+          }
+          EOF
+          go mod tidy
+          go mod verify
+          go run .
+          go test ./...
+          go mod vendor
+          cp go.mod go.sum SQLITE-RUNTIME-VERIFICATION.txt /tmp/mmv-v090-bridge/output/
+          tar --sort=name --mtime='2026-08-20 00:00:00 UTC' --owner=0 --group=0 --numeric-owner \
+            -C /tmp/mmv-v090-bridge/module -czf /tmp/mmv-v090-bridge/output/modernc-sqlite-v1.57.0-vendor.tar.gz vendor go.mod go.sum
+
+      - name: Download and verify current Go release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://dl.google.com/go/go1.27.0.linux-amd64.tar.gz \
+            -o /tmp/mmv-v090-bridge/output/go1.27.0.linux-amd64.tar.gz
+          echo '675c26c449cbb18fc24b74650de1eabbae6e16f64326fd85a283fb3b58280685  /tmp/mmv-v090-bridge/output/go1.27.0.linux-amd64.tar.gz' | sha256sum -c --strict
+
+      - name: Capture authoritative Minecraft and loader seed catalogs
+        shell: bash
+        run: |
+          set -euo pipefail
+          seeds=/tmp/mmv-v090-bridge/output/knowledge-seeds
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://piston-meta.mojang.com/mc/game/version_manifest_v2.json \
+            -o "$seeds/mojang-version-manifest-v2.json"
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://meta.fabricmc.net/v2/versions \
+            -o "$seeds/fabric-meta-v2-versions.json"
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://meta.quiltmc.org/v3/versions \
+            -o "$seeds/quilt-meta-v3-versions.json"
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json \
+            -o "$seeds/forge-promotions-slim.json"
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml \
+            -o "$seeds/neoforge-maven-metadata.xml"
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://maven.neoforged.net/releases/net/neoforged/neoform/maven-metadata.xml \
+            -o "$seeds/neoform-maven-metadata.xml"
+          jq -e '.versions | type == "array" and length > 500 and .[0].id != null' "$seeds/mojang-version-manifest-v2.json" >/dev/null
+          jq -e '.game | type == "array" and length > 100 and .loader | type == "array" and length > 1' "$seeds/fabric-meta-v2-versions.json" >/dev/null
+          jq -e '.game | type == "array" and length > 100 and .loader | type == "array" and length > 1' "$seeds/quilt-meta-v3-versions.json" >/dev/null
+          jq -e '.promos | type == "object" and length > 100' "$seeds/forge-promotions-slim.json" >/dev/null
+          grep -q '<metadata>' "$seeds/neoforge-maven-metadata.xml"
+          grep -q '<metadata>' "$seeds/neoform-maven-metadata.xml"
+          sha256sum "$seeds"/* > /tmp/mmv-v090-bridge/output/KNOWLEDGE-SEEDS-SHA256.txt
+
+      - name: Final bridge manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/mmv-v090-bridge/output
+          sha256sum go1.27.0.linux-amd64.tar.gz modernc-sqlite-v1.57.0-vendor.tar.gz go.mod go.sum SQLITE-RUNTIME-VERIFICATION.txt > BRIDGE-SHA256.txt
+          find . -maxdepth 2 -type f -printf '%P %s\n' | sort > BRIDGE-CONTENTS.txt
+          cat BRIDGE-CONTENTS.txt
+          cat BRIDGE-SHA256.txt
+
+      - name: Upload verified bridge
+        uses: actions/upload-artifact@v4
+        with:
+          name: mmv-v090-toolchain-bridge
+          path: /tmp/mmv-v090-bridge/output
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
