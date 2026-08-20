@@ -6,13 +6,18 @@ on:
       - automation/mmv-v090-toolchain-bridge
     paths:
       - .github/workflows/mmv-v090-toolchain-bridge.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mmv-v090-toolchain-bridge.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: mmv-v090-toolchain-bridge
+  group: mmv-v090-toolchain-bridge-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
