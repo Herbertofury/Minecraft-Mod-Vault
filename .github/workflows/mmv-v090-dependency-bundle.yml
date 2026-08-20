@@ -1,0 +1,86 @@
+name: Build MMV v0.9.0 SQLite dependency bundle
+
+on:
+  push:
+    branches:
+      - release/mod-doctor-v0.8.0
+    paths:
+      - .github/workflows/mmv-v090-dependency-bundle.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up current Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.0'
+          check-latest: true
+
+      - name: Build and verify pure-Go SQLite bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/mmv-sqlite-bundle"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          cd "$ROOT"
+          cat > go.mod <<'EOF'
+          module minecraftmodvault
+
+          go 1.27.0
+          EOF
+          cat > main.go <<'EOF'
+          package main
+
+          import (
+            "database/sql"
+            "fmt"
+            _ "github.com/ncruces/go-sqlite3/driver"
+          )
+
+          func main() {
+            db, err := sql.Open("sqlite3", "file:smoke.db?_pragma=foreign_keys(1)")
+            if err != nil { panic(err) }
+            defer db.Close()
+            if _, err = db.Exec(`CREATE VIRTUAL TABLE docs USING fts5(title, body); INSERT INTO docs VALUES ('Minecraft', 'version migration graph');`); err != nil { panic(err) }
+            var version string
+            var count int
+            if err = db.QueryRow(`SELECT sqlite_version()`).Scan(&version); err != nil { panic(err) }
+            if err = db.QueryRow(`SELECT count(*) FROM docs WHERE docs MATCH 'migration'`).Scan(&count); err != nil { panic(err) }
+            if count != 1 { panic("FTS5 smoke query failed") }
+            fmt.Printf("sqlite=%s fts5=%d\n", version, count)
+          }
+          EOF
+          go get github.com/ncruces/go-sqlite3/driver@v0.34.3
+          go mod tidy
+          go mod vendor
+          go run . | tee SQLITE-SMOKE.txt
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o sqlite-smoke-linux .
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -buildvcs=false -o sqlite-smoke-windows.exe .
+          sha256sum go.mod go.sum SQLITE-SMOKE.txt sqlite-smoke-linux sqlite-smoke-windows.exe > SHA256SUMS.txt
+          rm -f smoke.db
+          rm -rf bundle
+          mkdir bundle
+          cp -a vendor go.mod go.sum SQLITE-SMOKE.txt SHA256SUMS.txt bundle/
+          tar --sort=name --mtime='2026-08-20 00:00:00 UTC' --owner=0 --group=0 --numeric-owner -czf mmv-v090-sqlite-vendor.tar.gz -C bundle .
+          sha256sum mmv-v090-sqlite-vendor.tar.gz > mmv-v090-sqlite-vendor.tar.gz.sha256
+
+      - name: Upload verified dependency bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mmv-v090-sqlite-vendor
+          path: |
+            ${{ runner.temp }}/mmv-sqlite-bundle/mmv-v090-sqlite-vendor.tar.gz
+            ${{ runner.temp }}/mmv-sqlite-bundle/mmv-v090-sqlite-vendor.tar.gz.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
