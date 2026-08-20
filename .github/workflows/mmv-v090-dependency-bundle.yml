@@ -6,6 +6,11 @@ on:
       - release/mod-doctor-v0.8.0
     paths:
       - .github/workflows/mmv-v090-dependency-bundle.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mmv-v090-dependency-bundle.yml
   workflow_dispatch:
 
 permissions:
