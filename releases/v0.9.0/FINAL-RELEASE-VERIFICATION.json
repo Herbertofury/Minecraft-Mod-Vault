@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "name": "Minecraft Mod Vault 0.9.0 final local release verification",
+  "recordedAt": "2026-08-21T04:37:00Z",
+  "passed": true,
+  "project": "Herbertofury/Minecraft-Mod-Vault",
+  "verifiedImplementationCommit": "4191fad",
+  "verifiedEvidenceCommit": "4853f96",
+  "releaseFiles": [
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-windows-x64.zip",
+      "size": 14071813,
+      "sha256": "d3d80652ba83163c7262cc79535b83812a4920b1a6fb0cf38fd4b4602dad7b20"
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-linux-x64.tar.gz",
+      "size": 13986202,
+      "sha256": "2ed67c583c57d15d54f71827e3881a768ae43f3ccec9c88b46deef9c6b7e95d1"
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-source.zip",
+      "size": 36994941,
+      "sha256": "806cdbe4f219e636ec32f7856b1b7ae8ec58040c2346c856cd388e30707d2fb3"
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-verification-evidence.zip",
+      "size": 1899873,
+      "sha256": "07ee17974107c6823230d81d7b3b2ad5602c1ee7258afb25f4c6978060fc4fba"
+    }
+  ],
+  "checksumManifest": {
+    "name": "CHECKSUMS-SHA256-0.9.0.txt",
+    "size": 438,
+    "sha256": "fe5d947f57a2c7f5f36035a343030a02d2ab7dea0f026acb684e5ed5a9a46b1e"
+  },
+  "binaryPayloads": {
+    "linuxSha256": "0e6720b4b1b9a6bb31f90fe2d498a7f4fbfac43df264d7e87bd23062d89ed2ee",
+    "windowsSha256": "6b5967461a34cb8658d93644f9d60196bb3bdbd162519f9dda1aff3ef4fa9598",
+    "sourceRebuildByteIdentical": true
+  },
+  "finalArchiveChecks": {
+    "archiveIntegrity": true,
+    "internalManifestEntries": {
+      "windows": 53,
+      "linux": 53,
+      "source": 2161
+    },
+    "allInternalHashesPassed": true,
+    "thirdPartyLicensesPackaged": true,
+    "sourceRebuildPassed": true,
+    "extractedRuntimeLaunchPassed": true
+  },
+  "runtime": {
+    "version": "0.9.0",
+    "sqliteVersion": "3.53.3",
+    "journalMode": "wal",
+    "seedDigest": "eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4",
+    "minecraftVersions": 919,
+    "toolchainReleases": 15133,
+    "knowledgeDocuments": 342,
+    "repairRecords": 8,
+    "brainSearchResults": 2,
+    "atlasResolve": {
+      "gameVersion": "1.21.1",
+      "loader": "fabric",
+      "javaMajor": 21,
+      "exists": true,
+      "loaderSupported": true
+    }
+  },
+  "fullUIProof": {
+    "workingTreeFinalBinary": {
+      "repairLabAssertions": 25,
+      "repairLabApiCalls": 38,
+      "portingLabAssertions": 29,
+      "portingLabApiCalls": 23
+    },
+    "freshPackageIdenticalBinary": {
+      "repairLabAssertions": 25,
+      "repairLabApiCalls": 38,
+      "portingLabAssertions": 29,
+      "portingLabApiCalls": 23
+    },
+    "consolePageRequestErrors": 0
+  },
+  "publication": {
+    "googleDrive": "verified",
+    "githubReleaseIndex": "published"
+  }
+}
