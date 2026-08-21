@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-08-21T04:39:00Z",
+  "provider": "Google Drive",
+  "folderId": "1nkX40V3f0psEQldm0WjAZH9o-gnAO-Ln",
+  "allVerified": true,
+  "files": [
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-windows-x64.zip",
+      "localSize": 14071813,
+      "remoteSize": 14071813,
+      "localSha256": "d3d80652ba83163c7262cc79535b83812a4920b1a6fb0cf38fd4b4602dad7b20",
+      "remoteSha256": "d3d80652ba83163c7262cc79535b83812a4920b1a6fb0cf38fd4b4602dad7b20",
+      "verified": true
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-linux-x64.tar.gz",
+      "localSize": 13986202,
+      "remoteSize": 13986202,
+      "localSha256": "2ed67c583c57d15d54f71827e3881a768ae43f3ccec9c88b46deef9c6b7e95d1",
+      "remoteSha256": "2ed67c583c57d15d54f71827e3881a768ae43f3ccec9c88b46deef9c6b7e95d1",
+      "verified": true
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-source.zip",
+      "localSize": 36994941,
+      "remoteSize": 36994941,
+      "localSha256": "806cdbe4f219e636ec32f7856b1b7ae8ec58040c2346c856cd388e30707d2fb3",
+      "remoteSha256": "806cdbe4f219e636ec32f7856b1b7ae8ec58040c2346c856cd388e30707d2fb3",
+      "verified": true
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-verification-evidence.zip",
+      "localSize": 1899873,
+      "remoteSize": 1899873,
+      "localSha256": "07ee17974107c6823230d81d7b3b2ad5602c1ee7258afb25f4c6978060fc4fba",
+      "remoteSha256": "07ee17974107c6823230d81d7b3b2ad5602c1ee7258afb25f4c6978060fc4fba",
+      "verified": true
+    },
+    {
+      "name": "CHECKSUMS-SHA256-0.9.0.txt",
+      "localSize": 438,
+      "remoteSize": 438,
+      "localSha256": "fe5d947f57a2c7f5f36035a343030a02d2ab7dea0f026acb684e5ed5a9a46b1e",
+      "remoteSha256": "fe5d947f57a2c7f5f36035a343030a02d2ab7dea0f026acb684e5ed5a9a46b1e",
+      "verified": true
+    },
+    {
+      "name": "FINAL-RELEASE-VERIFICATION.json",
+      "localSize": 2726,
+      "remoteSize": 2726,
+      "localSha256": "8f181d02c68dcf1e2a024d0977edd513135f38206b01ed01da61a5b416f5666c",
+      "remoteSha256": "8f181d02c68dcf1e2a024d0977edd513135f38206b01ed01da61a5b416f5666c",
+      "verified": true
+    }
+  ]
+}
