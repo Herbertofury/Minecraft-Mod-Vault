@@ -1,0 +1,74 @@
+name: Publish real GitHub Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wiki/**"
+      - ".github/workflows/publish-wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-real-wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish wiki pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Publish source-controlled pages to the real GitHub Wiki
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          source_dir="$GITHUB_WORKSPACE/wiki"
+          wiki_dir="$RUNNER_TEMP/mmv-wiki"
+          wiki_url="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY}.wiki.git"
+
+          test -f "$source_dir/Home.md"
+          test -f "$source_dir/_Sidebar.md"
+          test -f "$source_dir/_Footer.md"
+
+          rm -rf "$wiki_dir"
+
+          if git clone "$wiki_url" "$wiki_dir"; then
+            echo "Existing wiki repository cloned; existing pages not present in wiki/ will be preserved."
+            existing_wiki=true
+          else
+            echo "Wiki repository is not initialized or could not be cloned; attempting first-page initialization."
+            mkdir -p "$wiki_dir"
+            git -C "$wiki_dir" init
+            git -C "$wiki_dir" remote add origin "$wiki_url"
+            existing_wiki=false
+          fi
+
+          rsync -a "$source_dir/" "$wiki_dir/" --exclude '.git/'
+
+          cd "$wiki_dir"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+
+          if git diff --cached --quiet; then
+            echo "Wiki is already synchronized."
+            exit 0
+          fi
+
+          git commit -m "Publish Minecraft Mod Vault wiki from ${GITHUB_SHA}"
+
+          if [ "$existing_wiki" = true ]; then
+            git push origin HEAD
+          else
+            git branch -M master
+            git push --set-upstream origin master
+          fi
