@@ -1,133 +1,280 @@
 # Minecraft Daily Category Scout — 2026-08-22
 
-This report covers Java and Bedrock across active versions/loaders, with special attention to Forge 1.20.1, client-side/update-friendly additions, shaders/resource packs, tools, Bedrock, and artistic maps.
+**Run:** evening manual run requested by user  
+**Scope:** Java + Bedrock, all materially active versions/loaders, stable + preview/snapshot where relevant, mods, client-only/world-safe picks, performance, compatibility, resource packs, shaders, maps, Planet Minecraft, Marketplace, and tools.  
+**Special target:** large Forge 1.20.1 pack, while still surfacing better/newer projects on other versions.
 
-## Top recommendations
+## Current Minecraft baselines checked
 
-### INSTALL / TEST NOW — Forge 1.20.1
+- **Java stable:** 26.2 (released June 16, 2026).
+- **Java snapshot:** 26.3 Snapshot 9 (August 17, 2026).
+- **Bedrock stable:** 26.45 hotfix line (August 20, 2026).
+- **Bedrock Preview/Beta:** 26.50.26 (August 18, 2026).
 
-1. **Legendary Block Entities 0.11.0** — strongest fresh client-side performance find today. Forge 1.20.1 only, 100% client-side, now also optimizes signs in addition to chests, shulker boxes, bells and beds. High confidence world-safe/removable because it changes rendering rather than registries/world data. Test beside Embeddium/Oculus and the existing optimization stack before promoting.
-   - https://www.curseforge.com/minecraft/mc-mods/legendary-block-entities
-   - https://www.curseforge.com/minecraft/mc-mods/legendary-block-entities/files/8703898
+This matters because many Bedrock projects uploaded today still label themselves **26.40**. They may work on 26.45, but that is not the same as a verified 26.45 declaration, so those are marked for testing instead of being presented as guaranteed 26.45-safe.
 
-2. **Client Tweaks 11.1.11** — best recent evergreen QoL update for Forge 1.20.1. The project is extremely established, supports Fabric/Forge/NeoForge across many Minecraft versions, and received its 1.20.1 Forge update on Aug 21. This is the kind of low-world-coupling utility that is usually easy to remove when testing a future Minecraft upgrade.
-   - https://www.curseforge.com/minecraft/mc-mods/client-tweaks
+# Executive winners
 
-3. **Epic Fight Guard Fix** — highest relevance combat/compatibility watch for the current Epic Fight-heavy setup. CurseForge’s current listing shows project activity on Aug 22, while the directly surfaced latest file remains `guardfix-1.0.9.jar` for Forge 1.20.1 from Aug 16. It targets shield/weapon guard failures, Weapons of Miracles Perfect Bulwark, Nightfall parry, unarmed combat and other core bugs. Because it uses mixins in an already dense combat stack, TEST BRANCH rather than blind main-pack install.
-   - https://www.curseforge.com/minecraft/mc-mods/epic-fight-guard-fix
+## Best thing to test now on Forge 1.20.1: Legendary Block Entities 0.11.0
 
-4. **Collections Of Optimizations** — updated Aug 22 for Forge 1.20.1. This is already part of the known optimization stack, so this is an **audit/update candidate**, not a recommendation to duplicate-install it. Verify the installed build against today’s current file before changing anything.
-   - https://www.curseforge.com/minecraft/mc-mods/collections-of-optimizations
+**Status:** INSTALL / TEST NOW  
+**Released:** August 22, 2026  
+**Minecraft:** 1.20.1 Forge  
+**Side:** 100% client-side
 
-5. **MoreInformation 1.0.0** — brand-new configurable information HUD with Forge 1.20.1 and NeoForge 1.21.1 builds. It shows TPS/MSPT/RAM/player/FPS/time and optional integrations. Very low adoption today, so it is a TEST/OPTIONAL pick rather than a default add.
-   - https://www.curseforge.com/minecraft/mc-mods/moreinformation
+A very unusually clean fit for a long-lived world: it is a renderer optimization rather than a content/world-data mod. Version 0.11.0 adds **sign rendering optimizations**, with the author specifically calling out heavy CPU relief in modded structures that use signs as decor. The project also optimizes block-entity rendering for chests, shulker boxes, bells and beds.
 
-### Gameplay / content
+**World/update safety:** excellent. No server install, no blocks/items/entities/worldgen added, no save dependency expected. Removing it should simply remove the rendering optimization.
 
-6. **Ars Zero 2.0.2** — substantive Aug 22 release for Forge 1.20.1 and NeoForge 1.21.1, adding cast devices and glyphs for Ars Nouveau. Strong if Ars Nouveau is in the target instance; otherwise skip rather than adding a new magic ecosystem only for the addon.
-   - https://www.curseforge.com/minecraft/mc-mods/ars-zero
+- https://www.curseforge.com/minecraft/mc-mods/legendary-block-entities
+- https://www.curseforge.com/minecraft/mc-mods/legendary-block-entities/files/8703898
 
-7. **World Bosses 1.4.0** — today’s notable future-loader expansion: a Forge 26.2 beta migration landed Aug 22. The mod already has Fabric builds for 1.20.1, 1.21.1, 1.21.11, 26.1.2 and 26.2 and provides shrine/ritual-driven world bosses, phases, raid scaling, trophies and endgame gear. Treat it as FUTURE/HIGH-VALUE for the current Forge 1.20.1 pack rather than forcing the Fabric 1.20.1 build through Connector.
-   - https://www.curseforge.com/minecraft/mc-mods/world-bosses
-   - https://www.curseforge.com/minecraft/mc-mods/world-bosses/files/8706287
+## Best substantive Forge 1.20.1 content release today: Sculk Horde 0.12.7
 
-## Client-side / update-friendly leaderboard
+**Status:** TEST BRANCH / OPTIONAL CONTENT  
+**Released:** August 22, 2026  
+**Minecraft:** 1.20.1 Forge  
+**Side:** Client + Server
 
-### Best fresh client-side performance pick
-**Legendary Block Entities 0.11.0**
-- Client only: **Yes**
-- Server required: **No**
-- Save/world data touched: **None expected; rendering optimization**
-- Adds blocks/items/entities/worldgen: **No**
-- Safe to remove: **High confidence**
-- Update friendliness: **Excellent for a 1.20.1-only client optimization**
+Sculk Horde is a mature endgame/world-threat system with more than a million project downloads. Today’s 0.12.7 release changes item-eating logic to tags, updates minimap icons/language data, fixes block tags, fixes sculk nodes being nuke-proof and fixes Ghast Deployment spam; experimental mode also gets new Hatcher attacks.
 
-### Best recent evergreen client QoL pick
-**Client Tweaks 11.1.11**
-- Broad Fabric/Forge/NeoForge and multi-version support
-- Very mature project
-- Low world/save coupling compared with content/worldgen mods
-- Good candidate for a long-lived client profile
+**World/update safety:** low compared with client utilities. This is deliberately a world-changing gameplay system. Add only if the world is meant to commit to the invasion/endgame mechanic; test mob density and combat behavior in the large pack first.
 
-### Best evergreen client performance foundation already worth keeping
-**ImmediatelyFast** remains a strong lightweight, client-side rendering optimizer across Fabric/Forge/NeoForge/Quilt and 1.20.x through 26.x. If already installed, do not duplicate it; keep it in the evergreen client stack and audit versions rather than replacing it casually.
-- https://modrinth.com/mod/immediatelyfast
+- https://www.curseforge.com/minecraft/mc-mods/sculk-horde
+- https://www.curseforge.com/minecraft/mc-mods/sculk-horde/files/8704762
 
-### Additional world-safe evergreen client utility
-**BetterF3** remains a strong cross-loader client-only debug HUD replacement with support from 1.16.x through 26.2.
-- https://modrinth.com/mod/betterf3
+## Best broad optimization/update audit: Collections Of Optimizations 2.4
 
-**Mouse Tweaks** remains a mature client-only inventory input improvement with very broad loader/version coverage. The 1.20.1 Forge build is older, but the project itself is actively maintained for current versions.
-- https://www.curseforge.com/minecraft/mc-mods/mouse-tweaks
+**Status:** UPDATE / AUDIT IF INSTALLED BUILD IS OLDER  
+**Released:** August 22, 2026  
+**Minecraft:** 1.20.1 Forge  
+**Side:** Client + Server
 
-## Resource pack
+2.4 is current today. This project is unusually relevant to a huge modpack because its mixins load only when their target mods are installed and its author reports testing against 507 mods. Its current target list includes **Alex’s Mobs, Create, Distant Horizons, ImmediatelyFast, Oculus, Xaero’s Minimap/World Map, Mowzie’s Mobs, Ice and Fire, Born in Chaos, Curios, GeckoLib, TerraBlender, Supplementaries** and many more.
 
-### Today’s best fresh resource-pack candidate: N87 PBR Pack 128x — Aug 22 build
-The Aug 22 file supports Minecraft 1.20.1 through 26.2 and provides physically based rendering support for vanilla textures. It is still in production, so treat it as a high-end visual test rather than a finished universal replacement. As a resource pack it is world-safe and removable without save migration.
+This is not client-only and several patches deliberately touch server/world-data paths, so it should still be benchmarked and regression-tested rather than treated like a harmless HUD mod.
+
+- https://www.curseforge.com/minecraft/mc-mods/collections-of-optimizations
+
+## Maintenance update worth taking: ModernFix 5.27.77
+
+**Status:** UPDATE if the pack is still on 5.27.76  
+**Minecraft:** 1.20.1 Forge  
+**Released:** August 21, 2026
+
+Small continuous-deployment maintenance update. No claim of a specific performance win without benchmarking, but it is the current surfaced 1.20.1 Forge build.
+
+- https://www.curseforge.com/minecraft/mc-mods/modernfix
+
+# 30-category daily scoreboard
+
+| # | Category | Current winner / result | Why it won this run | Fit |
+|---|---|---|---|---|
+| 1 | Best Overall Java Mod | **Sculk Horde 0.12.7** | Mature, substantial same-day Forge 1.20.1 update rather than metadata churn | TEST BRANCH |
+| 2 | Best Forge/NeoForge Mod | **Legendary Block Entities 0.11.0** for the current pack; **World Bosses 1.4.0 Forge 26.2 beta** for future versions | LBE is a clean current-pack gain; World Bosses gained Forge 26.2 today | INSTALL/TEST + FUTURE |
+| 3 | Best Fabric/Quilt Mod | **Sodium 0.9.1** | Still the modern client renderer leader; Fabric/NeoForge 26.2 and broad modern version coverage | FUTURE VERSION |
+| 4 | Best Performance/Optimization Mod | **Legendary Block Entities 0.11.0** (fresh/current pack); **Sodium 0.9.1** (modern overall) | Strongest low-risk new Forge 1.20.1 client performance fit | INSTALL/TEST |
+| 5 | Best Compatibility/Fix Mod | **Collections Of Optimizations 2.4** | Enormous target list lines up unusually well with a giant 1.20.1 pack | UPDATE/AUDIT |
+| 6 | Best Gameplay/QoL Mod | **Client Tweaks 11.1.11** | Mature, broad loader/version support, low world coupling | CLIENT-SAFE |
+| 7 | Best Exploration/Worldgen/Dimension Mod | **Sculk Horde 0.12.7** | Strongest substantive 1.20.1 world-changing release today | OPTIONAL / WORLD-AFFECTING |
+| 8 | Best Mob/Creature Mod | **Sculk Horde 0.12.7** | Mature hostile ecosystem with real same-day update | TEST BRANCH |
+| 9 | Best Combat/Animation Fix | **Epic Fight Guard Fix 1.0.9** | Extremely relevant to Epic Fight/WOM/Nightfall-style combat stacks; project active today although binary is Aug 16 | TEST BRANCH |
+| 10 | Best Movement/Skating/Grinding/Vehicle Mod | **NO MATERIAL SAME-DAY CHANGE** | Keep tracking I Wanna Skate for native 1.20.1 and I Need Skating for newer NeoForge; neither earned a new winner today | WATCH |
+| 11 | Best Create/Technology Mod | **NO MATERIAL SAME-DAY 1.20.1 LEADER CHANGE** | Do not force a newer-version addon merely to fill the category | NO CHANGE |
+| 12 | Best Building/Decoration Mod | **Decorative Storage 4.0808** | Established Forge 1.20.1 project with same-day bug/recipe maintenance | OPTIONAL |
+| 13 | Best Resource Pack | **N87 PBR 128x** = fresh pick; **Optimum Realism 64x** = current overall realism pick | N87 shipped a same-day multi-version build; Optimum has stronger mature coverage and active monthly development | WORLD-SAFE VISUAL |
+| 14 | Best Shader | **Complementary Reimagined** overall; **Author87668’s LIGHT** lightweight | Complementary remains the best balance of quality/performance; LIGHT is excellent for high FPS and explicitly supports Oculus | WORLD-SAFE VISUAL |
+| 15 | Best Datapack | **NO MATERIAL CHANGE** | No same-day Java datapack cleared the quality/adoption bar | NO CHANGE |
+| 16 | Best Bedrock Add-On | **CobbleDrock 1.2.3 — Gym Challenge Update** | Deep Pokémon-style system, 235K+ downloads in today’s indexed Bedrock listing, substantive rather than tiny new upload | BEDROCK ONLY |
+| 17 | Best Bedrock Resource/Behavior Pack | **Feather FPS Boost v11** performance; **ZenXveda Dynamic Lights** utility | Both updated today and have real adoption; Feather has a resource-only path for lower world coupling | BEDROCK TEST |
+| 18 | Best Bedrock Marketplace Find | **Auto Factory** | Official August Marketplace selection with conveyors, funnels, magnets and redstone-compatible automation | BEDROCK MARKETPLACE |
+| 19 | Best Minecraft Map/Adventure Map | **Trident Cliffs City** (best recent verified PMC candidate) | Large, explorable, terrain-integrated city with interiors and performance restraint | MAP |
+| 20 | Best Artistic/Showcase Build | **Trident Cliffs City** | Strongest recent artistic city surfaced by PMC’s currently indexed pages | MAP |
+| 21 | Best Tool/Utility/Launcher | **Modrinth App 0.18.0** integrated; **Prism Launcher 11.0.3** power-user | Modrinth wins discovery/update convenience; Prism wins control and instance management | TOOL |
+| 22 | Best Server/Admin/Diagnostics Tool | **NO MATERIAL SAME-DAY CHANGE** | Existing mature profilers remain preferable to tiny same-day uploads | NO CHANGE |
+| 23 | Best Modding/Development Tool/Library | **NO MATERIAL SAME-DAY CHANGE** | No same-day tool/library displaced the mature incumbents | NO CHANGE |
+| 24 | Best Experimental/Bleeding-Edge Project | **World Bosses 1.4.0 Forge 26.2 beta** | New Forge migration landed today; strong future experimentation target | FUTURE/EXPERIMENTAL |
+| 25 | Best Future-Version Project | **World Bosses + Sodium modern stack** | Useful reason to keep a 26.2 Forge/NeoForge/Fabric test branch | FUTURE |
+| 26 | Best Client-Side-Only Mod | **Legendary Block Entities 0.11.0** | 100% client-side, released today, directly useful on Forge 1.20.1 | CLIENT-SAFE |
+| 27 | Best Update-Friendly / World-Safe Mod | **Client Tweaks 11.1.11** | Broad active version/loader coverage with little save coupling | CLIENT-SAFE |
+| 28 | Best Client-Side Performance Mod | **Legendary Block Entities 0.11.0** for Forge 1.20.1; **Sodium 0.9.1** for modern MC | Current-pack-specific winner versus modern overall renderer winner | CLIENT-SAFE |
+| 29 | Best Client-Side QoL/UI Mod | **Client Tweaks 11.1.11** | Mature, portable client QoL without world dependency | CLIENT-SAFE |
+| 30 | Best Removable-With-Minimal-Save-Risk Mod | **BetterF3** | Pure client debug-HUD replacement, broad version/loader support, no world content | CLIENT-SAFE |
+
+# Best evergreen client/update-friendly stack
+
+These are the kinds of mods to favor when the goal is **maximum improvement without making the save dependent on the mod**.
+
+| Project | Client only? | Server required? | Save/world data touched | Adds registries/worldgen/content? | Safe to remove | Update friendliness |
+|---|---|---|---|---|---|---|
+| **Legendary Block Entities 0.11.0** | Yes | No | None expected; rendering only | No | **High confidence** | Excellent for a 1.20.1 client |
+| **ImmediatelyFast** | Yes | No | Client config/cache only | No | **High confidence** | Excellent; broad modern loader/version support |
+| **Client Tweaks 11.1.11** | Client-focused | No for normal client features | Config/client state | No world content | **High confidence** | Excellent; actively multi-version/cross-loader |
+| **BetterF3** | Yes | No | Client config | No | **Very high confidence** | Excellent |
+| **Mouse Tweaks** | Yes | No | Client config | No | **Very high confidence** | Excellent conceptually; 1.20.1 branch is older |
+| **Resource packs / shaders** | Client presentation | No | Resource/shader config only | No world registries | **Very high confidence** | Excellent, assuming the renderer supports the target MC version |
+
+### What does NOT belong in the “update-safe” bucket
+
+Content mods that add blocks/items/entities/worldgen, dimensions, invasion systems, or persistent custom data can still be excellent, but they should not be sold as easy-remove upgrades. **Sculk Horde, Better Biomes, Warden Expansion, Decorative Storage, World Bosses, Spider-Man, CobbleDrock and most Marketplace gameplay add-ons** are examples of intentionally world/gameplay-affecting content.
+
+# Current-pack-specific recommendations
+
+## 1. Legendary Block Entities 0.11.0 — test first
+
+This is the cleanest new candidate for the Forge 1.20.1 instance. It is 100% client-side and today’s changelog specifically adds sign optimization. Benchmark it in a copy of the instance with the existing renderer stack and shader path; if it is clean, it is a strong candidate for permanent inclusion.
+
+## 2. Collections Of Optimizations 2.4 — audit installed version
+
+2.4 is current today. Because it directly targets a huge number of mods that overlap the existing ecosystem, it deserves an update check. It is much more invasive than LBE, however: maintain a backup and do a real gameplay/world-load regression pass after updating.
+
+## 3. ModernFix 5.27.77 — maintenance update
+
+If the instance is still using 5.27.76, 5.27.77 is the current surfaced Forge 1.20.1 build. Treat as normal maintenance rather than assuming a measurable speedup without profiling.
+
+## 4. Client Tweaks 11.1.11 — add if missing
+
+One of the strongest “future upgrades stay easy” utilities surfaced. Its value is not adding content; it is making the client nicer while keeping the world independent of it.
+
+## 5. Epic Fight Guard Fix — high-value compatibility test, not blind install
+
+The latest directly surfaced binary remains `guardfix-1.0.9.jar` from Aug 16 even though the project shows activity today. It targets guard/parry issues involving base Epic Fight, Weapons of Miracles, Nightfall and related combat behavior. That makes it relevant, but also exactly the kind of mixin-heavy combat patch that should be tested against the entire animation/combat addon stack before promotion.
+
+## 6. Sculk Horde 0.12.7 — optional major content injection
+
+This is today’s best substantial 1.20.1 gameplay release, but it is the opposite of update-neutral. Use it only if an invasive sculk endgame threat is something the world should permanently embrace.
+
+# Future-version watch
+
+## World Bosses 1.4.0
+
+A **Forge 26.2 beta migration** uploaded August 22. The project now lists Fabric + Forge and covers 1.20.1 through modern versions, although the older 1.20.1 build is Fabric. Do not force the 1.20.1 Fabric build through Connector simply because it exists; the important new signal is that a native Forge path now exists on 26.2.
+
+- https://www.curseforge.com/minecraft/mc-mods/world-bosses
+- https://www.curseforge.com/minecraft/mc-mods/world-bosses/files/8706287
+
+## Sodium 0.9.1
+
+Still the modern client renderer leader for Fabric/NeoForge/Quilt. The current 26.2 release is client-side and fixes several stability/crash issues; Sodium 0.9.x also represents the current experimental-Vulkan direction. This is a future-version reference, not a reason to replace Embeddium in the current Forge 1.20.1 instance.
+
+- https://modrinth.com/mod/sodium
+
+# Resource-pack winners
+
+## Fresh pick: N87 PBR Pack 128x
+
+Same-day build for a broad range including 1.20.1 through 26.2. It adds PBR/POM-style material depth while trying to preserve vanilla texture identity. The project is still young, so test coverage before making it the visual baseline.
+
 - https://www.curseforge.com/minecraft/texture-packs/n87-pbr-pack
-- https://www.curseforge.com/minecraft/texture-packs/n87-pbr-pack/files/8704749
 
-## Shader
+## Best current overall realism pick: Optimum Realism 64x
 
-### Best current proven lightweight pick: Author87668’s LIGHT Shaders
-Not a new Aug 22 file, but still one of the strongest current low-cost visual options surfaced in today’s scan. It supports Iris/Oculus/OptiFine, includes 1.20.1 support, and is designed for strong FPS while retaining water reflections, ripples, shadows, weather and optional TAA.
+Actively updated, broad 1.20.x/1.21.x/26.x compatibility, 650+ reworked blocks, custom models, PBR/POM/emissive support, and a free 64x edition. It is a stronger mature recommendation than choosing a same-day pack purely because it is new.
+
+- https://modrinth.com/resourcepack/optimum-realism
+
+# Shader winners
+
+## Best current overall: Complementary Reimagined
+
+Still the strongest balance of Minecraft-faithful art direction, polish, performance scalability and enormous real-world adoption. Current project compatibility covers 1.20.x through 26.2. It has a history of Distant Horizons support in the modern release line.
+
+- https://modrinth.com/shader/complementary-reimagined
+
+## Best lightweight / lower-cost option: Author87668’s LIGHT Shaders
+
+Latest file is 1.7.0 from Aug 11 rather than a same-day binary. It explicitly lists Iris/Oculus/OptiFine as requirements and retains water reflections, ripples, shadows, weather effects and optional TAA while targeting high FPS.
+
 - https://www.curseforge.com/minecraft/shaders/author87668s-light-shaders
 
-### Today’s experimental shader watch: Revival Shader
-CurseForge’s current shader category listing shows Revival Shader as updated Aug 22 and describes additional optimization beyond Mellow Shader, but the latest directly inspectable file metadata in this run still pointed to v0.8 from Aug 16. **WATCH until file metadata settles; do not call it a verified new Aug 22 binary yet.**
-- https://www.curseforge.com/minecraft/shaders/revival-shader
+## Same-day shader watch
 
-## Bedrock — current stable 26.40 ecosystem
+**Revival Shader** shows Aug 22 project activity, but its directly inspectable binary metadata lagged behind that activity during this run. Keep it WATCH rather than falsely calling it a verified same-day binary. **The Beat of a Heart** is also an interesting very-new high-end/path-tracing-style experiment but is far too new to displace mature shader leaders.
 
-### Best fresh Bedrock worldgen add-on: Better Biomes V2
-Updated Aug 22 for Bedrock 26.40. Adds new biomes while overhauling vanilla biomes/caves. High visual/gameplay value, but it is intentionally world-affecting: not an update-friendly/removable pick for a forever world.
-- https://www.curseforge.com/minecraft-bedrock/addons/better-biomes-addon-mrstrader
+# Bedrock winners
 
-### Best fresh Bedrock performance pack: Feather FPS Boost Mod v11
-Updated Aug 22 for Bedrock 26.40 and marked achievement-friendly, no experiments required, existing-world compatible and Vibrant Visuals compatible. Important caveat: the behavior-pack component reduces mob spawn density; for the most update-friendly/world-neutral use, prefer its resource-pack-only mode.
+**Important baseline:** current stable Bedrock is **26.45**, while today’s CurseForge ecosystem is still dominated by packs declaring **26.40**. Test those on 26.45 rather than assuming the version label guarantees compatibility.
+
+## Feather FPS Boost Mod v11 — best performance find
+
+Updated today with a large existing audience. It is achievement-friendly and designed for existing worlds. For the most update-friendly approach, prefer its resource-pack-only mode where possible; behavior-pack performance approaches can alter simulation/spawn behavior and should not be conflated with purely visual optimization.
+
 - https://www.curseforge.com/minecraft-bedrock/addons/feather-fps-boost-mod
 
-### Best polished action add-on updated today: Spider-Man | EL SANDO
-Updated Aug 22 with a redesigned Spider-Man HUD plus bug/stability/performance work. The project has broad Bedrock version coverage and substantially more adoption than most same-day releases.
-- https://www.curseforge.com/minecraft-bedrock/addons/spider-man-el-sando
+## ZenXveda Dynamic Lights — best utility add-on
 
-### Best tiny/update-friendly Bedrock QoL experiment: Actual Notes
-New Aug 22 for 26.40, achievement-compatible, no experimental toggles, and does not use `player.json`. It displays notes from paper on the action bar. Adoption is effectively zero today, so this is a TEST/WATCH item, not a default install.
-- https://www.curseforge.com/minecraft-bedrock/addons/actual-notes
+Updated today and already has tens of thousands of downloads. It provides held/off-hand dynamic lighting. As with other script/behavior add-ons, confirm 26.45 behavior before making it a forever-world dependency.
 
-## Marketplace
+- https://www.curseforge.com/minecraft-bedrock/addons/zenxveda-dynamic-lights
 
-### Best official August Marketplace category pick: Auto Factory / Warpstones / Uncrafter+ 2.1
-Mojang’s official August 2026 Marketplace Pass roundup highlights several unusually useful add-ons. For general survival utility, **Auto Factory** (automation), **Warpstones** (multiplayer-friendly teleportation), and **Uncrafter+ 2.1** (reversible crafting with broad addon compatibility) are the strongest utility-oriented picks from the official August lineup.
+## CobbleDrock 1.2.3 — best large gameplay add-on surfaced today
+
+Today’s indexed listing shows a substantial established audience and a Gym Challenge update, with Pokémon capture/training/battles, Pokédex/storage, mounts, settlements and gyms. This is a feature-heavy world dependency, not an update-neutral add-on.
+
+## Other strong same-day Bedrock watches
+
+- **Spider-Man | EL SANDO** — polished action/acrobatic/web-swinging addon with a large audience.
+- **Warden Expansion 1.11** — same-day 26.40 release adding artistic Warden variants.
+- **Better Biomes** — strong worldgen/biome overhaul but intentionally world-affecting.
+- **Dynamic Health Bar Indicator** — highly adopted same-day listing and interesting compatibility-friendly HUD approach.
+- **Better Tree Capitator & Vein Miner** — established achievement-friendly QoL option.
+
+# Marketplace winner
+
+## Auto Factory — best official August utility pick
+
+Mojang’s official August 2026 Marketplace roundup describes Auto Factory as a redstone-compatible automation add-on with conveyor belts, funnels and magnets. **Warpstones** is the runner-up for multiplayer-friendly teleportation, and **Uncrafter+ 2.1** is especially interesting because Mojang explicitly calls out compatibility with a large variety of other add-ons.
+
 - https://www.minecraft.net/en-us/article/marketplace-content-august-2026
 
-## Artistic map / Planet Minecraft
+# Planet Minecraft artistic map
 
-Planet Minecraft’s web-search index available to this run lagged behind Aug 22, so I am **not** inventing a same-day winner. The strongest recent current map surfaced is **Trident Cliffs City** (Aug 5): a large player-scale island city with skyscrapers, historic districts, suburbs, harbor, interiors, terrain-integrated urban design and deliberate entity/block-entity performance restraint. It is still 80% complete.
+## Trident Cliffs City — best recent candidate I could verify
+
+Planet Minecraft’s searchable index available to this run is lagging by roughly two weeks, so a claim that this is literally the best upload of August 22 would be dishonest. Within the latest pages the index actually exposed, **Trident Cliffs City** is the standout: an 80%-complete complex island city and current trending candidate with a strong emphasis on exploration-scale streets/buildings and city composition.
+
 - https://www.planetminecraft.com/project/trident-cliffs-city/
 
-## Tool / launcher
+This category stays open for the next run because Planet Minecraft itself was not exposing a true Aug 22 index through the search path available here.
 
-### Best current integrated mod-discovery/updating tool: Modrinth App 0.18.0
-Released Aug 18 with a redesigned Play experience, better instance creation/search, icon creation, onboarding improvements and multiple update/content-management fixes. Modrinth also says content updates are checked immediately when viewing an instance’s content rather than waiting for cache invalidation.
+# Tools / launchers
+
+## Modrinth App — best integrated discovery/update workflow
+
+The August 18 app update introduced a combined Play page, improved instance creation/search, groups/filtering, an icon editor and onboarding improvements. This is the current best integrated option when discovery + updating + instance management should feel cohesive.
+
 - https://modrinth.com/app
-- https://modrinth.com/news/changelog
 
-### Best power-user launcher baseline: Prism Launcher 11.0.3 stable
-Prism remains the strongest current power-user multi-instance baseline; a newer 11.1.0-pre1 exists for bleeding-edge testing, but 11.0.3 is the safer stable recommendation.
+## Prism Launcher 11.0.3 — best power-user launcher baseline
+
+11.0.3 is the current stable release checked in this run. It improves offline behavior and fixes CurseForge support, while retaining the deep multi-instance control that makes Prism an excellent power-user baseline.
+
 - https://prismlauncher.org/
-- https://prismlauncher.org/news/
 
-## Today’s priority order for the Forge 1.20.1 pack
+# Rejected / watch-only same-day uploads
 
-1. **Test Legendary Block Entities 0.11.0 first.** It is exactly the kind of client-only, world-safe performance gain worth adding if it behaves cleanly beside the current renderer stack.
-2. **Audit Client Tweaks 11.1.11** if it is not already present.
-3. **Test Epic Fight Guard Fix** in a copied instance, specifically shield + one-handed guard, WOM Perfect Bulwark, Nightfall parry and unarmed combat.
-4. **Check Collections Of Optimizations installed version** before doing anything; update only if today’s build is newer than the installed jar.
-5. **Keep N87 PBR as a visual test**, not a permanent default until coverage/quality is inspected in-game.
-6. **Do not force World Bosses Fabric 1.20.1 through Connector** just because it exists; track the new Forge 26.2 path instead.
-7. **Keep Bedrock worldgen add-ons out of forever worlds unless intentionally committed**, while favoring resource-only/client-presentation packs for update-friendly worlds.
+The run deliberately did **not** promote tiny same-day projects merely for recency. Examples include brand-new single/double-digit-download “performance” and utility mods such as StutterFix-Reforged and several new Epic Fight/movement experiments. They remain watchlist material until they have enough real-world use or source-level evidence to justify placing them above established projects.
 
-## Schedule policy added today
+# Priority order after this run
 
-The daily scout now evaluates 30 explicit categories including Java/Bedrock, performance, compatibility, client-only, world-safe/update-friendly, resource packs, shaders, datapacks, Marketplace, Planet Minecraft artistic maps, launchers/tools, diagnostics, modding tools and future-version projects. It also records client-only status, server requirement, save/world-data impact, removability confidence and future-upgrade friendliness instead of treating every mod as equally safe.
+1. **Test Legendary Block Entities 0.11.0.** Highest-confidence new current-pack candidate and genuinely client-only.
+2. **Audit Collections Of Optimizations against 2.4.** Update only from a known older build, then regression-test because it patches a very broad mod surface.
+3. **Update ModernFix to 5.27.77 if the instance is still on 5.27.76.**
+4. **Add/audit Client Tweaks 11.1.11** if absent.
+5. **Test Epic Fight Guard Fix** in a copied instance before adding it to the dense combat stack.
+6. **Keep Sculk Horde 0.12.7 optional.** It is today’s best major Forge 1.20.1 content release, but it creates a deliberate long-term world dependency.
+7. **Keep resource packs/shaders in the easy-upgrade layer.** They are some of the safest ways to radically improve presentation without binding the save.
+8. **Track World Bosses’ new Forge 26.2 path and Sodium 0.9.x** for a future-version branch.
+9. **Treat Bedrock 26.40-labeled packs as test candidates on current stable 26.45**, not guaranteed current-version compatibility.
+10. **Do not invent a Planet Minecraft same-day winner while its indexed pages are stale.** Re-evaluate when fresh Aug 22/23 pages become searchable.
+
+# Source hubs checked
+
+- Minecraft official Java/Bedrock release notes and Preview notes
+- CurseForge Java mods and Bedrock add-ons
+- Modrinth mods/resource packs/shaders/app
+- Planet Minecraft maps/trending index
+- Minecraft official Marketplace August 2026 roundup
+- Official Prism Launcher release notes
+
+The daily automation remains enabled and will treat this report as a delta watermark rather than rediscovering the same projects tomorrow without a meaningful update, port, ranking change, compatibility change or new evidence.
