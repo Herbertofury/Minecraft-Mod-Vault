@@ -23,8 +23,8 @@ jobs:
       run:
         working-directory: rpg-series-port/structure_pool_api-forge-1.20.1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -46,10 +46,30 @@ jobs:
             exit 1
           fi
           sha256sum "$JAR" | tee structure-pool-api.sha256
+      - name: Smoke-test Forge 1.20.1 dedicated server
+        run: |
+          set -euxo pipefail
+          mkdir -p forge/run
+          printf 'eula=true\n' > forge/run/eula.txt
+          set +e
+          timeout 180s gradle --no-daemon :forge:runServer > forge-server-smoke.log 2>&1
+          STATUS=$?
+          set -e
+          cat forge-server-smoke.log
+          test "$STATUS" -eq 0 -o "$STATUS" -eq 124
+          LOG=$(find forge -type f -path '*/logs/latest.log' | head -n 1)
+          test -n "$LOG"
+          grep -E 'Done \([0-9.]+s\)!|Done \([0-9.]+s\)! For help' "$LOG"
+          if grep -E 'MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to load class|Exception in server tick loop|Failed to create mod instance' "$LOG"; then
+            echo 'Forge smoke log contains a fatal loader/mixin signature' >&2
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: structure-pool-api-forge-1.20.1
           path: |
             rpg-series-port/structure_pool_api-forge-1.20.1/forge/build/libs/*.jar
             rpg-series-port/structure_pool_api-forge-1.20.1/structure-pool-api.sha256
+            rpg-series-port/structure_pool_api-forge-1.20.1/forge-server-smoke.log
+            rpg-series-port/structure_pool_api-forge-1.20.1/forge/run/logs/latest.log
           if-no-files-found: error
