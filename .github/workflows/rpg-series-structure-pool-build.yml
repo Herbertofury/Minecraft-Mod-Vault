@@ -1,0 +1,49 @@
+name: RPG Series - Structure Pool API Forge 1.20.1
+
+on:
+  push:
+    branches:
+      - workbench/rpg-series-forge-1.20.1
+    paths:
+      - 'rpg-series-port/structure_pool_api-forge-1.20.1/**'
+      - '.github/workflows/rpg-series-structure-pool-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rpg-series-port/structure_pool_api-forge-1.20.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+      - name: Build native Forge jar
+        run: gradle --no-daemon --stacktrace :forge:build
+      - name: Verify packaged jar
+        run: |
+          set -euxo pipefail
+          JAR=$(find forge/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | head -n 1)
+          test -n "$JAR"
+          unzip -t "$JAR"
+          unzip -p "$JAR" META-INF/mods.toml | grep -F 'modId="structure_pool_api"'
+          unzip -l "$JAR" | grep -F 'net/fabric_extras/structure_pool/forge/ForgeMod.class'
+          if unzip -l "$JAR" | grep -q 'META-INF/neoforge.mods.toml'; then
+            echo 'Unexpected NeoForge metadata in final Forge jar' >&2
+            exit 1
+          fi
+          sha256sum "$JAR" | tee structure-pool-api.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: structure-pool-api-forge-1.20.1
+          path: |
+            rpg-series-port/structure_pool_api-forge-1.20.1/forge/build/libs/*.jar
+            rpg-series-port/structure_pool_api-forge-1.20.1/structure-pool-api.sha256
+          if-no-files-found: error
