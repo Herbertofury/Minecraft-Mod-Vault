@@ -7,6 +7,12 @@ on:
     paths:
       - 'rpg-series-port/structure_pool_api-forge-1.20.1/**'
       - '.github/workflows/rpg-series-structure-pool-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'rpg-series-port/structure_pool_api-forge-1.20.1/**'
+      - '.github/workflows/rpg-series-structure-pool-build.yml'
   workflow_dispatch:
 
 jobs:
