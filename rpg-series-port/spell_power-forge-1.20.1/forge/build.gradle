@@ -1,0 +1,29 @@
+plugins { id 'com.github.johnrengelman.shadow' }
+architectury { platformSetupLoomIde(); forge() }
+loom {
+    forge { mixinConfig 'spell_power.mixins.json' }
+    runs {
+        server {
+            if (project.hasProperty('spellPowerCiSelfTest')) property 'spellPower.ci.selftest', 'true'
+        }
+    }
+}
+configurations {
+    common { canBeResolved = true; canBeConsumed = false }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+    shadowBundle { canBeResolved = true; canBeConsumed = false }
+}
+dependencies {
+    forge "net.minecraftforge:forge:$rootProject.forge_version"
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle project(path: ':common', configuration: 'transformProductionForge')
+    include implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') { expand(version: project.version) }
+}
+shadowJar { configurations = [project.configurations.shadowBundle]; archiveClassifier = 'dev-shadow' }
+remapJar { inputFile.set shadowJar.archiveFile; dependsOn shadowJar; archiveClassifier='' }

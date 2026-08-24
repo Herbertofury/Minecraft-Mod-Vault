@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="LGPL-3.0-only"
+[[mods]]
+modId="spell_power"
+version="${version}"
+displayName="Spell Power Attributes"
+description='''Native Forge 1.20.1 backport of the Spell Power 1.6.0 feature/API line.'''
+[[dependencies.spell_power]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.spell_power]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"

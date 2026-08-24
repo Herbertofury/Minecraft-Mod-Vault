@@ -1,0 +1,12 @@
+architectury { common(rootProject.enabled_platforms.split(',')) }
+sourceSets {
+    main {
+        java.srcDir 'src/generatedUpstream/java'
+        resources.srcDir 'src/generatedUpstream/resources'
+    }
+}
+dependencies {
+    compileOnly "org.spongepowered:mixin:0.8.5"
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    implementation "com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version"
+}
