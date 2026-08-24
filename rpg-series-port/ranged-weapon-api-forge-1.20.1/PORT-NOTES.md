@@ -7,9 +7,11 @@
 - Minecraft 1.21 data-component attribute plumbing is represented on 1.20.1 through `Item#getAttributeModifiers`, with stable UUIDs derived from the 2.x namespaced modifier IDs. Existing vanilla item modifiers are merged rather than replaced.
 - 2.x damage, pull-time, haste and velocity attributes are Forge-registered and attached to all living entities. Vanilla bow/crossbow baselines and custom `RangedConfig` attributes apply in either hand.
 - The modern public `RangedConfig` record and modifier list are retained, plus legacy 1.20.1 `CustomRangedWeapon` configuration methods for downstream compatibility.
+- 2.3.x `CrossbowMechanics.PullTime.Provider` and `RangedHasteEntity` shapes are retained with 1.20.1-safe implementation semantics.
 - Status effects use 1.6/2.x-equivalent base-multiplier operations. Potion helper requests are fulfilled during Forge's potion registry phase.
 - Custom repair suppliers, model predicates, FOV and crossbow rendering behavior remain supported.
 - 2.3.4 translations/assets are reproduced from the exact modern commit during CI; Fabric metadata and loader initializers are excluded.
+- Active verification is routed through the already-recognized project PR workflow, with C2ME and RPG jobs mutually exclusive by branch. This avoids new-workflow bootstrap gaps and duplicate runner usage.
 
 ## Verification contract
 
