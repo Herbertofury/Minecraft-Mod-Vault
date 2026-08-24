@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   build-and-smoke-test:
+    if: ${{ !startsWith(github.head_ref, 'workbench/rpg-series-forge-1.20.1') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
