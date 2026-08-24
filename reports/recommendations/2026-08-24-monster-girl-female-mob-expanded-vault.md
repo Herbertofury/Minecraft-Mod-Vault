@@ -1,0 +1,125 @@
+# Minecraft Monster Girl & Female Mob Vault - Expanded Discovery Edition
+
+Audited **2026-08-24**. This is a separate companion track and does not replace the general Minecraft Recommendations Vault or Mob Variety guide.
+
+## Canonical artifacts
+
+- [Expanded Google Sheet - 86 entries](https://docs.google.com/spreadsheets/d/1VR6VIh_rGyW1i0RljyW3TRt-amYX5qdc6G6PlT3qpEw/edit)
+- [Expanded Google Doc - curated guide](https://docs.google.com/document/d/1GaTqwuiimxBnNz8lrTsCnrY7Qwm4GIAoXWM0Mh9Ga34/edit)
+- [Expanded PDF - curated guide](https://drive.google.com/file/d/1swPPBDMUonw06XPL3cNrpN_6x-JfpbOW/view)
+
+## Scope and counts
+
+- **86** retained projects/source hubs
+- **38** explicit Java 1.20.1 routes
+- **12** official creator/source hubs
+- **11** verified female 3D model/maid-compatible assets
+- **9** maid/transformation ecosystems
+- **30** CEM/resource-pack entries
+- **2** Bedrock routes
+
+Discovery is intentionally broader than literal `girl` keywords: female-coded mobs, attractive humanoid/mythic mobs, companions, maids, succubi, harpies, sirens, pixies/fey, valkyries, gorgons, mermaids, model-renderer bridges, official Afdian/BOOTH/store creator hubs, and legacy/current model ecosystems are in scope.
+
+## Hyperlink and source policy
+
+Every project and creator name in this report is linked directly to its official/source page. Official creator pages are preferred; no unofficial mirrors are substituted for inaccessible/discontinued Afdian or BOOTH items. The user-supplied [omomomomomomo Afdian hub](https://afdian.com/a/omomomomomomo) is retained as a permanent manual-audit source when public item metadata is insufficient.
+
+## Full 86-entry catalog
+
+| # | Project | Creator | Edition | Minecraft | Class | Recommendation | Safety |
+|---:|---|---|---|---|---|---|---|
+| 1 | [Monster Girl](https://www.curseforge.com/minecraft/mc-mods/monster-girl) | [MingYue](https://www.curseforge.com/minecraft/mc-mods/monster-girl) | Java | 1.20.1; 1.21.1; 26.1.2 | Native Mob / Companion | TOP PICK — FORGE 1.20.1 | CRITICAL — back up; current 1.20.1 page warns saves that loaded the mod can become unplayable if the mod is deleted |
+| 2 | [HMaG — Hostile Mobs and Girls](https://www.curseforge.com/minecraft/mc-mods/hostile-mobs-and-girls) |  | Java | 1.20.1 + older lines | Native Mob / Companion | BEST BESTIARY | CAUTION — world/content dependency |
+| 3 | [NFF: Girls](https://www.curseforge.com/minecraft/mc-mods/nff-girls) |  | Java | 1.20.1 | Native Mob / Companion | BEST COMPANION LAYER | CAUTION — beta save-format changes possible |
+| 4 | [Touhou Little Maid](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid) | [TartaricAcid](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid) | Java | 1.20.1; 1.21.1 | Maid Ecosystem / Transformation | BEST FULL MAID ECOSYSTEM | CAUTION — world content; back up before removal |
+| 5 | [LittleMaid ReBirth](https://github.com/SistrScarlet/LittleMaidReBirth-Architectury) | [SistrScarlet](https://github.com/SistrScarlet) | Java | 1.20.1; 1.21.1 beta | Maid Ecosystem / Transformation | CORE MAID BACKEND | CAUTION — back up before backend/version changes |
+| 6 | [NFF: Girls - Grimoire of Gaia Extension](https://www.curseforge.com/minecraft/mc-mods/nff-girls-grimoire-of-gaia-extension) | [SodiumZH](https://www.curseforge.com/minecraft/mc-mods/nff-girls-grimoire-of-gaia-extension) | Java | 1.20.1; 1.19.2; 1.18.2 | Native Mob / Companion | TOP GAIA COMPANION ADDON | CAUTION — beta; save-format changes and rollback warnings |
+| 7 | [Grimoire of Gaia](https://www.curseforge.com/minecraft/mc-mods/grimoire-of-gaia) |  | Java | 26.2; 26.1.2; 1.21.1; extensive legacy | Native Mob / Companion | BEST LONG-RUNNING LINEAGE | CAUTION |
+| 8 | [stars_good_life](https://www.curseforge.com/minecraft/mc-mods/stars-good-life) | [Lucky_Starlight_Cat](https://www.curseforge.com/minecraft/mc-mods/stars-good-life) | Java | 1.20.1 | Native Mob / Companion | HIDDEN GEM — 1.20.1 | CAUTION — back up before removal |
+| 9 | [Girls](https://www.curseforge.com/minecraft/mc-mods/megalobotomys-girls) | [megalobotomy](https://www.curseforge.com/minecraft/mc-mods/megalobotomys-girls) | Java | 1.20.1 | Native Mob / Companion | HIDDEN GEM — SIX-MOB PACK | CAUTION — world content |
+| 10 | [Maid Form Shift](https://www.curseforge.com/minecraft/mc-mods/maid-form-shift-lmrb-tlm-backend-showcase) | [RiserKardia](https://www.curseforge.com/minecraft/mc-mods/maid-form-shift-lmrb-tlm-backend-showcase) | Java | 1.20.1 | Maid Ecosystem / Transformation | OUTSIDE-THE-BOX PICK | CAUTION — new mod; back up worlds as author advises |
+| 11 | [Monsters & Girls](https://www.curseforge.com/minecraft/mc-mods/monsters-girls) | [MSymbios](https://www.curseforge.com/minecraft/mc-mods/monsters-girls) | Java | 1.21.1; 1.20.1 | Native Mob / Companion | BEST FABRIC ROUTE | CAUTION |
+| 12 | [Guide to Summoning Familiars](https://himazincraft.booth.pm/items/8076828) | [エメラル堂](https://himazincraft.booth.pm/) | Java | 1.20.1 Forge; 1.12.2 | YSM / TLM / LittleMaid Model Asset | BEST BOOTH MONSTER-GIRL PACK | GOOD — model pack; keep backend/version matched |
+| 13 | [Witch's Archive: Harpy](https://www.curseforge.com/minecraft/mc-mods/witchs-archive-harpy) | [Witch's Archive Team](https://www.curseforge.com/minecraft/mc-mods/witchs-archive-harpy) | Java | 1.20.1 | Native Mob / Companion | STRONG TAMEABLE HARPY PICK | CAUTION — custom entities |
+| 14 | [Feywild](https://www.curseforge.com/minecraft/mc-mods/feywild) | [Feywild Team](https://www.curseforge.com/minecraft/mc-mods/feywild) | Java | 1.20.1 + legacy | Native Mob / Companion | BEST FEY/FANTASY ECOSYSTEM | CAUTION — worldgen/content |
+| 15 | [Ice and Fire: Dragons](https://www.curseforge.com/minecraft/mc-mods/ice-and-fire-dragons) | [sbom_xela](https://www.curseforge.com/minecraft/mc-mods/ice-and-fire-dragons) | Java | 1.20.1 + legacy | Native Mob / Companion | BEST LARGE MYTHIC SOURCE | CAUTION — major world/content dependency |
+| 16 | [Sirens Of The Deep](https://www.curseforge.com/minecraft/mc-mods/sirens-of-the-deep) | [Sirens Team](https://www.curseforge.com/minecraft/mc-mods/sirens-of-the-deep) | Java | 1.20.1 | Native Mob / Companion | STRONG HOSTILE SIREN PICK | CAUTION — hostile custom mobs |
+| 17 | [Grimoire of Gaia Spells](https://www.curseforge.com/minecraft/mc-mods/grimoire-of-gaia-spells) |  | Java | 1.20.1; 1.21.1 | Native Mob / Companion | BEST MAGIC INTEGRATION | CAUTION |
+| 18 | [Cute Mob Models: Resource Pack](https://www.curseforge.com/minecraft/texture-packs/cute-mob-models-resource-pack) |  | Java | 26.1.2 current; official 1.20–1.20.1 file | CEM / Resource Pack | BEST BROAD VISUAL OVERHAUL | EXCELLENT — world-safe/removable |
+| 19 | [Yes Steve Model](https://modrinth.com/mod/yes-steve-model) | [YSM Team](https://modrinth.com/mod/yes-steve-model) | Java | 1.20.1; 1.21.1; 26.1.2 + legacy | Maid Ecosystem / Transformation | ESSENTIAL MODEL ENGINE | GOOD — keep engine/model versions matched |
+| 20 | [Maid of skilled V4](https://booth.pm/en/items/4546369) | [エメラル堂](https://himazincraft.booth.pm/) | Java | 1.12.2 model line; large skin collection | YSM / TLM / LittleMaid Model Asset | HUGE MAID APPEARANCE PACK | GOOD — version/model-loader dependent |
+| 21 | [NTE LittleMaidMob MultiModel](https://booth.pm/en/items/8512789) | [エメラル堂](https://himazincraft.booth.pm/) | Java | 1.20.1 Forge; 1.12.2 | YSM / TLM / LittleMaid Model Asset | CURRENT FREE LMRB MODEL | GOOD — model pack |
+| 22 | [Minto-Shop — YSM/TLM model catalog](https://minto-shop.fourthwall.com/collections/all-models) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM 2.2.2–2.4.1+ model lines | Creator / Source Hub | BEST ENGLISH YSM/TLM HUB | GOOD — model-by-model and engine-version dependent |
+| 23 | [Cat Maid | Yes Steve Model](https://minto-shop.fourthwall.com/products/cat-maid-yes-steve-model) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM 2.4.1+; TLM 1.2.1+ for maid use | YSM / TLM / LittleMaid Model Asset | TOP MAID-COMPAT MODEL | GOOD — model asset; engine/version dependent |
+| 24 | [Red Fox | Yes Steve Model](https://minto-shop.fourthwall.com/products/red-fox-yes-steve-model) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM 2.4.1+ | YSM / TLM / LittleMaid Model Asset | STRONG FOX-GIRL MODEL | GOOD — model asset |
+| 25 | [Mermaid | Yes Steve Model](https://minto-shop.fourthwall.com/products/mermaid-yes-steve-model) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM 2.4.1+ | YSM / TLM / LittleMaid Model Asset | TOP MERMAID MODEL | GOOD — model asset |
+| 26 | [Angel Maid | Yes Steve Model](https://minto-shop.fourthwall.com/products/angel-maid-yes-steve-model) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM 2.4.1+ | YSM / TLM / LittleMaid Model Asset | TOP ANGEL MAID MODEL | GOOD — model asset |
+| 27 | [Vampire Maid + TLM](https://minto-shop.fourthwall.com/products/vampire-maid-tlm) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM + TLM compatible | YSM / TLM / LittleMaid Model Asset | TOP VAMPIRE MAID PACK | GOOD — model/backend compatible |
+| 28 | [Dragon Girl | Yes Steve Model](https://minto-shop.fourthwall.com/products/dragon-girl-yes-steve-model) | [Minto-Shop](https://minto-shop.fourthwall.com/collections/all-models) | Java | YSM 2.2.2+ | YSM / TLM / LittleMaid Model Asset | FREE DRAGON-GIRL PICK | GOOD — model asset |
+| 29 | [Minecraft Comes Alive Reborn](https://www.curseforge.com/minecraft/mc-mods/minecraft-comes-alive-reborn) | [MCA Reborn Team](https://www.curseforge.com/minecraft/mc-mods/minecraft-comes-alive-reborn) | Java | 1.20.1 + modern | Human / Female NPC Ecosystem | BEST HUMAN-NPC SOCIAL ROUTE | CAUTION — persistent NPC/relationship data |
+| 30 | [Human Companions](https://www.curseforge.com/minecraft/mc-mods/human-companions) | [Human Companions Team](https://www.curseforge.com/minecraft/mc-mods/human-companions) | Java | 1.20.1 + modern | Human / Female NPC Ecosystem | STRONG HUMAN COMPANION PICK | CAUTION — persistent companion entities |
+| 31 | [The Aether](https://www.curseforge.com/minecraft/mc-mods/aether) | [The Aether Team](https://www.curseforge.com/minecraft/mc-mods/aether) | Java | 1.20.1 + modern | Native Mob / Companion | CLASSIC VALKYRIE PICK | CAUTION — major dimension/world content |
+| 32 | [UMU Little Maid](https://modrinth.com/mod/umu-little-maid) | [UMU Team](https://modrinth.com/mod/umu-little-maid) | Java | 1.20.1 | Maid Ecosystem / Transformation | ALTERNATE MAID ROUTE | CAUTION — world entities; version-match |
+| 33 | [Touhou Little Maid: Vampirism](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-vampirism) | [Addon Team](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-vampirism) | Java | 1.20.1; 1.21.1 | Maid Ecosystem / Transformation | STRONG THEMED MAID ADDON | CAUTION — dependency stack |
+| 34 | [Colonies Maid Citizen](https://www.curseforge.com/minecraft/mc-mods/colonies-maid-citizen) | [Addon Team](https://www.curseforge.com/minecraft/mc-mods/colonies-maid-citizen) | Java | 1.20.1 | Maid Ecosystem / Transformation | BEST COLONY-MAID BRIDGE | CAUTION — rendering/addon compatibility |
+| 35 | [LittleMaidMob — Bedrock](https://www.curseforge.com/minecraft-bedrock/addons/littlemaidmob) | [LittleMaidMob Bedrock Team](https://www.curseforge.com/minecraft-bedrock/addons/littlemaidmob) | Bedrock | 1.21.130 | Maid Ecosystem / Transformation | BEDROCK MAID ROUTE | WATCH — alpha; back up worlds |
+| 36 | [FPE: Companions](https://www.curseforge.com/minecraft/mc-mods/fpe-companions) | [FPE Team](https://www.curseforge.com/minecraft/mc-mods/fpe-companions) | Java | 1.20.1 | Human / Female NPC Ecosystem | CHARACTER COMPANION PICK | CAUTION — custom entities |
+| 37 | [Rei Chikita Mod Evangelion](https://www.curseforge.com/minecraft/mc-mods/rei-chikita-mod) | [Rei Chikita Team](https://www.curseforge.com/minecraft/mc-mods/rei-chikita-mod) | Java | 1.20.1 | Native Mob / Companion | NICHE FEMALE-COMPANION PICK | CAUTION — custom entity/item content |
+| 38 | [Greek Fantasy](https://www.curseforge.com/minecraft/mc-mods/greek-fantasy) | [Greek Fantasy Team](https://www.curseforge.com/minecraft/mc-mods/greek-fantasy) | Java | Legacy | Legacy / Remake | LEGACY MYTHIC GOLD | LEGACY — use intended Minecraft version |
+| 39 | [New Fantasy Additions](https://www.curseforge.com/minecraft/mc-mods/new-fantasy-additions) | [Fantasy Additions Team](https://www.curseforge.com/minecraft/mc-mods/new-fantasy-additions) | Java | Legacy | Legacy / Remake | LEGACY FEMALE-FANTASY PICK | LEGACY — exact version only |
+| 40 | [J-20S Mighty Dragon](https://booth.pm/en/items/7680368) | [Snowen's Workshop](https://afdian.com/a/CRH233) | Java | YSM 2.4.1+ | YSM / TLM / LittleMaid Model Asset | MECHA-GIRL MODEL PICK | GOOD — dependency versions matter |
+| 41 | [J-10B TVC](https://booth.pm/en/items/7261364) | [Snowen's Workshop](https://afdian.com/a/CRH233) | Java | YSM 2.4.1+ | YSM / TLM / LittleMaid Model Asset | STRONG MECHA-GIRL MODEL | GOOD — dependency versions matter |
+| 42 | [Breeze Girl](https://www.curseforge.com/minecraft/texture-packs/breeze-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 26.2 current; broad modern coverage | CEM / Resource Pack | TOP PITONIX CURRENT | EXCELLENT |
+| 43 | [Cow Girls](https://www.curseforge.com/minecraft/texture-packs/cow-girls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 26.2 current; broad modern coverage | CEM / Resource Pack | TOP PITONIX CURRENT | EXCELLENT |
+| 44 | [Allay Girls](https://www.curseforge.com/minecraft/texture-packs/allay-girls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.21.11 current; broad lower versions | CEM / Resource Pack | STRONG VISUAL PICK | EXCELLENT |
+| 45 | [Warden Girl](https://www.curseforge.com/minecraft/texture-packs/warden-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern project line | CEM / Resource Pack | STRONG VISUAL PICK | EXCELLENT |
+| 46 | [LLama Girls](https://www.curseforge.com/minecraft/texture-packs/llama-girls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern project line | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 47 | [Creeper girl](https://www.curseforge.com/minecraft/texture-packs/creeper-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern project line | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 48 | [Iron Girl](https://www.curseforge.com/minecraft/texture-packs/iron-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern/legacy project line | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 49 | [Sheep Girl](https://www.curseforge.com/minecraft/texture-packs/sheep-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern/legacy project line | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 50 | [Betty Witch](https://www.curseforge.com/minecraft/texture-packs/betty-witch) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern/legacy project line | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 51 | [SCP-1471 Mal0](https://www.curseforge.com/minecraft/texture-packs/scp-1471-mal0) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | Modern/legacy project line | CEM / Resource Pack | NICHE VISUAL PICK | EXCELLENT |
+| 52 | [Cat Girls](https://www.curseforge.com/minecraft/texture-packs/cat-girls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.21.3 current line; 1.20.1 historically | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 53 | [Wolf Girl](https://www.curseforge.com/minecraft/texture-packs/wolf-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.21.4 current; v1.1 supports 1.20.1 | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 54 | [Fox Girl](https://www.curseforge.com/minecraft/texture-packs/fox-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.21.4 current; broad 1.20.x history | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 55 | [Flying Kobold Girl](https://www.curseforge.com/minecraft/texture-packs/flying-kobold-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.21.5 current; historical file covers 1.20.1 | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 56 | [EnderWomen](https://www.curseforge.com/minecraft/texture-packs/enderwomen) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.4 release; 1.20.6 beta | CEM / Resource Pack | VISUAL PICK | EXCELLENT |
+| 57 | [Phantom Girl](https://www.curseforge.com/minecraft/texture-packs/phantom-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.2 current line | CEM / Resource Pack | LEGACY VISUAL PICK | EXCELLENT |
+| 58 | [Pigirls](https://www.curseforge.com/minecraft/texture-packs/pigirls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.1 | CEM / Resource Pack | 1.20.1 VISUAL PICK | EXCELLENT |
+| 59 | [Zombie Girls](https://www.curseforge.com/minecraft/texture-packs/zombie-girls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.1 + broad older | CEM / Resource Pack | 1.20.1 VISUAL PICK | EXCELLENT |
+| 60 | [Ghast Girl](https://www.curseforge.com/minecraft/texture-packs/ghast-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.1 | CEM / Resource Pack | 1.20.1 VISUAL PICK | EXCELLENT |
+| 61 | [Wither Girl](https://www.curseforge.com/minecraft/texture-packs/wither-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.2 current; broad older | CEM / Resource Pack | BOSS VISUAL PICK | EXCELLENT |
+| 62 | [Enderdragon Girl](https://www.curseforge.com/minecraft/texture-packs/enderdragon-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.1; broad older | CEM / Resource Pack | BOSS VISUAL PICK | EXCELLENT |
+| 63 | [Shukler Girl](https://www.curseforge.com/minecraft/texture-packs/shukler-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.20.1 | CEM / Resource Pack | 1.20.1 VISUAL PICK | EXCELLENT |
+| 64 | [Bee Girl](https://www.curseforge.com/minecraft/texture-packs/bee-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.19.4 line | CEM / Resource Pack | LEGACY VISUAL PICK | EXCELLENT |
+| 65 | [Skeleton Girls](https://www.curseforge.com/minecraft/texture-packs/skeleton-grils) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.19.4 line | CEM / Resource Pack | LEGACY VISUAL PICK | EXCELLENT |
+| 66 | [Blaze Girl Remake](https://www.curseforge.com/minecraft/texture-packs/blaze-girl-remake) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.19.4 line | CEM / Resource Pack | LEGACY VISUAL PICK | EXCELLENT |
+| 67 | [Villagirls](https://www.curseforge.com/minecraft/texture-packs/villagirls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.19.4 line | CEM / Resource Pack | LEGACY NPC VISUAL | EXCELLENT |
+| 68 | [Pillagirls](https://www.curseforge.com/minecraft/texture-packs/pillagirls) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.19.4 line | CEM / Resource Pack | LEGACY HOSTILE VISUAL | EXCELLENT |
+| 69 | [Ender Shek Girl](https://www.curseforge.com/minecraft/texture-packs/endergirl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Java | 1.19.4 line | CEM / Resource Pack | LEGACY VISUAL PICK | EXCELLENT |
+| 70 | [Phantom Girl — Bedrock](https://www.curseforge.com/minecraft-bedrock/texture-packs/phantom-girl) | [PitonixRex](https://www.curseforge.com/members/pitonixrex/projects) | Bedrock | 1.20.70 and older listed | CEM / Resource Pack | BEDROCK VISUAL PICK | EXCELLENT |
+| 71 | [Cute Mob Models — 1.12.2 Remake](https://www.curseforge.com/minecraft/mc-mods/yarr-cute-mob-models-remake) |  | Java | 1.12.2 | Legacy / Remake | LEGACY GOLD | CAUTION / LEGACY INSTANCE ONLY |
+| 72 | [Touhou Little Maid: Orihime](https://www.curseforge.com/minecraft/mc-mods/touhoulittlemaid-orihime) | [Addon Team](https://www.curseforge.com/minecraft/mc-mods/touhoulittlemaid-orihime) | Java | 1.20.1 | Experimental / Watch | WATCH — FABRIC EXPERIMENT | WATCH — beta; test separately |
+| 73 | [Touhou Little Maid: Crimson Heart Covenant](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-crimson-heart-covenant) | [Addon Team](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-crimson-heart-covenant) | Java | 1.20.1 | Maid Ecosystem / Transformation | NICHE SOCIAL ADDON | CAUTION — addon state; version-match |
+| 74 | [Server Companions](https://www.curseforge.com/minecraft/mc-mods/server-companions) | [Server Companions Team](https://www.curseforge.com/minecraft/mc-mods/server-companions) | Java | 1.20.1 | Experimental / Watch | WATCH — EARLY ALPHA | WATCH — alpha; test in disposable copy |
+| 75 | [omomomomomomo — Afdian source hub](https://afdian.com/a/omomomomomomo) | [omomomomomomo](https://afdian.com/a/omomomomomomo) | Java | Varies | Creator / Source Hub | MANUAL-AUDIT SOURCE HUB | CHECK EACH MODEL / LICENSE / ENGINE |
+| 76 | [你个人机cc — Afdian YSM catalog](https://afdian.com/a/ccnie) | [你个人机cc](https://afdian.com/a/ccnie) | Java | YSM 2.5.1+ on many current models | Creator / Source Hub | TOP AFDIAN YSM HUB | GOOD — model-by-model; respect creator terms |
+| 77 | [Feather_aya — Afdian YSM catalog](https://afdian.com/a/FliegeSA) | [Feather_aya](https://afdian.com/a/FliegeSA) | Java | YSM 2.5.0+ on current public models; legacy varies | Creator / Source Hub | TOP ORIGINAL-CHARACTER HUB | GOOD — use official files; some older paid lines discontinued |
+| 78 | [映素作坊 — Yes Steve Model album](https://afdian.com/album/b2e3e15abef211ed9b2052540025c377) | [映素作坊](https://afdian.com/album/b2e3e15abef211ed9b2052540025c377) | Java | Varies | Creator / Source Hub | LARGE AFDIAN ALBUM | GOOD — check per-model terms/version |
+| 79 | [映白 — Afdian YSM/TLM catalog](https://afdian.com/a/ehaku) | [映白](https://afdian.com/a/ehaku) | Java | YSM 2.6.5+ on current catalog | Creator / Source Hub | BEST AFDIAN TLM-COMPAT HUB | GOOD — model-by-model; respect creator terms |
+| 80 | [艺方像素 — Afdian YSM catalog](https://afdian.com/a/yifangxiangsu) | [艺方像素](https://afdian.com/a/yifangxiangsu) | Java | Varies | Creator / Source Hub | HIGH-VALUE AFDIAN HUB | CHECK PER MODEL |
+| 81 | [烟雨画桥 — Afdian YSM catalog](https://afdian.com/a/mj204) | [烟雨画桥](https://afdian.com/a/mj204) | Java | Varies | Creator / Source Hub | AFDIAN SOURCE HUB | CHECK PER MODEL |
+| 82 | [苏依凛 — Afdian YSM catalog](https://afdian.com/a/supermonsterking/plan) | [苏依凛](https://afdian.com/a/supermonsterking/plan) | Java | Varies | Creator / Source Hub | AFDIAN SOURCE HUB | CHECK PER MODEL |
+| 83 | [AllTheYSM model index](https://alltheysm.top/models) | [Community YSM Index](https://alltheysm.top/models) | Java | Varies | Creator / Source Hub | YSM DISCOVERY INDEX | CHECK EACH LINK / CREATOR / LICENSE |
+| 84 | [YSM-Model-Author archive](https://github.com/nekohalawrence/YSM-Model-Author) | [nekohalawrence](https://github.com/nekohalawrence) | Java | Archive / discovery metadata | Creator / Source Hub | USEFUL ARCHIVE / REDIRECT | GOOD — discovery-only; follow original creator terms |
+| 85 | [LittleMaidNeo](https://github.com/nemonet1337/LittleMaidNeo) | [nemonet1337](https://github.com/nemonet1337) | Java | 26.2 | Experimental / Watch | WATCH — NEXT-GEN MAID BACKEND | WATCH — WIP; test in dedicated instance |
+| 86 | [Snowen's Workshop / CRH233 — YSM hub](https://afdian.com/a/CRH233) | [Snowen's Workshop](https://afdian.com/a/CRH233) | Java | Varies | Creator / Source Hub | MECHA-GIRL SOURCE HUB | CHECK PER MODEL / DEPENDENCIES |
+
+## Local build verification
+
+- XLSX SHA-256: `b70397a297d7ddfdd14caf08b61f6e85cab7342082707ada9bbcd34506e12672`
+- DOCX SHA-256: `57437615008082c3256d93dcefec820c680be202c6ce40e577de41762ad6ecc6`
+- PDF SHA-256: `166092e7b9f182ff77fa1cff0dc5014bced1378a5dd5bf1414d587c16eb6377e`
+- DATA JSON SHA-256: `9a5f6b2d0a245ff75904feb616db2bb668618f45bca909f5009780953199a72c`
+
+Visual QA: DOCX and PDF rendered to **22 pages** with no blank/clipped pages; workbook audit found **86/86 project hyperlinks**, all populated creator hyperlinks, no dynamic-array formulas, and no spreadsheet error tokens. Google Drive round-trip verified the dashboard counts and official Afdian/source-hub rows after import.

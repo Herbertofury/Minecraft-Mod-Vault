@@ -1,0 +1,40 @@
+name: Java 17 Runtime Export
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ragdoll-java17/**'
+      - '.github/workflows/java17-runtime-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'ragdoll-java17-export') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build portable Java 17 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$JAVA_HOME/bin/java" -version
+          "$JAVA_HOME/bin/jlink" --add-modules ALL-MODULE-PATH --strip-debug --no-header-files --no-man-pages --compress=2 --output /tmp/java17-runtime
+          /tmp/java17-runtime/bin/java -version
+          tar -C /tmp -czf /tmp/java17-runtime.tar.gz java17-runtime
+          sha256sum /tmp/java17-runtime.tar.gz > /tmp/java17-runtime.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temurin-java17-runtime
+          path: |
+            /tmp/java17-runtime.tar.gz
+            /tmp/java17-runtime.sha256
+          if-no-files-found: error
+          retention-days: 3

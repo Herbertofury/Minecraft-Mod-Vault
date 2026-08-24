@@ -1,0 +1,87 @@
+name: Ragdoll Forge 1.20.1 Toolchain Export
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ragdoll-port/**'
+      - '.github/workflows/ragdoll-toolchain-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'ragdoll-forge-1.20.1-port') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download official Forge 47.4.23 MDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ragdoll-toolchain/mdk
+          curl -fL --retry 4 --retry-delay 2 -o /tmp/ragdoll-toolchain/forge-mdk.zip 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-mdk.zip'
+          echo 'b046c49aaa7aef022b9cbe1c2aceb441c7ea43c3  /tmp/ragdoll-toolchain/forge-mdk.zip' | sha1sum -c -
+          unzip -q /tmp/ragdoll-toolchain/forge-mdk.zip -d /tmp/ragdoll-toolchain/mdk
+          chmod +x /tmp/ragdoll-toolchain/mdk/gradlew
+      - name: Add Ragdollified and export tasks
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >> /tmp/ragdoll-toolchain/mdk/build.gradle <<'GRADLE'
+
+          repositories {
+              maven { url = 'https://www.cursemaven.com' }
+          }
+
+          dependencies {
+              compileOnly fg.deobf('curse.maven:ragdollified-1417732:8704143')
+          }
+
+          tasks.register('exportRagdollCompileClasspath', Copy) {
+              from configurations.compileClasspath
+              into layout.buildDirectory.dir('ragdoll-export/classpath')
+          }
+
+          tasks.register('writeRagdollCompileClasspath') {
+              doLast {
+                  def out = layout.buildDirectory.file('ragdoll-export/compile-classpath.txt').get().asFile
+                  out.parentFile.mkdirs()
+                  out.text = configurations.compileClasspath.files.collect { it.absolutePath }.sort().join(System.lineSeparator()) + System.lineSeparator()
+              }
+          }
+          GRADLE
+      - name: Resolve exact mapped classpath and reobf mappings
+        working-directory: /tmp/ragdoll-toolchain/mdk
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon --stacktrace exportRagdollCompileClasspath writeRagdollCompileClasspath createMcpToSrg
+          mkdir -p build/ragdoll-export/mappings
+          find build -type f \( -name '*.tsrg' -o -name '*.srg' -o -name '*mapping*' -o -name '*mcp*' \) -print > build/ragdoll-export/mapping-files.txt || true
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            cp --parents "$f" build/ragdoll-export/mappings/ || true
+          done < build/ragdoll-export/mapping-files.txt
+          ./gradlew --version > build/ragdoll-export/gradle-version.txt
+          cp build.gradle gradle.properties settings.gradle build/ragdoll-export/
+          cp gradle/wrapper/gradle-wrapper.properties build/ragdoll-export/
+          sha256sum build/ragdoll-export/classpath/* > build/ragdoll-export/classpath-sha256.txt
+      - name: Download exact Ragdollified release for API inspection
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 2 -o /tmp/ragdoll-toolchain/mdk/build/ragdoll-export/ragdollified-1.20.1-1.0.0-RELEASE.jar 'https://edge.forgecdn.net/files/8704/143/ragdollified-1.20.1-1.0.0-RELEASE.jar'
+          sha256sum /tmp/ragdoll-toolchain/mdk/build/ragdoll-export/ragdollified-1.20.1-1.0.0-RELEASE.jar >> /tmp/ragdoll-toolchain/mdk/build/ragdoll-export/classpath-sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-forge-1.20.1-toolchain
+          path: /tmp/ragdoll-toolchain/mdk/build/ragdoll-export
+          if-no-files-found: error
+          retention-days: 7

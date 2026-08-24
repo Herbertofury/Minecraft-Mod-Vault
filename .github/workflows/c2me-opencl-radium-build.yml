@@ -3,13 +3,16 @@ name: C2ME OpenCL Radium Compatibility Build
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'rpg-series-port/**'
+      - '.github/workflows/rpg-series-active-port.yml'
 
 permissions:
   contents: write
 
 jobs:
   build-and-smoke-test:
-    if: ${{ !startsWith(github.head_ref, 'workbench/rpg-series-') }}
+    if: ${{ !startsWith(github.head_ref, 'workbench/rpg-series-forge-1.20.1') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -62,6 +65,7 @@ jobs:
 
           mkdir -p .run/out/config
           printf '%s\n' '# Radium 0.12.4 + C2ME compatibility' 'mixin.world.chunk_access=false' 'mixin.alloc.nbt=false' > .run/out/config/lithium.properties
+
           TF_URL='https://edge.forgecdn.net/files/7558/911/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar'
           curl -fsSL "$TF_URL" -o .run/out/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar
           echo '0803b0e4d64446dc3c8a572db4be4edd5e31a86c2f75785e6007c70ebe37f1d8  .run/out/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar' | sha256sum -c - | tee -a .run/out/BUILD-VERIFICATION.txt
@@ -109,40 +113,3 @@ jobs:
           git add c2me-build/output c2me-build/c2me-opencl-radiumcompat-forge1201.zip
           git commit -m 'Publish verified C2ME OpenCL Radium build'
           git push origin "$GITHUB_HEAD_REF"
-
-  rpg-series-active-port:
-    if: ${{ startsWith(github.head_ref, 'workbench/rpg-series-') }}
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 22
-    steps:
-      - name: Checkout exact RPG workbench head
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.8'
-          cache-read-only: false
-      - name: Verify active RPG foundation port
-        run: |
-          chmod +x rpg-series-port/ci/run-ranged-weapon-api.sh
-          rpg-series-port/ci/run-ranged-weapon-api.sh
-      - name: Preserve active-port evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ranged-weapon-api-forge-1.20.1
-          retention-days: 7
-          path: |
-            ranged-weapon-api-forge-1.20.1-source-ci.zip
-            rpg-series-port/ranged-weapon-api-forge-1.20.1/forge/build/libs/*.jar
-            rpg-series-port/ranged-weapon-api-forge-1.20.1/ranged-weapon-api-forge.sha256
-            rpg-series-port/ranged-weapon-api-forge-1.20.1/forge-server-smoke.log
-            rpg-series-port/ranged-weapon-api-forge-1.20.1/forge-client-smoke.log
-          if-no-files-found: warn
