@@ -26,7 +26,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: rpg-series-port/runes-forge-1.20.1
@@ -108,45 +108,142 @@ jobs:
           fi
           sha256sum "$JAR" | tee runes-forge.sha256
 
-      - name: Smoke-test Forge 1.20.1 server + runtime pouch regression
+      - name: Smoke-test Forge server + runtime pouch regression (fail-fast)
         run: |
-          set -euxo pipefail
+          set -euo pipefail
+          rm -rf forge/run/logs
           mkdir -p forge/run
           printf 'eula=true\n' > forge/run/eula.txt
-          set +e
-          timeout 180s gradle --no-daemon -PrunesCiSelfTest :forge:runServer > forge-server-smoke.log 2>&1
-          STATUS=$?
-          set -e
-          cat forge-server-smoke.log
-          test "$STATUS" -eq 0 -o "$STATUS" -eq 124
-          LOG=$(find forge -type f -path '*/logs/latest.log' | head -n 1)
-          test -n "$LOG"
-          grep -E 'Done \([0-9.]+s\)!|Done \([0-9.]+s\)! For help' "$LOG"
+          : > forge-server-smoke.log
+
+          setsid gradle --no-daemon -PrunesCiSelfTest :forge:runServer > forge-server-smoke.log 2>&1 &
+          PID=$!
+          DEADLINE=$((SECONDS + 180))
+          PASS=0
+          FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to load class|Failed to start the minecraft server|Failed to create mod instance|NoClassDefFoundError|IllegalStateException: \[Runes CI\]|Exception in server tick loop'
+
+          stop_group() {
+            kill -TERM -- -"$PID" 2>/dev/null || true
+            sleep 1
+            kill -KILL -- -"$PID" 2>/dev/null || true
+            wait "$PID" 2>/dev/null || true
+          }
+
+          while (( SECONDS < DEADLINE )); do
+            LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1 || true)
+            FILES=(forge-server-smoke.log)
+            [[ -n "$LOG" ]] && FILES+=("$LOG")
+
+            if grep -Eiq "$FATAL" "${FILES[@]}"; then
+              stop_group
+              cat forge-server-smoke.log
+              [[ -n "$LOG" ]] && cat "$LOG"
+              echo 'Forge server smoke hit a fatal signature' >&2
+              exit 1
+            fi
+
+            if grep -Fq '[Runes CI] Runtime self-test passed' forge-server-smoke.log \
+              && [[ -n "$LOG" ]] \
+              && grep -Eq 'Done \([0-9.]+s\)!|Done \([0-9.]+s\)! For help' "$LOG"; then
+              PASS=1
+              break
+            fi
+
+            if ! kill -0 "$PID" 2>/dev/null; then
+              wait "$PID" || STATUS=$?
+              cat forge-server-smoke.log
+              [[ -n "$LOG" ]] && cat "$LOG"
+              echo "Forge server exited before verification completed (status ${STATUS:-0})" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [[ "$PASS" -ne 1 ]]; then
+            stop_group
+            cat forge-server-smoke.log
+            echo 'Forge server smoke timed out before verification markers' >&2
+            exit 1
+          fi
+
+          stop_group
+          LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1)
           grep -F '[Runes CI] Runtime self-test passed' forge-server-smoke.log
-          if grep -E 'MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to load class|Exception in server tick loop|Failed to create mod instance|NoClassDefFoundError|IllegalStateException: \[Runes CI\]' "$LOG" forge-server-smoke.log; then
-            echo 'Forge server smoke contains a fatal loader/mixin/self-test signature' >&2
+          grep -E 'Done \([0-9.]+s\)!|Done \([0-9.]+s\)! For help' "$LOG"
+          if grep -Eiq "$FATAL" forge-server-smoke.log "$LOG"; then
+            echo 'Fatal signature appeared after successful server markers' >&2
             exit 1
           fi
 
-      - name: Smoke-test client resource/model bootstrap
+      - name: Smoke-test client resource/model bootstrap (fail-fast)
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           rm -rf forge/run/logs
-          set +e
-          timeout 180s xvfb-run -a gradle --no-daemon :forge:runClient > forge-client-smoke.log 2>&1
-          STATUS=$?
-          set -e
-          cat forge-client-smoke.log
-          test "$STATUS" -eq 0 -o "$STATUS" -eq 124
-          LOG=$(find forge -type f -path '*/logs/latest.log' | head -n 1)
-          test -n "$LOG"
-          grep -E 'Reloading ResourceManager|Backend library: LWJGL|OpenAL initialized' "$LOG"
-          if grep -Ei 'MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError.*runes|Failed to load model.*runes|Unable to load model.*runes|Using missing texture.*runes|Exception.*runes.*model' "$LOG" forge-client-smoke.log; then
-            echo 'Forge client smoke contains a fatal Runes model/loader signature' >&2
+          : > forge-client-smoke.log
+
+          setsid xvfb-run -a gradle --no-daemon :forge:runClient > forge-client-smoke.log 2>&1 &
+          PID=$!
+          DEADLINE=$((SECONDS + 180))
+          READY_AT=0
+          PASS=0
+          FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError.*runes|Failed to load model.*runes|Unable to load model.*runes|Using missing texture.*runes|Exception.*runes.*model|The game crashed whilst initializing game'
+
+          stop_group() {
+            kill -TERM -- -"$PID" 2>/dev/null || true
+            sleep 1
+            kill -KILL -- -"$PID" 2>/dev/null || true
+            wait "$PID" 2>/dev/null || true
+          }
+
+          while (( SECONDS < DEADLINE )); do
+            LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1 || true)
+            FILES=(forge-client-smoke.log)
+            [[ -n "$LOG" ]] && FILES+=("$LOG")
+
+            if grep -Eiq "$FATAL" "${FILES[@]}"; then
+              stop_group
+              cat forge-client-smoke.log
+              [[ -n "$LOG" ]] && cat "$LOG"
+              echo 'Forge client smoke hit a fatal Runes loader/model signature' >&2
+              exit 1
+            fi
+
+            if [[ -n "$LOG" ]] \
+              && grep -Fq 'Reloading ResourceManager' "$LOG" \
+              && grep -Eq 'Backend library: LWJGL|OpenAL initialized' "$LOG"; then
+              if [[ "$READY_AT" -eq 0 ]]; then READY_AT=$SECONDS; fi
+              if (( SECONDS - READY_AT >= 8 )); then PASS=1; break; fi
+            fi
+
+            if ! kill -0 "$PID" 2>/dev/null; then
+              wait "$PID" || STATUS=$?
+              cat forge-client-smoke.log
+              [[ -n "$LOG" ]] && cat "$LOG"
+              echo "Forge client exited before resource verification completed (status ${STATUS:-0})" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [[ "$PASS" -ne 1 ]]; then
+            stop_group
+            cat forge-client-smoke.log
+            echo 'Forge client smoke timed out before resource/model verification markers' >&2
             exit 1
           fi
 
-      - uses: actions/upload-artifact@v4
+          stop_group
+          LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1)
+          grep -F 'Reloading ResourceManager' "$LOG"
+          grep -E 'Backend library: LWJGL|OpenAL initialized' "$LOG"
+          if grep -Eiq "$FATAL" forge-client-smoke.log "$LOG"; then
+            echo 'Fatal Runes client signature appeared after successful client markers' >&2
+            exit 1
+          fi
+
+      - name: Preserve CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: runes-forge-1.20.1
           retention-days: 7
@@ -155,7 +252,8 @@ jobs:
             rpg-series-port/runes-forge-1.20.1/runes-forge.sha256
             rpg-series-port/runes-forge-1.20.1/forge-server-smoke.log
             rpg-series-port/runes-forge-1.20.1/forge-client-smoke.log
-          if-no-files-found: error
+            rpg-series-port/runes-forge-1.20.1/forge/run/logs/latest.log
+          if-no-files-found: warn
 
       - name: Publish final status
         if: always()
