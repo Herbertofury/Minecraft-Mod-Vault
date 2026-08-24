@@ -3,6 +3,9 @@ name: C2ME OpenCL Radium Compatibility Build
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'rpg-series-port/**'
+      - '.github/workflows/rpg-series-active-port.yml'
 
 permissions:
   contents: write
