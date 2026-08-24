@@ -26,7 +26,13 @@ for rel in [
     'net/spell_power/api/SpellPowerMechanics.java',
     'net/spell_power/api/SpellResistance.java',
     'net/spell_power/api/SpellSchools.java',
+    'net/spell_power/api/enchantment/Enchantments_SpellPower.java',
+    'net/spell_power/api/enchantment/Enchantments_SpellPowerMechanics.java',
     'net/spell_power/config/AttributesConfig.java',
+    'net/spell_power/config/EnchantmentsConfig.java',
+    'net/spell_power/internals/AmplifierEnchantment.java',
+    'net/spell_power/internals/SchoolFilteredEnchantment.java',
+    'net/spell_power/internals/MagicProtectionEnchantment.java',
 ]:
     (gen_java / rel).unlink(missing_ok=True)
 (gen_res / 'fabric.mod.json').unlink(missing_ok=True)
@@ -36,8 +42,7 @@ new_assets = new / 'common/src/main/resources/assets/spell_power'
 if new_assets.exists():
     for sub in ('lang', 'textures'):
         src = new_assets / sub
-        if src.exists():
-            shutil.copytree(src, gen_res / 'assets/spell_power' / sub, dirs_exist_ok=True)
+        if src.exists(): shutil.copytree(src, gen_res / 'assets/spell_power' / sub, dirs_exist_ok=True)
 
 for rel in [
     'common/src/main/resources/data/c/tags/damage_type/is_magic.json',
@@ -52,7 +57,6 @@ for rel in [
 
 count = 0
 for path in gen_res.rglob('*.json'):
-    with path.open('r', encoding='utf-8') as fh:
-        json.load(fh)
+    with path.open('r', encoding='utf-8') as fh: json.load(fh)
     count += 1
 print(f'Prepared upstream Spell Power source; validated {count} JSON resources')
