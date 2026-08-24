@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   inspect:
-    if: github.head_ref == 'ragdoll-forge-1.20.1-port' || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.head_ref, 'ragdoll-forge-1.20.1-port') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,38 +21,71 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Download exact backend and CFR
+      - name: Download official Forge MDK, Ragdollified 1.0.0 and CFR
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p build/inspect
-          curl -fL --retry 4 --retry-delay 2 -o build/inspect/ragdollified.jar 'https://cdn.modrinth.com/data/PMOR9v1z/versions/pxf1373R/ragdollified-1.20.1-0.7.0-BETA.jar'
+          mkdir -p build/inspect/mdk
+          curl -fL --retry 4 --retry-delay 2 -o build/inspect/forge-mdk.zip 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-mdk.zip'
+          echo 'b046c49aaa7aef022b9cbe1c2aceb441c7ea43c3  build/inspect/forge-mdk.zip' | sha1sum -c -
+          unzip -q build/inspect/forge-mdk.zip -d build/inspect/mdk
+          chmod +x build/inspect/mdk/gradlew
+          curl -fL --retry 4 --retry-delay 2 -o build/inspect/ragdollified.jar 'https://edge.forgecdn.net/files/8704/143/ragdollified-1.20.1-1.0.0-RELEASE.jar'
           curl -fL --retry 4 --retry-delay 2 -o build/inspect/cfr.jar 'https://repo1.maven.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar'
-      - name: Inspect API and decompile
+      - name: Resolve real mapped Forge classpath and mappings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >> build/inspect/mdk/build.gradle <<'GRADLE'
+
+          repositories { maven { url = 'https://www.cursemaven.com' } }
+          dependencies { compileOnly fg.deobf('curse.maven:ragdollified-1417732:8704143') }
+          tasks.register('exportRagdollCompileClasspath', Copy) {
+              from configurations.compileClasspath
+              into layout.buildDirectory.dir('ragdoll-export/classpath')
+          }
+          tasks.register('writeRagdollCompileClasspath') {
+              doLast {
+                  def out = layout.buildDirectory.file('ragdoll-export/compile-classpath.txt').get().asFile
+                  out.parentFile.mkdirs()
+                  out.text = configurations.compileClasspath.files.collect { it.absolutePath }.sort().join(System.lineSeparator()) + System.lineSeparator()
+              }
+          }
+          GRADLE
+          cd build/inspect/mdk
+          ./gradlew --no-daemon --stacktrace exportRagdollCompileClasspath writeRagdollCompileClasspath createMcpToSrg
+          mkdir -p build/ragdoll-export/mappings
+          find build -type f \( -name '*.tsrg' -o -name '*.srg' -o -name '*mapping*' -o -name '*mcp*' \) -print > build/ragdoll-export/mapping-files.txt || true
+          while IFS= read -r f; do [ -f "$f" ] && cp --parents "$f" build/ragdoll-export/mappings/ || true; done < build/ragdoll-export/mapping-files.txt
+          ./gradlew --version > build/ragdoll-export/gradle-version.txt
+          cp build.gradle gradle.properties settings.gradle build/ragdoll-export/
+          cp gradle/wrapper/gradle-wrapper.properties build/ragdoll-export/
+          sha256sum build/ragdoll-export/classpath/* > build/ragdoll-export/classpath-sha256.txt
+          cp ../ragdollified.jar build/ragdoll-export/ragdollified-1.20.1-1.0.0-RELEASE.jar
+          sha256sum build/ragdoll-export/ragdollified-1.20.1-1.0.0-RELEASE.jar >> build/ragdoll-export/classpath-sha256.txt
+      - name: Decompile exact Ragdollified backend API
         shell: bash
         run: |
           set -euo pipefail
           cd build/inspect
-          sha256sum ragdollified.jar > REPORT.txt
-          echo >> REPORT.txt
-          unzip -p ragdollified.jar META-INF/mods.toml >> REPORT.txt || true
-          echo >> REPORT.txt
-          echo '=== API / manager / ragdoll classes ===' >> REPORT.txt
-          jar tf ragdollified.jar | grep -Ei '(api|manager|ragdoll)' | sort >> REPORT.txt || true
-          mkdir decompiled
+          mkdir -p decompiled
           java -jar cfr.jar ragdollified.jar --outputdir decompiled --silent true
-          echo >> REPORT.txt
-          echo '=== candidate public methods ===' >> REPORT.txt
-          grep -RInE 'public (static )?.*(ragdoll|spawn|create|apply|push|force|velocity|release|remove|despawn|impulse)' decompiled --include='*.java' | head -n 1200 >> REPORT.txt || true
-          echo >> REPORT.txt
-          echo '=== API source excerpts ===' >> REPORT.txt
-          find decompiled -type f -name '*.java' | grep -Ei '(api|ragdoll|manager)' | sort | head -n 300 >> REPORT.txt || true
+          {
+            sha256sum ragdollified.jar
+            echo '=== metadata ==='
+            unzip -p ragdollified.jar META-INF/mods.toml || true
+            echo '=== API / manager / ragdoll classes ==='
+            jar tf ragdollified.jar | grep -Ei '(api|manager|ragdoll)' | sort || true
+            echo '=== candidate methods ==='
+            grep -RInE 'public (static )?.*(ragdoll|spawn|create|apply|push|force|velocity|release|remove|despawn|impulse|collision|speed)' decompiled --include='*.java' | head -n 2000 || true
+          } > REPORT.txt
           tar -czf decompiled-api.tar.gz decompiled
       - uses: actions/upload-artifact@v4
         with:
-          name: ragdollified-api-inspection
+          name: ragdoll-forge-1.20.1-inspection
           path: |
             build/inspect/REPORT.txt
             build/inspect/decompiled-api.tar.gz
-            build/inspect/ragdollified.jar
+            build/inspect/mdk/build/ragdoll-export
+          if-no-files-found: error
           retention-days: 7
