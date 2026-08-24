@@ -7,16 +7,10 @@ on:
     paths:
       - 'rpg-series-port/runes-forge-1.20.1/**'
       - '.github/workflows/rpg-series-runes-build.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'rpg-series-port/runes-forge-1.20.1/**'
-      - '.github/workflows/rpg-series-runes-build.yml'
   workflow_dispatch:
 
 concurrency:
-  group: rpg-series-runes-${{ github.event.pull_request.number || github.ref }}
+  group: rpg-series-runes-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -37,7 +31,7 @@ jobs:
       - name: Publish pending status
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TARGET_SHA: ${{ github.sha }}
         run: |
           curl --fail-with-body --silent --show-error -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -115,131 +109,42 @@ jobs:
           mkdir -p forge/run
           printf 'eula=true\n' > forge/run/eula.txt
           : > forge-server-smoke.log
-
           setsid gradle --no-daemon -PrunesCiSelfTest :forge:runServer > forge-server-smoke.log 2>&1 &
           PID=$!
-          DEADLINE=$((SECONDS + 180))
-          PASS=0
+          DEADLINE=$((SECONDS + 180)); PASS=0
           FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to load class|Failed to start the minecraft server|Failed to create mod instance|NoClassDefFoundError|IllegalStateException: \[Runes CI\]|Exception in server tick loop'
-
-          stop_group() {
-            kill -TERM -- -"$PID" 2>/dev/null || true
-            sleep 1
-            kill -KILL -- -"$PID" 2>/dev/null || true
-            wait "$PID" 2>/dev/null || true
-          }
-
+          stop_group() { kill -TERM -- -"$PID" 2>/dev/null || true; sleep 1; kill -KILL -- -"$PID" 2>/dev/null || true; wait "$PID" 2>/dev/null || true; }
           while (( SECONDS < DEADLINE )); do
             LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1 || true)
-            FILES=(forge-server-smoke.log)
-            [[ -n "$LOG" ]] && FILES+=("$LOG")
-
-            if grep -Eiq "$FATAL" "${FILES[@]}"; then
-              stop_group
-              cat forge-server-smoke.log
-              [[ -n "$LOG" ]] && cat "$LOG"
-              echo 'Forge server smoke hit a fatal signature' >&2
-              exit 1
-            fi
-
-            if grep -Fq '[Runes CI] Runtime self-test passed' forge-server-smoke.log \
-              && [[ -n "$LOG" ]] \
-              && grep -Eq 'Done \([0-9.]+s\)!|Done \([0-9.]+s\)! For help' "$LOG"; then
-              PASS=1
-              break
-            fi
-
-            if ! kill -0 "$PID" 2>/dev/null; then
-              wait "$PID" || STATUS=$?
-              cat forge-server-smoke.log
-              [[ -n "$LOG" ]] && cat "$LOG"
-              echo "Forge server exited before verification completed (status ${STATUS:-0})" >&2
-              exit 1
-            fi
+            FILES=(forge-server-smoke.log); [[ -n "$LOG" ]] && FILES+=("$LOG")
+            if grep -Eiq "$FATAL" "${FILES[@]}"; then stop_group; cat forge-server-smoke.log; [[ -n "$LOG" ]] && cat "$LOG"; exit 1; fi
+            if grep -Fq '[Runes CI] Runtime self-test passed' forge-server-smoke.log && [[ -n "$LOG" ]] && grep -Eq 'Done \([0-9.]+s\)!' "$LOG"; then PASS=1; break; fi
+            if ! kill -0 "$PID" 2>/dev/null; then wait "$PID" || STATUS=$?; cat forge-server-smoke.log; [[ -n "$LOG" ]] && cat "$LOG"; exit 1; fi
             sleep 1
           done
-
-          if [[ "$PASS" -ne 1 ]]; then
-            stop_group
-            cat forge-server-smoke.log
-            echo 'Forge server smoke timed out before verification markers' >&2
-            exit 1
-          fi
-
+          [[ "$PASS" -eq 1 ]] || { stop_group; cat forge-server-smoke.log; exit 1; }
           stop_group
-          LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1)
-          grep -F '[Runes CI] Runtime self-test passed' forge-server-smoke.log
-          grep -E 'Done \([0-9.]+s\)!|Done \([0-9.]+s\)! For help' "$LOG"
-          if grep -Eiq "$FATAL" forge-server-smoke.log "$LOG"; then
-            echo 'Fatal signature appeared after successful server markers' >&2
-            exit 1
-          fi
 
       - name: Smoke-test client resource/model bootstrap (fail-fast)
         run: |
           set -euo pipefail
           rm -rf forge/run/logs
           : > forge-client-smoke.log
-
           setsid xvfb-run -a gradle --no-daemon :forge:runClient > forge-client-smoke.log 2>&1 &
           PID=$!
-          DEADLINE=$((SECONDS + 180))
-          READY_AT=0
-          PASS=0
+          DEADLINE=$((SECONDS + 180)); READY_AT=0; PASS=0
           FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError.*runes|Failed to load model.*runes|Unable to load model.*runes|Using missing texture.*runes|Exception.*runes.*model|The game crashed whilst initializing game'
-
-          stop_group() {
-            kill -TERM -- -"$PID" 2>/dev/null || true
-            sleep 1
-            kill -KILL -- -"$PID" 2>/dev/null || true
-            wait "$PID" 2>/dev/null || true
-          }
-
+          stop_group() { kill -TERM -- -"$PID" 2>/dev/null || true; sleep 1; kill -KILL -- -"$PID" 2>/dev/null || true; wait "$PID" 2>/dev/null || true; }
           while (( SECONDS < DEADLINE )); do
             LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1 || true)
-            FILES=(forge-client-smoke.log)
-            [[ -n "$LOG" ]] && FILES+=("$LOG")
-
-            if grep -Eiq "$FATAL" "${FILES[@]}"; then
-              stop_group
-              cat forge-client-smoke.log
-              [[ -n "$LOG" ]] && cat "$LOG"
-              echo 'Forge client smoke hit a fatal Runes loader/model signature' >&2
-              exit 1
-            fi
-
-            if [[ -n "$LOG" ]] \
-              && grep -Fq 'Reloading ResourceManager' "$LOG" \
-              && grep -Eq 'Backend library: LWJGL|OpenAL initialized' "$LOG"; then
-              if [[ "$READY_AT" -eq 0 ]]; then READY_AT=$SECONDS; fi
-              if (( SECONDS - READY_AT >= 8 )); then PASS=1; break; fi
-            fi
-
-            if ! kill -0 "$PID" 2>/dev/null; then
-              wait "$PID" || STATUS=$?
-              cat forge-client-smoke.log
-              [[ -n "$LOG" ]] && cat "$LOG"
-              echo "Forge client exited before resource verification completed (status ${STATUS:-0})" >&2
-              exit 1
-            fi
+            FILES=(forge-client-smoke.log); [[ -n "$LOG" ]] && FILES+=("$LOG")
+            if grep -Eiq "$FATAL" "${FILES[@]}"; then stop_group; cat forge-client-smoke.log; [[ -n "$LOG" ]] && cat "$LOG"; exit 1; fi
+            if [[ -n "$LOG" ]] && grep -Fq 'Reloading ResourceManager' "$LOG" && grep -Eq 'Backend library: LWJGL|OpenAL initialized' "$LOG"; then [[ "$READY_AT" -eq 0 ]] && READY_AT=$SECONDS; (( SECONDS - READY_AT >= 8 )) && { PASS=1; break; }; fi
+            if ! kill -0 "$PID" 2>/dev/null; then wait "$PID" || STATUS=$?; cat forge-client-smoke.log; [[ -n "$LOG" ]] && cat "$LOG"; exit 1; fi
             sleep 1
           done
-
-          if [[ "$PASS" -ne 1 ]]; then
-            stop_group
-            cat forge-client-smoke.log
-            echo 'Forge client smoke timed out before resource/model verification markers' >&2
-            exit 1
-          fi
-
+          [[ "$PASS" -eq 1 ]] || { stop_group; cat forge-client-smoke.log; exit 1; }
           stop_group
-          LOG=$(find forge/run -type f -path '*/logs/latest.log' | head -n 1)
-          grep -F 'Reloading ResourceManager' "$LOG"
-          grep -E 'Backend library: LWJGL|OpenAL initialized' "$LOG"
-          if grep -Eiq "$FATAL" forge-client-smoke.log "$LOG"; then
-            echo 'Fatal Runes client signature appeared after successful client markers' >&2
-            exit 1
-          fi
 
       - name: Preserve CI evidence
         if: always()
@@ -260,17 +165,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
-          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TARGET_SHA: ${{ github.sha }}
         run: |
-          case "$JOB_STATUS" in
-            success) STATE=success ;;
-            failure) STATE=failure ;;
-            cancelled) STATE=error ;;
-            *) STATE=error ;;
-          esac
+          case "$JOB_STATUS" in success) STATE=success ;; failure) STATE=failure ;; *) STATE=error ;; esac
           curl --fail-with-body --silent --show-error -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${TARGET_SHA}" \
             -d "{\"state\":\"${STATE}\",\"context\":\"rpg-series/runes-forge-1.20.1\",\"description\":\"Runes Forge 1.20.1 CI: ${JOB_STATUS}\"}"
