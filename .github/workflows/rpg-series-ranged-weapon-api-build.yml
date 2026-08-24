@@ -1,6 +1,12 @@
 name: RPG Series - Ranged Weapon API Forge 1.20.1
 
 on:
+  push:
+    branches:
+      - workbench/rpg-series-forge-1.20.1
+    paths:
+      - 'rpg-series-port/ranged-weapon-api-forge-1.20.1/**'
+      - '.github/workflows/rpg-series-ranged-weapon-api-build.yml'
   pull_request:
     branches: [main]
     paths:
@@ -9,7 +15,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: rpg-series-ranged-weapon-api-${{ github.event.pull_request.number || github.run_id }}
+  group: rpg-series-ranged-weapon-api-active
   cancel-in-progress: true
 permissions:
   contents: read
@@ -40,7 +46,7 @@ jobs:
         run: |
           set -euxo pipefail
           python tools/prepare_upstream_source.py "$GITHUB_WORKSPACE/_upstream/rwa120" "$GITHUB_WORKSPACE/_upstream/rwa234" common
-          test -f common/src/generatedUpstream/java/net/fabric_extras/ranged_weapon/api/CrossbowMechanics.java
+          test ! -f common/src/generatedUpstream/java/net/fabric_extras/ranged_weapon/api/CrossbowMechanics.java
           test ! -f common/src/generatedUpstream/java/net/fabric_extras/ranged_weapon/RangedWeaponMod.java
           test ! -f common/src/generatedUpstream/resources/fabric.mod.json
           test "$(find common/src/generatedUpstream/resources/assets/ranged_weapon/lang -name '*.json' | wc -l)" -ge 20
