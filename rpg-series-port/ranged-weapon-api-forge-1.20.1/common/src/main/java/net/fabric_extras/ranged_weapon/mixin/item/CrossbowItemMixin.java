@@ -10,7 +10,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.CrossbowItem;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -26,14 +25,12 @@ public class CrossbowItemMixin {
     private static void rwa$pull(ItemStack stack, CallbackInfoReturnable<Integer> cir) {
         if (stack.getItem() instanceof CustomRangedWeapon weapon) {
             int ticks=Math.max(2,Math.round(weapon.getRangedWeaponConfig().pullTimeSeconds()*20F));
-            ticks=CrossbowMechanics.PullTime.modifier.getPullTime(ticks,stack);
-            cir.setReturnValue(ticks);
+            cir.setReturnValue(CrossbowMechanics.PullTime.modifier.getPullTime(ticks,stack,null));
         }
     }
     @ModifyVariable(method="shoot",at=@At("HEAD"),ordinal=1,argsOnly=true)
     private static float rwa$velocity(float speed, World world, LivingEntity shooter, Hand hand, ItemStack crossbow, ItemStack projectile, float soundPitch, boolean creative, float speed1, float divergence, float simulated) {
-        double multiplier=ScalingUtil.arrowVelocityMultiplier(crossbow.getItem(),shooter.getAttributeValue(EntityAttributes_RangedWeapon.VELOCITY.attribute));
-        return speed*(float)multiplier;
+        return speed*(float)ScalingUtil.arrowVelocityMultiplier(crossbow.getItem(),shooter.getAttributeValue(EntityAttributes_RangedWeapon.VELOCITY.attribute));
     }
     @WrapOperation(method="shoot",at=@At(value="INVOKE",target="Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"))
     private static boolean rwa$damage(World instance, Entity entity, Operation<Boolean> original, World world, LivingEntity shooter, Hand hand, ItemStack crossbow, ItemStack projectileStack, float soundPitch, boolean creative, float speed, float divergence, float simulated) {

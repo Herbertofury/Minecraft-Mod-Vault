@@ -20,6 +20,7 @@ for rel in [
  'net/fabric_extras/ranged_weapon/api/CustomRangedWeapon.java',
  'net/fabric_extras/ranged_weapon/api/CustomBow.java',
  'net/fabric_extras/ranged_weapon/api/CustomCrossbow.java',
+ 'net/fabric_extras/ranged_weapon/api/CrossbowMechanics.java',
  'net/fabric_extras/ranged_weapon/internal/ScalingUtil.java',
  'net/fabric_extras/ranged_weapon/mixin/attribute/EntityAttributesMixin.java',
  'net/fabric_extras/ranged_weapon/mixin/attribute/StatusEffectsMixin.java',
