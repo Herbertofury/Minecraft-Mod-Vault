@@ -12,7 +12,6 @@ import net.minecraft.item.RangedWeaponItem;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -35,7 +34,8 @@ abstract class RangedWeaponItemMixin extends Item implements CustomRangedWeapon 
     @Override public RangedConfig getRangedWeaponConfig() { return rwa$config; }
     @Override public void setRangedWeaponConfig(RangedConfig config) { rwa$config=config == null ? RangedConfig.EMPTY : config; }
 
-    @Overwrite
+    // RangedWeaponItem inherits this method from Item on 1.20.1, so the mixin adds an override
+    // to the target class rather than using @Overwrite (which requires a method declared by target).
     public Multimap<EntityAttribute, EntityAttributeModifier> getAttributeModifiers(EquipmentSlot slot) {
         var builder=ImmutableMultimap.<EntityAttribute,EntityAttributeModifier>builder();
         builder.putAll(super.getAttributeModifiers(slot));

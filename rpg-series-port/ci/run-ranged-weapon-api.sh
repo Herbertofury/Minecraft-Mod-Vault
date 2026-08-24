@@ -39,6 +39,7 @@ gradle --no-daemon --stacktrace :forge:build
 
 JAR=$(find forge/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | head -1)
 test -n "$JAR"
+JAR=$(realpath "$JAR")
 unzip -t "$JAR"
 unzip -p "$JAR" META-INF/mods.toml | grep -F 'modId="ranged_weapon_api"'
 unzip -p "$JAR" META-INF/mods.toml | grep -F 'versionRange="[1.20.1,1.20.2)"'
@@ -49,6 +50,7 @@ unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/mixin/PersistentProje
 unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/mixin/item/ProjectileUtilMixin.class'
 unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/compat/emi/RangedWeaponEmiPlugin.class'
 unzip -l "$JAR" | grep -F 'assets/ranged_weapon/lang/en_us.json'
+unzip -l "$JAR" | grep -F 'META-INF/jars/mixinextras-forge-0.4.1.jar'
 if unzip -l "$JAR" | grep -q 'fabric.mod.json\|META-INF/neoforge.mods.toml'; then
   echo 'Non-Forge metadata leaked into final JAR' >&2
   exit 1
@@ -63,7 +65,7 @@ setsid gradle --no-daemon -PrangedWeaponCiSelfTest :forge:runServer > forge-serv
 PID=$!
 DEADLINE=$((SECONDS+180))
 PASS=0
-FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to start the minecraft server|Failed to create mod instance|NoClassDefFoundError|Registry is already frozen|IllegalStateException: \[Ranged Weapon API CI\]|Exception in server tick loop'
+FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to start the minecraft server|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Registry is already frozen|IllegalStateException: \[Ranged Weapon API CI\]|Exception in server tick loop'
 stop_group(){ kill -TERM -- -"$PID" 2>/dev/null||true; sleep 1; kill -KILL -- -"$PID" 2>/dev/null||true; wait "$PID" 2>/dev/null||true; }
 while ((SECONDS<DEADLINE)); do
   LOG=$(find forge/run -type f -path '*/logs/latest.log'|head -1||true)
@@ -83,7 +85,7 @@ PID=$!
 DEADLINE=$((SECONDS+180))
 READY=0
 PASS=0
-FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError.*ranged_weapon|Using missing texture.*ranged_weapon|The game crashed whilst initializing game'
+FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError.*ranged_weapon|ClassNotFoundException.*ranged_weapon|Using missing texture.*ranged_weapon|The game crashed whilst initializing game'
 while ((SECONDS<DEADLINE)); do
   LOG=$(find forge/run -type f -path '*/logs/latest.log'|head -1||true)
   FILES=(forge-client-smoke.log); [[ -n "$LOG" ]]&&FILES+=("$LOG")
@@ -95,4 +97,39 @@ done
 [[ "$PASS" -eq 1 ]] || { stop_group; cat forge-client-smoke.log; exit 1; }
 stop_group
 
-echo '[Ranged Weapon API CI] Full build/package/server/client verification passed.'
+# Final proof: install Forge into a clean directory and load only the packaged release JAR.
+FRESH="$PORT/.fresh-forge-server"
+rm -rf "$FRESH"
+mkdir -p "$FRESH/mods"
+curl -fsSL "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar" -o "$FRESH/forge-installer.jar"
+(
+  cd "$FRESH"
+  java -jar forge-installer.jar --installServer >/dev/null
+  cp "$JAR" mods/
+  printf 'eula=true\n' > eula.txt
+  printf '%s\n' '-Xmx2G' '-DrangedWeapon.ci.selftest=true' > user_jvm_args.txt
+)
+: > forge-package-smoke.log
+(
+  cd "$FRESH"
+  setsid ./run.sh nogui > "$PORT/forge-package-smoke.log" 2>&1
+) &
+PID=$!
+DEADLINE=$((SECONDS+180))
+PASS=0
+FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to start the minecraft server|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Registry is already frozen|IllegalStateException: \[Ranged Weapon API CI\]|Exception in server tick loop'
+while ((SECONDS<DEADLINE)); do
+  LOG="$FRESH/logs/latest.log"
+  FILES=(forge-package-smoke.log); [[ -f "$LOG" ]]&&FILES+=("$LOG")
+  if grep -Eiq "$FATAL" "${FILES[@]}"; then kill -TERM -- -"$PID" 2>/dev/null||true; wait "$PID" 2>/dev/null||true; cat "${FILES[@]}"; exit 1; fi
+  if grep -Fq '[Ranged Weapon API CI] Runtime self-test passed' forge-package-smoke.log && [[ -f "$LOG" ]] && grep -Eq 'Done \([0-9.]+s\)!' "$LOG"; then PASS=1; break; fi
+  if ! kill -0 "$PID" 2>/dev/null; then wait "$PID"||true; cat "${FILES[@]}"; exit 1; fi
+  sleep 1
+done
+[[ "$PASS" -eq 1 ]] || { kill -TERM -- -"$PID" 2>/dev/null||true; wait "$PID" 2>/dev/null||true; cat forge-package-smoke.log; exit 1; }
+kill -TERM -- -"$PID" 2>/dev/null||true
+sleep 1
+kill -KILL -- -"$PID" 2>/dev/null||true
+wait "$PID" 2>/dev/null||true
+
+echo '[Ranged Weapon API CI] Full build/package/dev-server/client/fresh-packaged-JAR verification passed.'
