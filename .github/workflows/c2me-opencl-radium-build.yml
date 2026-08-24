@@ -9,6 +9,10 @@ permissions:
 
 jobs:
   build-and-smoke-test:
+    # This workflow belongs to the C2ME workstream. Never consume a runner on
+    # the isolated RPG-Series workbench branch; its full verification lives in
+    # the dedicated RPG workflows.
+    if: ${{ !startsWith(github.head_ref, 'workbench/rpg-series-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
