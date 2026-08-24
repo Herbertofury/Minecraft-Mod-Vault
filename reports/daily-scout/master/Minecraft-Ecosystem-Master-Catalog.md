@@ -1,126 +1,65 @@
 # Minecraft Ecosystem Master Discovery Catalog
 
-**Last audited:** 2026-08-24  
-**Permanent categories:** 33  
-**Tracked serious projects/finds in canonical Google Sheet:** 87
+**Last audited:** 2026-08-25  
+**Permanent categories:** 34  
+**Tracked serious projects/finds in canonical Google Sheet:** 100
 
-This GitHub mirror is the durable category/ranking index for the recurring Minecraft ecosystem scouting service. The canonical sortable registry is maintained in the paired Google Sheet and contains exact versions, supported Minecraft versions, loader/channel, release date, status, dependencies, direct project/version/changelog links, client/server side, save impact, removability/update-friendliness, first/last tracked dates, compatibility notes, and ranking history.
+This GitHub mirror is the durable change/ranking index for the recurring Minecraft ecosystem scouting service. The canonical sortable database and complete 34-category board live in the paired Google Sheet; the curated Drive guide is the readable long-form layer. Historical details are preserved in the dated checkpoints and Git history rather than silently deleted.
 
-## Latest material delta — 2026-08-24 late-cycle II
+## Latest material delta — 2026-08-25
 
-- **#8 Mob/Creature — NEW SAME-DAY RUNNER-UP:** Sons Of Sins 2.2.1. Direct Forge 1.20.1 and NeoForge 1.21.1 releases landed Aug 24. Established substantive horror/creature content; world-affecting and not casually removable. Exact 2.2.1 changelog was not surfaced, so no feature delta is invented. https://www.curseforge.com/minecraft/mc-mods/sons-of-sins
-- **#9 Combat/Animation compatibility — NEW RUNNER-UP:** Better Selective Combat 1.0.0. Fabric/NeoForge 1.21.10–1.21.11 and 26.x add-on that allows selected weapons to bypass Better Combat. Config-only/world-safe, but no Forge 1.20.1 build. https://www.curseforge.com/minecraft/mc-mods/better-selective-combat
-- **#26/#27/#29 client-safe visual — NEW RUNNER-UP:** Particle Rain. v4-beta.11 landed Aug 24 on modern Fabric with 26.2 support and weather/wind/particle fixes. Forge 1.20.1 remains on v4-beta.10. Client-only, save-neutral, highly removable. https://modrinth.com/mod/particle-rain
-- **#33 3D / #13 visual — NEW SERIOUS RUNNER-UP:** Nautilus 3D. Current 26.2 release includes chest/bell and Better Block Entities compatibility improvements; project history covers 1.20.x. Save-neutral true-geometry pack. Distant Horizons behavior remains unverified, so 3D Default stays overall. https://modrinth.com/resourcepack/nautilus3d
-- **#13/#33 visual — NEW RUNNER-UP:** "Barely Default" by Mickey Joe V20.21. Current 26.x pack combines CEM, true 3D block/item models, CTM and random textures in a vanilla-inspired 16x style. Save-neutral; current V20.21 is not a 1.20.1 build. https://www.curseforge.com/minecraft/texture-packs/mickey-joes-relatively-improved-default
-- **#21 Tool / #26 client-safe — NEW DIAGNOSTICS RUNNER-UP:** Crash Assistant 1.11.12. Client-only crash/log diagnostics with Forge/Fabric/NeoForge/Quilt coverage and a direct Forge 1.20.1 build. Adds no world content. https://www.curseforge.com/minecraft/mc-mods/crash-assistant
-- **#5/#23 Fusion refinement:** Fusion is now 1.3.14a on Forge/NeoForge 1.21.11 with Forge `render_type` and custom-geometry fixes. The Forge 1.20.1 line remains 1.3.14. https://www.curseforge.com/minecraft/mc-mods/fusion-connected-textures
-- **#16 Bedrock watch:** Sweet Dreams advanced to Bug Fixes 27 on Aug 24, still declaring Bedrock 26.30 and supplying no changelog. Canopy remains overall. https://www.curseforge.com/minecraft-bedrock/addons/sweet-dreams
-- **#31 Animated / #32 CIT:** no leader change. **#33 3D:** 3D Default remains overall; Nautilus 3D joins as the strongest newly discovered feature-rich challenger. Better 3D Blocks retains the Distant Horizons caution.
-- **Marketplace / Planet Minecraft:** no defensible new leader replacement this cycle.
+- **#34 leader update:** [Monster Girl 2.7.0](https://www.curseforge.com/minecraft/mc-mods/monster-girl) is the practical Forge 1.20.1 leader and also has a NeoForge 1.21.1 2.7.0 line; 26.1.2 remains on 2.6.0. New content includes Succubus, Death Lash, Little Devil taming and expanded companion control. **Critical:** the exact Forge 1.20.1 file warns that deleting the mod after a save has loaded it can make that save unplayable. **TEST BRANCH / BACKUP REQUIRED.**
+- **#4 Performance / #11 Create specialist:** [StellarCreateOptimization 1.0.2](https://www.curseforge.com/minecraft/mc-mods/stellarcreateoptimization) adds direct Forge 1.20.1 and NeoForge 1.21.1 support for [Create](https://modrinth.com/mod/create) 6.0.x optimization. It targets chutes, block entities, particles, shaders, Chain Conveyors and large-factory rendering/server cost, with [Embeddium](https://modrinth.com/mod/embeddium) and [Oculus](https://www.curseforge.com/minecraft/mc-mods/oculus)/[Iris](https://modrinth.com/mod/iris) compatibility work. The project is young, so it remains a benchmark-first **TEST BRANCH** specialist rather than displacing the broad category leader.
+- **#9 Combat/Animation compatibility:** [Epic Fight Indestructible - Unofficially Enhanced!! 20.14.17](https://www.curseforge.com/minecraft/mc-mods/epic-fight-indestructible-unofficially-enhanced) is a new advanced Forge 1.20.1 runner-up for [Epic Fight](https://www.curseforge.com/minecraft/mc-mods/epic-fight-mod) 20.14.17. It adds dynamic mob patches, live refresh, [CustomNPCs](https://www.curseforge.com/minecraft/mc-mods/custom-npcs) coverage, optional [Timeless and Classics Zero](https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero) behavior and animation/crash fixes. The simpler guard-fix path remains the baseline leader.
+- **#34 maid/social specialist:** [Touhou Little Maid: Love & Loathe 2.0.6](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-love-loathe) has Forge 1.20.1 and NeoForge 1.21.1 builds and adds emotion, hunger, broadcast commands and trust/fear-driven AI behavior to [Touhou Little Maid](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid). It is a stateful maid addon, not a standalone world mob.
+- **#34 experimental maid physics:** [Sable: MaidRagdoll 0.11-beta](https://www.curseforge.com/minecraft/mc-mods/sable-maidragdoll) is a 1.21.1 NeoForge watch candidate with partial model support, ragdoll behavior, Cake Box throwing and Death Cheat Charm recovery. **WATCH / FUTURE VERSION.**
 
-Full checkpoint: `reports/daily-scout/2026-08-24-category-leaderboard.md`
+Full current checkpoint: [`reports/daily-scout/2026-08-25-category-leaderboard.md`](../2026-08-25-category-leaderboard.md)
 
-## Earlier material delta — 2026-08-24 late cycle
+## Category-board change ledger
 
-- **#4 / #28 performance — specialist runner-up:** Just Enough Threads [JEI Startup Optimize]. Client-only Java mod with direct Forge 1.20.1 and NeoForge 1.21.1 paths. For Forge 1.20.1, verify Forge 47.4.4+ and JEI 15.20.0.120+. It moves JEI ingredient-search index work off-thread after world entry; 0.10.1 hardens FTB Quests/Ixeris startup interactions and prevents half-initialized recipe GUI access. Save-neutral and highly removable, but test with exact JEI integrations. https://www.curseforge.com/minecraft/mc-mods/just-enough-threads
-- **#5 / #23 infrastructure:** Fusion (Connected Textures) 1.3.14 was the direct Forge 1.20.1/current infrastructure runner-up before the 1.21.11-only 1.3.14a hotfix. It adds no gameplay world content itself, but dependent packs/mods can require it. https://www.curseforge.com/minecraft/mc-mods/fusion-connected-textures
-- **#32 modern CIT ecosystem — utility watch:** Cozy CIT: Furniture Comes Alive. Java 1.21.1 Fabric/NeoForge; dynamically registers supported CIT furniture models as functional real blocks. Persistent world content, so removal is low-confidence and update friendliness is caution. https://www.curseforge.com/minecraft/mc-mods/cozy-cit-furniture-comes-alive
+- **#4:** broad leader unchanged; [StellarCreateOptimization 1.0.2](https://www.curseforge.com/minecraft/mc-mods/stellarcreateoptimization) added as a Create-heavy Forge 1.20.1 / NeoForge 1.21.1 specialist.
+- **#9:** baseline leader unchanged; [Epic Fight Indestructible - Unofficially Enhanced!! 20.14.17](https://www.curseforge.com/minecraft/mc-mods/epic-fight-indestructible-unofficially-enhanced) added as the advanced Forge 1.20.1 compatibility runner-up.
+- **#11:** overall technology leader unchanged; [StellarCreateOptimization 1.0.2](https://www.curseforge.com/minecraft/mc-mods/stellarcreateoptimization) added as the performance specialist.
+- **#31 Animated:** [Actions & Stuff 1.11](https://www.minecraft.net/en-us/marketplace/pdp?id=53c7af69-2425-490e-8e9a-8ad2c2e7cbfe) overall / [Fresh Animations](https://modrinth.com/resourcepack/fresh-animations) Java — **NO MATERIAL LEADER CHANGE**.
+- **#32 CIT:** [Kaydicraft CIT 1.45](https://modrinth.com/resourcepack/kaydicraft) / [FAYE](https://www.planetminecraft.com/texture-pack/the-faye-wallpaper-amp-flooring-set-cit/) — **NO MATERIAL LEADER CHANGE**.
+- **#33 3D:** [3D Default 1.15.0](https://modrinth.com/resourcepack/3d-default) — **NO MATERIAL LEADER CHANGE**.
+- **#34 Monster Girl / Female-Coded Mob:** [Monster Girl 2.7.0](https://www.curseforge.com/minecraft/mc-mods/monster-girl) — **MAJOR SAME-DAY LEADER UPDATE**. [HMaG — Hostile Mobs and Girls](https://www.curseforge.com/minecraft/mc-mods/hostile-mobs-and-girls) + [NFF: Girls](https://www.curseforge.com/minecraft/mc-mods/nff-girls) remain strong bestiary/companion tracks; [Touhou Little Maid: Love & Loathe 2.0.6](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-love-loathe) joins as the social-maid specialist; [Sable: MaidRagdoll 0.11-beta](https://www.curseforge.com/minecraft/mc-mods/sable-maidragdoll) joins experimental watch.
+- **#1–#3, #5–#8, #10, #12–#30:** independently rechecked; **NO MATERIAL LEADER CHANGE** this cycle. The exact current picks remain in the canonical Google Sheet and curated master guide.
 
-## Earlier material delta — 2026-08-24
+## Afdian / Asian creator-source status
 
-- **#7 Exploration/Worldgen/Dimension — NEW LEADER:** Jaden's Nether Expansion 2.4.1. Active modern line is NeoForge 1.21.1; Forge 1.20.1 remains on legacy 2.3.5 and receives bug fixes only. World-affecting; use backups/test worlds. https://modrinth.com/mod/jadens-nether-expansion/version/2.4.1
-- **#7/#8 — runner-up:** Aquamirae 7.2.1. Stable modern 1.21.1 line; Forge/Fabric 1.20.1 has 7.1.13 Beta, while 6.4.0 is the older stable 1.20.1 line. World-affecting. https://www.curseforge.com/minecraft/mc-mods/aquamirae
-- **#22 Server/Admin/Diagnostics — leader:** spark 1.10.173 is the mature overall profiler. https://modrinth.com/mod/spark
-- **#22 specialist / #4 watch:** Shinoyuki-BetterAutoSave 0.20.1 is tracked for Forge 1.20.1 / NeoForge 1.21.1 autosave stalls and diagnostics. Server-side, pre-1.0, touches the save pipeline, and must not be stacked with overlapping async-save systems. https://modrinth.com/mod/shinoyuki-betterautosave
-- **#16 Bedrock Add-On — watch:** Sweet Dreams remains a fast-moving horror/survival runner-up, now on Bug Fixes 27 as recorded above.
-- **#31 Animated / #32 CIT / #33 3D:** visual leaders retained. Fresh Animations 1.10.4 remains the 1.20.x Java path; 1.10.5 is for 26.1.x/26.2. 3D Default 1.15.0 keeps an exact mc1.20–1.21.1 file. Better 3D Blocks still carries the maintainer's Distant Horizons LOD/FPS warning.
-- **Planet Minecraft #19/#20 sweep:** no fresh project had enough verified quality + usability evidence to justify replacing Trident Cliffs City.
+- [Feather_aya](https://afdian.com/a/FliegeSA) — public model sales on Afdian stopped in May 2026; prior-buyer update access remains, with some later free/reduced variants. **MANUAL-AUDIT / SALES DISCONTINUED ON AFDIAN.**
+- [你个人机cc](https://afdian.com/a/ccnie) — active [Yes Steve Model](https://www.curseforge.com/minecraft/mc-mods/yes-steve-model) catalog; many current entries require 2.5.1+.
+- [映白](https://afdian.com/a/ehaku) — active [Yes Steve Model](https://www.curseforge.com/minecraft/mc-mods/yes-steve-model) / [Touhou Little Maid](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid) catalog; current entries commonly document modern engine requirements and explicit usage/licensing constraints.
 
-## Prior retained late-cycle delta — 2026-08-23
+## Safety notes for the 2026-08-25 delta
 
-- **#24 Experimental/Bleeding-Edge / #25 Future-Version:** Retromod 1.3.0-snapshot.8 remains the current technical experiment/migration leader; beta, cloned-instance testing only.
-- **#26 Client-Side / #29 QoL-UI:** Outline N' Stuff remains a future runner-up for Fabric/NeoForge 1.21.1 + 26.2; no Forge 1.20.1 build.
-- **#14 Shader:** PathMax remains the Iris-only experimental path-tracing runner-up; Complementary Reimagined stays mature overall.
-- **#17 Bedrock visuals:** Cinematic Visuals 1.2 and Unbound Visuals 2.3.1 remain tracked runners-up.
+| Project | Client only? | Server required? | Save/world impact | Removal | Update friendliness |
+|---|---|---|---|---|---|
+| [StellarCreateOptimization](https://www.curseforge.com/minecraft/mc-mods/stellarcreateoptimization) | No | Client+server environment | No dedicated world-content registration surfaced | High from save-integrity perspective; young-project caution | Good / test first |
+| [Epic Fight Indestructible - Unofficially Enhanced!!](https://www.curseforge.com/minecraft/mc-mods/epic-fight-indestructible-unofficially-enhanced) | No | Yes for integrated behavior | Behavior/config mob patching; no new worldgen surfaced | Medium-high with backup/config rollback | Good with dependency caution |
+| [Monster Girl](https://www.curseforge.com/minecraft/mc-mods/monster-girl) | No | Yes in multiplayer | Persistent entities/items/gameplay | **Low**; exact Forge 1.20.1 no-delete warning | Caution |
+| [Touhou Little Maid: Love & Loathe](https://www.curseforge.com/minecraft/mc-mods/touhou-little-maid-love-loathe) | No | Yes | Stateful maid emotion/trust/fear/hunger/AI | Medium-low | Caution |
+| [Sable: MaidRagdoll](https://www.curseforge.com/minecraft/mc-mods/sable-maidragdoll) | No | Yes | Beta maid/ragdoll runtime state; persistence not fully documented | Unknown-medium | Caution / beta |
 
-Full prior checkpoint: `reports/daily-scout/2026-08-23-late-cycle-delta.md`
+## Persistence state
 
-## Permanent visual categories
+- Canonical Google Sheet: **100 retained serious projects/finds / 34 categories**.
+- Separate female-mob companion set: **88 curated projects/source hubs / 39 explicit 1.20.1 routes / 11 maid-ecosystem entries**.
+- Every specific newly written project/creator name in this revision is directly linked to its official/source page.
+- Historical findings remain preserved in dated reports, the canonical Google Sheet, and Git history; superseded data is not silently discarded.
 
-### 31. Best Animated Resource Pack
+## Historical checkpoints
 
-- **Overall / Bedrock:** Actions & Stuff 1.11.
-- **Java:** Fresh Animations 1.10.5 for 26.1.x–26.2; use Fresh Animations 1.10.4 for Java 1.20.x/1.21.x, including 1.20.1.
-- Recommended modern Java companions: Entity Model Features + Entity Texture Features.
-- Links: https://www.minecraft.net/en-us/article/summer-sale-2026 • https://modrinth.com/resourcepack/fresh-animations
+- [`2026-08-24-category-leaderboard.md`](../2026-08-24-category-leaderboard.md) — prior 87-project state and late-cycle visual/client-safe discoveries.
+- [`2026-08-23-category-leaderboard.md`](../2026-08-23-category-leaderboard.md) — prior daily board.
+- [`2026-08-23-late-cycle-delta.md`](../2026-08-23-late-cycle-delta.md) — earlier late-cycle experimental/client-safe delta.
 
-### 32. Best CIT Pack
+## Recurring-service rules
 
-- **Best single classic 1.20.1 pack:** Kaydicraft CIT 1.45 — OptiFine CIT or CIT Resewn-compatible renderer.
-- **Best active classic suite:** FAYE CIT collection.
-- **Modern CIT-style successor track:** ItemBound: ReBound / modern item-model-definition systems remain separate from classic CIT.
-- **Experimental functional-CIT utility watch:** Cozy CIT: Furniture Comes Alive — not a pack/renderer; it creates persistent functional blocks from supported packs, so it is not save-neutral.
-
-### 33. Best 3D Resource Pack
-
-- **Best current overall / safest first test:** 3D Default 1.15.0 — exact `mc1.20-1.21.1` build, lightweight true geometry, vanilla-look textures, no save dependency.
-- **Strongest newly discovered feature-rich challenger:** Nautilus 3D — current 26.2 release; project history covers 1.20.x; BBE compatibility work; Distant Horizons behavior still unverified.
-- **Higher-detail contender:** Better 3D Blocks 2.9.0 — broad project coverage, but maintainer warns of a Distant Horizons LOD interaction that can cause very large FPS loss. Treat as TEST BRANCH with DH.
-- **Modern hybrid 3D/CEM alternate:** Barely Default V20.21.
-- **Modern item-only specialist:** Items 3D 5.0.
-- **Subtle modern vanilla extension:** Vanilla 3D Extension 1.19.
-
-## 33-category scoreboard
-
-1. Best Overall Java Mod — Create: Storage 1.2.7
-2. Best Forge/NeoForge Mod — Create: Storage 1.2.7 / Easy NPC modern
-3. Best Fabric/Quilt Mod — Easy NPC 7.9.0
-4. Best Performance/Optimization Mod — Legendary Block Entities 0.11.0; Just Enough Threads specialist runner-up; Sodium modern line
-5. Best Compatibility/Fix Mod — Collections Of Optimizations 2.4; Fusion 1.3.14a modern / 1.3.14 Forge 1.20.1 runner-up; Retromod experimental migration track
-6. Best Gameplay/QoL Mod — TargetsIndicate 1.2.0
-7. Best Exploration/Worldgen/Dimension Mod — Jaden's Nether Expansion 2.4.1; Sculk Horde 0.12.7 Forge 1.20.1 + Aquamirae 7.2.1 runners-up
-8. Best Mob/Creature Mod — Psychopath 1.4.0; **Sons Of Sins 2.2.1** + Aquamirae 7.2.1 runners-up
-9. Best Combat/Animation Mod or Compatibility Layer — Epic Fight Guard Fix 1.0.9; **Better Selective Combat 1.0.0** future runner-up
-10. Best Movement/Skating/Grinding/Vehicle Mod — I Wanna Skate 1.2.0
-11. Best Create/Technology Mod or Addon — Create: Storage 1.2.7
-12. Best Building/Decoration Mod — Create: Copycats+ 3.0.8
-13. Best Resource Pack — Optimum Realism 64x; **Barely Default V20.21 / Nautilus 3D** visual runners
-14. Best Shader Pack / Shader-Adjacent Visual Tech — Complementary Reimagined; PathMax experimental runner-up
-15. Best Datapack — NO MATERIAL CHANGE
-16. Best Bedrock Add-On — Canopy 1.6.1; Sweet Dreams Bug Fixes 27 watch
-17. Best Bedrock Resource/Behavior Pack — Newb X Supplementary 8.0; Cinematic Visuals 1.2 and Unbound Visuals 2.3.1 runners-up
-18. Best Bedrock Marketplace Find — Auto Factory
-19. Best Minecraft Map/Adventure Map — Trident Cliffs City
-20. Best Artistic/Showcase Build or Map — Trident Cliffs City
-21. Best Tool/Utility/Launcher/Modpack Management — Modrinth App; Prism Launcher power-user runner-up; **Crash Assistant 1.11.12 diagnostics runner**
-22. Best Server/Admin/Diagnostics Tool — spark 1.10.173; Shinoyuki-BetterAutoSave 0.20.1 specialist runner-up
-23. Best Modding/Development Tool or Library — Easy Model Entities 2.3.0; Fusion 1.3.14a/1.3.14 infrastructure runner-up
-24. Best Experimental/Bleeding-Edge Project — Retromod 1.3.0-snapshot.8
-25. Best Future-Version Project Worth Tracking — Retromod 1.3.0-snapshot.8; Easy Model Entities + Easy NPC runner-up
-26. Best Client-Side-Only Mod — TargetsIndicate 1.2.0; **Particle Rain / Crash Assistant** safe runners; Just Enough Threads + Outline N' Stuff retained
-27. Best Update-Friendly / World-Safe Mod — TargetsIndicate / BetterF3 / Client Tweaks / Legendary Block Entities; Particle Rain / Crash Assistant runners
-28. Best Client-Side Performance Mod — Legendary Block Entities 0.11.0 / ImmediatelyFast; Just Enough Threads JEI specialist runner-up
-29. Best Client-Side QoL/UI Mod — TargetsIndicate 1.2.0; **Particle Rain** atmosphere runner; Outline N' Stuff future runner-up
-30. Best Removable-With-Minimal-Save-Risk Mod — TargetsIndicate 1.2.0 / BetterF3
-31. Best Animated Resource Pack — Actions & Stuff 1.11 overall; Fresh Animations Java
-32. Best CIT Pack — Kaydicraft CIT 1.45; FAYE suite runner-up; Cozy CIT utility watch
-33. Best 3D Resource Pack — 3D Default 1.15.0; **Nautilus 3D** serious challenger; Better 3D Blocks / Barely Default / Items 3D alternates
-
-## Evergreen client stack
-
-**Legendary Block Entities + ImmediatelyFast + Client Tweaks + BetterF3 + Mouse Tweaks + TargetsIndicate**, with resource packs/shaders kept as removable presentation layers.
-
-**Safe optional additions:** Particle Rain is a save-neutral atmospheric layer with a direct Forge 1.20.1 beta.10 path; Crash Assistant is a client-only diagnostics layer with a direct Forge 1.20.1 build. Just Enough Threads remains the targeted JEI startup/index specialist once exact Forge/JEI minimums are met.
-
-BetterAutoSave is deliberately **not** included in this client stack because it is server-side and intentionally modifies the world-save pipeline.
-
-## Persistence rules
-
-- Update the same canonical Drive Doc + Google Sheet in place; do not create a new master tracker every run.
-- Maintain dedicated Animated Packs, CIT Packs, and 3D Packs views/tabs.
-- Keep exact version/download/changelog links and last-checked dates current.
-- Preserve historical/superseded entries rather than silently deleting them.
-- A no-change run is a successful no-op; do not invent churn.
-- Resource packs are normally save-neutral, but renderer dependencies, Marketplace entitlement, modern item-model data, and load-order conflicts must be documented explicitly.
-- Every material run publishes a dated checkpoint to both Drive and GitHub and verifies both copies before completion.
+- The no-change state of any category is a valid result; do not invent churn.
+- Maintain the canonical Google Sheet + curated Doc in place and keep separate female-mob companion artifacts synchronized when that track materially changes.
+- Preserve exact versions, direct source/version links, loader/channel, side requirements, save impact, removability, compatibility notes and ranking history.
+- Every material run publishes a dated checkpoint to both Drive and GitHub and verifies both copies.
+- The recurring scout remains active unless the user explicitly retires it.
