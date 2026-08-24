@@ -33,7 +33,7 @@ if grep -R 'net.fabricmc' common/src/main/java common/src/generatedUpstream/java
 fi
 
 rm -f "$ROOT/ranged-weapon-api-forge-1.20.1-source-ci.zip"
-zip -qr "$ROOT/ranged-weapon-api-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*'
+zip -qr "$ROOT/ranged-weapon-api-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.fresh-forge-server/*'
 
 gradle --no-daemon --stacktrace :forge:build
 
@@ -57,9 +57,16 @@ if unzip -l "$JAR" | grep -q 'fabric.mod.json\|META-INF/neoforge.mods.toml'; the
 fi
 sha256sum "$JAR" | tee ranged-weapon-api-forge.sha256
 
-rm -rf forge/run/logs
+rm -rf forge/run/logs forge/run/world
 mkdir -p forge/run
 printf 'eula=true\n' > forge/run/eula.txt
+cat > forge/run/server.properties <<'EOF'
+level-type=minecraft:flat
+generate-structures=false
+view-distance=3
+simulation-distance=3
+spawn-protection=0
+EOF
 : > forge-server-smoke.log
 setsid gradle --no-daemon -PrangedWeaponCiSelfTest :forge:runServer > forge-server-smoke.log 2>&1 &
 PID=$!
@@ -108,6 +115,13 @@ curl -fsSL "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.
   cp "$JAR" mods/
   printf 'eula=true\n' > eula.txt
   printf '%s\n' '-Xmx2G' '-DrangedWeapon.ci.selftest=true' > user_jvm_args.txt
+  cat > server.properties <<'EOF'
+level-type=minecraft:flat
+generate-structures=false
+view-distance=3
+simulation-distance=3
+spawn-protection=0
+EOF
 )
 : > forge-package-smoke.log
 (

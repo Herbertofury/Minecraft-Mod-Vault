@@ -3,6 +3,7 @@ package net.fabric_extras.ranged_weapon.mixin.item;
 import net.fabric_extras.ranged_weapon.api.CustomRangedWeapon;
 import net.fabric_extras.ranged_weapon.api.EntityAttributes_RangedWeapon;
 import net.fabric_extras.ranged_weapon.internal.ArrowExtension;
+import net.fabric_extras.ranged_weapon.internal.ScalingUtil;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
@@ -32,7 +33,11 @@ public final class ProjectileUtilMixin {
         double rangedDamage = shooter.getAttributeValue(EntityAttributes_RangedWeapon.DAMAGE.attribute);
         if (baselineDamage <= 0 || rangedDamage <= 0) return;
 
-        projectile.setDamage(projectile.getDamage() * (rangedDamage / baselineDamage));
+        // Share the same deterministic damage-ratio helper used by the normal bow/crossbow paths.
+        // ProjectileUtil has already applied vanilla's per-arrow random/enchantment contribution here;
+        // we multiply that finished value exactly as upstream 2.3.3 does.
+        double multiplier = ScalingUtil.arrowDamageMultiplier(baselineDamage, rangedDamage, 1D);
+        projectile.setDamage(projectile.getDamage() * multiplier);
         ((ArrowExtension)(Object)projectile).rwa_markModified(true);
     }
 }
