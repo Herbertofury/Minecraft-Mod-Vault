@@ -7,10 +7,16 @@ on:
     paths:
       - 'rpg-series-port/runes-forge-1.20.1/**'
       - '.github/workflows/rpg-series-runes-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'rpg-series-port/runes-forge-1.20.1/**'
+      - '.github/workflows/rpg-series-runes-build.yml'
   workflow_dispatch:
 
 concurrency:
-  group: rpg-series-runes-${{ github.ref }}
+  group: rpg-series-runes-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -31,12 +37,13 @@ jobs:
       - name: Publish pending status
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           curl --fail-with-body --silent --show-error -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${TARGET_SHA}" \
             -d '{"state":"pending","context":"rpg-series/runes-forge-1.20.1","description":"Runes Forge 1.20.1 verification is running"}'
 
       - name: Checkout exact upstream Runes 1.3.2 resources
@@ -155,6 +162,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           case "$JOB_STATUS" in
             success) STATE=success ;;
@@ -166,5 +174,5 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${TARGET_SHA}" \
             -d "{\"state\":\"${STATE}\",\"context\":\"rpg-series/runes-forge-1.20.1\",\"description\":\"Runes Forge 1.20.1 CI: ${JOB_STATUS}\"}"
