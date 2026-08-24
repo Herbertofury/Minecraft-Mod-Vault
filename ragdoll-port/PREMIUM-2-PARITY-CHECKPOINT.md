@@ -13,8 +13,11 @@ Target: Minecraft 1.20.1 / Forge 47.x / Java 17
 - `ragdoll-forge-1.20.1-premium.2-BUNDLE.zip`
   - SHA-256: `cf49e569ca06cc9ba2b74231fbc8a89f46d5177062ee9a2812404069740c3de2`
   - Drive file ID: `1-fxslv8RgG3IsWLYdgKqLnQwkpGPGlQJ`
+- `ragdoll-forge-1.20.1-premium.2-FULL-SOURCE.zip`
+  - SHA-256: `c8a572e3d2630c417b1965f1c4d363c18bfb7ab4d61799d7a9782056be759b42`
+  - Drive file ID: `19lqOJNGJ9LjFSFUhCOdy2wH3DqT2qos0`
 
-Canonical Drive folder: `Ragdoll Forge 1.20.1 Backport` (`1T7YP1nKcJtWJjsNXvDmRfMpA4asfJIQt`).
+Canonical Drive folder: `Ragdoll Forge 1.20.1 Backport` (`1T7YP1nKcJtWJjsNXvDmRfMpA4asfJIQt`). The full source/workstate is persisted privately on Drive; the public GitHub branch intentionally keeps only the verification/checkpoint state rather than republishing ARR-derived Reactions source.
 
 ## Premium parity definition
 Behavior-first port of the supplied NeoForge 1.21.1 binaries. Preserve their user-facing resources, addon-facing API/defaults and Ragdoll Reactions behavior while replacing only the Minecraft/loader/physics seams needed for Forge 1.20.1.
