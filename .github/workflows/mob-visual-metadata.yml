@@ -34,3 +34,5 @@ jobs:
           path: tools/visual_metadata/build/
           if-no-files-found: error
           compression-level: 6
+
+# Verification trigger: 2026-08-24 visual atlas build
