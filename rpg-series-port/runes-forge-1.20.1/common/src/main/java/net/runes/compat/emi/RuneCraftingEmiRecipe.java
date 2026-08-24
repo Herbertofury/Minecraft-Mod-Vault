@@ -6,14 +6,11 @@ import dev.emi.emi.api.render.EmiTexture;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.WidgetHolder;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.util.Identifier;
 import net.runes.crafting.RuneCraftingRecipe;
 
 import java.util.List;
 
-@Environment(EnvType.CLIENT)
 public final class RuneCraftingEmiRecipe implements EmiRecipe {
     private final Identifier id;
     private final EmiIngredient base;
