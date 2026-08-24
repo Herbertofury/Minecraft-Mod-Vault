@@ -38,3 +38,5 @@ jobs:
           path: tools/visual_metadata/build/
           if-no-files-found: error
           compression-level: 6
+
+# Verification trigger: preserve known official-media overrides
