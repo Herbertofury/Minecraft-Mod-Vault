@@ -180,6 +180,40 @@ func TestOmniManagerUIControlContract(t *testing.T) {
 	}
 }
 
+func TestTestGridUIControlContract(t *testing.T) {
+	html := string(mustReadTestFile(t, "web/index.html"))
+	js := string(mustReadTestFile(t, "web/testgrid.js"))
+	appJS := string(mustReadTestFile(t, "web/app.js"))
+	if !strings.Contains(html, `data-view="testgrid"`) {
+		t.Fatal("TestGrid top-level workspace is missing")
+	}
+	if !strings.Contains(html, `<script src="testgrid.js"></script><script src="omnimanager.js"></script><script src="repair-lab.js"></script><script src="app.js"></script>`) {
+		t.Fatal("TestGrid must load before app.js while preserving OmniManager and Repair Lab initialization order")
+	}
+	if !strings.Contains(appJS, "['testgrid','TestGrid','gauge']") || !strings.Contains(appJS, "window.TestGridStudio?.activate()") {
+		t.Fatal("TestGrid navigation or activation hook is missing")
+	}
+	htmlID := regexp.MustCompile(`\bid=["']([^"']+)["']`)
+	present := map[string]bool{}
+	for _, match := range htmlID.FindAllStringSubmatch(html, -1) {
+		present[match[1]] = true
+	}
+	usedID := regexp.MustCompile(`document\.getElementById\(['"]([^'"]+)['"]\)`)
+	for _, match := range usedID.FindAllStringSubmatch(js, -1) {
+		if !present[match[1]] {
+			t.Errorf("TestGrid JavaScript references missing HTML element %q", match[1])
+		}
+	}
+	for _, endpoint := range []string{
+		"/api/testgrid/capabilities", "/api/testgrid/validate", "/api/testgrid/run",
+		"/api/testgrid/runs", "/api/testgrid/cancel", "/api/testgrid/file",
+	} {
+		if !strings.Contains(js, endpoint) {
+			t.Errorf("TestGrid UI is not wired to %s", endpoint)
+		}
+	}
+}
+
 func mustReadTestFile(t *testing.T, path string) []byte {
 	t.Helper()
 	data, err := os.ReadFile(path)

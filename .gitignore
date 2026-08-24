@@ -1,4 +1,5 @@
 /dist/
+/build/
 /release/
 /scripts/__pycache__/
 *.pyc

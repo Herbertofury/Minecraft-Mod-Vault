@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="omnimanager.css">
   <link rel="stylesheet" href="conversion.css">
+  <link rel="stylesheet" href="testgrid.css">
 </head>
 <body>
 <div class="app-shell">
@@ -274,6 +275,26 @@
     </section>
 
 
+    <section class="view testgrid-view" data-view="testgrid">
+      <article class="testgrid-hero card">
+        <div><span class="eyebrow">TESTGRID · MINECRAFT DEVTOOLS</span><h2>Drive real runtimes. Capture proof. Compare every boundary.</h2><p>Launch Java servers, Bedrock Dedicated Server, Gradle, launchers, render drivers, or custom tools without opening the Vault UI. Assert logs, protocols, RCON commands, files, hashes, and declared captures, then keep JSON, JUnit, HTML, combined logs, and SHA-256 artifacts for every run.</p><div class="hero-actions"><button class="btn primary" id="testgridRun"><span data-icon="power"></span> Run manifest</button><button class="btn" id="testgridValidate"><span data-icon="shield"></span> Validate</button><button class="btn" id="testgridRefresh"><span data-icon="refresh"></span> Refresh runs</button></div></div>
+        <div class="testgrid-trust"><strong>Version-independent by contract</strong><p>The runtime distribution and Java version are explicit inputs. Protocol probes are edition-native; rendered client capture is driver-dependent and never misreported as server-headless support.</p><span id="testgridHost">Loading host capabilities…</span></div>
+      </article>
+      <div class="testgrid-capabilities" id="testgridCapabilities"><div class="card loading">Loading capability matrix…</div></div>
+      <div class="testgrid-layout">
+        <section class="card testgrid-editor-panel">
+          <div class="testgrid-panel-head"><div><span class="eyebrow">RUN MANIFEST</span><h3>Reproducible test recipe</h3></div><select id="testgridPreset"><option value="self">Self-test</option><option value="java">Java server</option><option value="bedrock">Bedrock server</option></select></div>
+          <textarea id="testgridManifest" spellcheck="false" aria-label="TestGrid JSON manifest"></textarea>
+          <div class="testgrid-editor-status" id="testgridEditorStatus">Choose a preset or paste a schemaVersion 1 manifest.</div>
+        </section>
+        <aside class="card testgrid-runs-panel">
+          <div class="testgrid-panel-head"><div><span class="eyebrow">EVIDENCE HISTORY</span><h3>Recent runs</h3></div><span id="testgridRunCount">0</span></div>
+          <div class="testgrid-run-list" id="testgridRunList"><div class="loading">Loading runs…</div></div>
+        </aside>
+      </div>
+      <section class="card testgrid-report" id="testgridReport"><div class="empty">Select or start a run to inspect its steps, process result, reports, and captured artifacts.</div></section>
+    </section>
+
     <section class="view" data-view="creators">
       <div class="section-heading split"><div><span class="eyebrow">CREATOR ARCHIVE</span><h2>Every mod recommended by the creators you follow</h2><p>The Vault ships with an always-updated cross-platform creator watchlist spanning YouTube and TikTok, including AsianHalfSquat, EnderVerseMC, Kizamiringo, Katsumi, CurseForge, HendyVideos, Noxus, ChosenArchitect, direwolf20 and other high-signal Minecraft creators. Follow another creator once and the same archive pipeline keeps it current: full-history backfill first, incremental new-upload refresh afterward, captions + local Whisper speech-to-text, visual OCR for text-only Shorts/TikToks, Minecraft project resolution, dedupe, and evidence for every recommendation. Creator profiles are also link-aware: public Linktree/Lnk.Bio/Beacons/Carrd-style hubs are discovered, safely expanded, typed into modpacks/mods/packs/socials/support links, cached with provenance, and refreshed automatically.</p></div><div class="hero-actions"><button class="btn" id="reloadCreatorCatalogs"><span data-icon="database"></span> Reload catalogs</button><button class="btn primary" id="syncCreatorArchive"><span data-icon="refresh"></span> Sync all followed</button></div></div>
       <div class="creator-follow-workbench card">
@@ -409,6 +430,6 @@
   </aside>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="conversion.js"></script><script src="catalog.js"></script><script src="omnimanager.js"></script><script src="repair-lab.js"></script><script src="app.js"></script>
+<script src="conversion.js"></script><script src="catalog.js"></script><script src="testgrid.js"></script><script src="omnimanager.js"></script><script src="repair-lab.js"></script><script src="app.js"></script>
   <script src="/omnimanager-polish.js"></script>
 </body></html>

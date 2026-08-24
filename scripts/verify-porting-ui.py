@@ -203,8 +203,8 @@ def main() -> int:
             page.add_script_tag(content=repair)
             page.add_script_tag(content=app)
 
-            wait_text(page, "#versionPill", "v0.9.0", timeout=45_000)
-            record("production bootstrap reports v0.9.0", True, page.locator("#versionPill").inner_text())
+            wait_text(page, "#versionPill", "v0.13.0", timeout=45_000)
+            record("production bootstrap reports v0.13.0", True, page.locator("#versionPill").inner_text())
             record(
                 "navigation includes distinct Porting Lab",
                 page.locator('[data-nav="porting"]').count() == 1,
@@ -360,14 +360,14 @@ def main() -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     evidence = {
         "schema": 1,
-        "name": "Minecraft Mod Vault v0.9.0 Porting Lab Chromium UI smoke",
+        "name": "Minecraft Mod Vault v0.13.0 Porting Lab Chromium UI smoke",
         "startedAt": started_at,
         "completedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "passed": passed,
         "harness": {
             "browser": "system Chromium",
             "navigation": "production HTML/CSS/JS rendered via set_content due managed URLBlocklist",
-            "backend": "real compiled v0.9.0 loopback backend through authenticated Playwright binding",
+            "backend": "real compiled v0.13.0 loopback backend through authenticated Playwright binding",
             "applicationTransportChanges": [
                 "api() forwarded to authenticated bridge",
                 "history.replaceState disabled for about:blank",

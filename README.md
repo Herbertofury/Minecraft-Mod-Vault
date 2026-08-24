@@ -2,6 +2,21 @@
 
 **The evidence-first Minecraft mod manager, updater, repair laboratory, compatibility brain, and version-porting workbench for both Java and Bedrock.**
 
+## Minecraft Mod Vault 0.13.0 — TestGrid + the complete Vault
+
+Minecraft Mod Vault remains the complete Java/Bedrock mod manager, updater, OmniManager library, Mod Doctor, Compatibility Brain, OmniBridge, Porting Lab, Repair Lab, Creator Vault, and content catalog. **TestGrid is an addition, not a conversion of the product.**
+
+TestGrid provides a version-independent, headless control and evidence surface for Minecraft development:
+
+- Launch explicit Java servers, Bedrock Dedicated Server distributions, Gradle/build tools, render drivers, or other executable adapters without opening the UI.
+- Wait for and assert logs; probe TCP, Java server-list status, and Bedrock RakNet status; execute authenticated RCON commands; verify files and SHA-256; and run explicit auxiliary commands without shell interpolation.
+- Persist a combined runtime log, JSON report, JUnit XML, standalone HTML report, process/CPU result, and hash-addressed artifact captures for every run.
+- Use the integrated TestGrid studio, the loopback token API, or `Minecraft-Mod-Vault-0.13.0-windows-x64-cli.exe testgrid ...` commands.
+- Run the whole Vault as a durable local service with `Minecraft-Mod-Vault-0.13.0-windows-x64-cli.exe serve --port 8765 --token-file .\\mmv-token.txt`.
+- Preserve an honest client boundary: dedicated servers are headless; rendered Java evidence needs a compatible client/render driver; the retail Bedrock client needs a real-client automation adapter.
+
+Schemas, examples, security boundaries, and CLI usage are documented in [`testgrid/README.md`](testgrid/README.md).
+
 ## Minecraft Mod Vault 0.10.0 — OmniManager
 
 OmniManager fixes the failure shown by competing launchers when a perfectly valid local mod came from another storefront and is reduced to an anonymous filename, generic cube, or “Uploaded” label. Minecraft Mod Vault now treats the **local artifact as the primary object** and every storefront as evidence attached to it.

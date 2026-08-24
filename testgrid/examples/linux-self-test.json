@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "Vault TestGrid Linux self-test",
+  "description": "Proves process, log assertion, file assertion, capture, hashing, and report output.",
+  "edition": "generic",
+  "timeoutSeconds": 30,
+  "runtime": {
+    "kind": "build-or-tool",
+    "executable": "sh",
+    "arguments": ["-c", "printf 'MMV_TESTGRID_READY\\n'; printf 'deterministic evidence\\n' > mmv-testgrid-self-test.txt"],
+    "workingDirectory": "/tmp"
+  },
+  "steps": [
+    {"name": "runtime ready", "type": "wait-log", "pattern": "MMV_TESTGRID_READY", "timeoutSeconds": 10},
+    {"name": "no shell failure", "type": "deny-log", "pattern": "(?i)(not found|permission denied)", "timeoutSeconds": 5},
+    {"name": "evidence created", "type": "file-exists", "path": "mmv-testgrid-self-test.txt", "timeoutSeconds": 5}
+  ],
+  "artifacts": [
+    {"name": "self-test-evidence.txt", "path": "mmv-testgrid-self-test.txt"}
+  ]
+}

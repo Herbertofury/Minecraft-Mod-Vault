@@ -259,7 +259,7 @@ return await window.__mmvApi(path,options)}"""
         page.add_script_tag(content=catalog)
         page.add_script_tag(content=repair_js)
         page.add_script_tag(content=app)
-        wait_text(page, "#versionPill", "v0.9.0", timeout=45_000)
+        wait_text(page, "#versionPill", "v0.13.0", timeout=45_000)
         page.locator('[data-nav="repair"]').click()
         page.locator('[data-view="repair"].active').wait_for(state="visible", timeout=45_000)
         page.locator("#repairMetrics .repair-metric").first.wait_for(state="visible", timeout=45_000)
@@ -281,7 +281,7 @@ return await window.__mmvApi(path,options)}"""
             progress("loading production bundle")
             load_production_ui(page)
             progress("production bundle loaded")
-            record("production runtime reports v0.9.0", "v0.9.0" in page.locator("#versionPill").inner_text(), page.locator("#versionPill").inner_text())
+            record("production runtime reports v0.13.0", "v0.13.0" in page.locator("#versionPill").inner_text(), page.locator("#versionPill").inner_text())
             record("Repair Lab is a distinct active top-level workspace", page.locator('[data-nav="repair"]').count() == 1 and page.locator('[data-view="repair"].active').count() == 1, page.locator("#pageTitle").inner_text())
             record("Porting Lab remains separately available", page.locator('[data-nav="porting"]').count() == 1, page.locator('[data-nav="porting"]').count())
             record("Repair Lab renders four live capability metrics", page.locator("#repairMetrics .repair-metric").count() == 4, page.locator("#repairMetrics .repair-metric").count())
@@ -390,14 +390,14 @@ return await window.__mmvApi(path,options)}"""
 
     evidence = {
         "schema": 1,
-        "name": "Minecraft Mod Vault v0.9.0 Repair Lab Chromium UI smoke",
+        "name": "Minecraft Mod Vault v0.13.0 Repair Lab Chromium UI smoke",
         "startedAt": started_at,
         "completedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "passed": passed,
         "harness": {
             "browser": "system Chromium",
             "navigation": "production HTML/CSS/JS rendered via set_content due managed URLBlocklist",
-            "backend": "real compiled v0.9.0 loopback backend through authenticated bridges",
+            "backend": "real compiled v0.13.0 loopback backend through authenticated bridges",
             "productionPaths": ["file input/FormData", "migration controls", "execution acknowledgement", "build polling", "artifact rendering", "download links", "brain search", "rollback"],
             "transportOnlyChanges": ["api() forwarded to authenticated bridge", "FormData bytes forwarded to real multipart endpoint", "exact UI-rendered download URL fetched from real authenticated endpoint outside policy-blocked Chromium", "history.replaceState disabled for about:blank"],
         },

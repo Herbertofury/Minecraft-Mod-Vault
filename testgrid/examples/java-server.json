@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "Java dedicated server verification",
+  "edition": "java",
+  "gameVersion": "1.20.1",
+  "loader": "forge",
+  "timeoutSeconds": 300,
+  "runtime": {
+    "kind": "java-server",
+    "javaPath": "java",
+    "jar": "server.jar",
+    "jvmArguments": ["-Xms1G", "-Xmx2G"],
+    "arguments": ["nogui"],
+    "workingDirectory": ".",
+    "stop": {
+      "rconAddress": "127.0.0.1:25575",
+      "passwordEnv": "MMV_RCON_PASSWORD",
+      "command": "stop",
+      "graceSeconds": 20
+    }
+  },
+  "steps": [
+    {"name": "server startup", "type": "wait-log", "pattern": "Done \\([0-9.]+s\\)!", "timeoutSeconds": 180},
+    {"name": "Java status protocol", "type": "java-ping", "address": "127.0.0.1:25565", "timeoutSeconds": 30},
+    {"name": "no fatal crash", "type": "deny-log", "pattern": "(?i)(crash report|exception in server tick loop)", "timeoutSeconds": 5}
+  ],
+  "artifacts": [
+    {"name": "latest.log", "path": "logs/latest.log"},
+    {"name": "debug.log", "path": "logs/debug.log", "optional": true},
+    {"name": "server.properties", "path": "server.properties"}
+  ]
+}

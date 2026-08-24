@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "Bedrock Dedicated Server verification",
+  "edition": "bedrock",
+  "gameVersion": "current-installed",
+  "timeoutSeconds": 180,
+  "runtime": {
+    "kind": "bedrock-server",
+    "executable": "bedrock_server.exe",
+    "workingDirectory": "."
+  },
+  "steps": [
+    {"name": "server startup", "type": "wait-log", "pattern": "(?i)(server started|IPv4 supported)", "timeoutSeconds": 120},
+    {"name": "Bedrock RakNet status", "type": "bedrock-ping", "address": "127.0.0.1:19132", "timeoutSeconds": 30},
+    {"name": "no fatal crash", "type": "deny-log", "pattern": "(?i)(fatal|unhandled exception)", "timeoutSeconds": 5}
+  ],
+  "artifacts": [
+    {"name": "server.properties", "path": "server.properties"},
+    {"name": "worlds", "path": "worlds", "optional": true}
+  ]
+}

@@ -318,8 +318,8 @@ func TestUniversalModsEmbeddedAssets(t *testing.T) {
 }
 
 func TestAppVersion0110(t *testing.T) {
-	if appVersion != "0.11.0" {
-		t.Fatalf("appVersion=%q want 0.11.0", appVersion)
+	if appVersion != "0.13.0" {
+		t.Fatalf("appVersion=%q want 0.13.0", appVersion)
 	}
 }
 

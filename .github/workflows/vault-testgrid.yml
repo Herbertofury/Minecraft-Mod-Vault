@@ -1,0 +1,60 @@
+name: Vault application and TestGrid
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Go tests
+        run: go test -mod=vendor -count=1 ./...
+      - name: Go vet
+        run: go vet -mod=vendor ./...
+      - name: Embedded UI syntax
+        shell: bash
+        run: |
+          node --check web/app.js
+          node --check web/catalog.js
+          node --check web/conversion.js
+          node --check web/omnimanager.js
+          node --check web/repair-lab.js
+          node --check web/testgrid.js
+      - name: Build host binary
+        shell: bash
+        run: go build -mod=vendor -trimpath -buildvcs=false -o mmv-host .
+      - name: TestGrid Windows CLI proof
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:MMV_CONFIG_DIR = Join-Path $env:RUNNER_TEMP 'mmv-testgrid'
+          Move-Item -LiteralPath .\mmv-host -Destination .\mmv-host.exe
+          .\mmv-host.exe testgrid validate .\testgrid\examples\windows-self-test.json
+          .\mmv-host.exe testgrid run .\testgrid\examples\windows-self-test.json
+      - name: TestGrid Linux CLI proof
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export MMV_CONFIG_DIR="$RUNNER_TEMP/mmv-testgrid"
+          chmod +x ./mmv-host
+          ./mmv-host testgrid validate ./testgrid/examples/linux-self-test.json
+          ./mmv-host testgrid run ./testgrid/examples/linux-self-test.json

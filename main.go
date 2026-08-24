@@ -19,18 +19,20 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
 const (
 	appName    = "Minecraft Mod Vault"
-	appVersion = "0.11.0"
-	userAgent  = "MinecraftModVault/0.11.0 (desktop app; universal Minecraft content browser/updater/converter)"
+	appVersion = "0.13.0"
+	userAgent  = "MinecraftModVault/0.13.0 (desktop app; universal Minecraft content browser/updater/converter/test driver)"
 )
 
 //go:embed web/* assets/* knowledge/* repair-brain/*
@@ -93,6 +95,8 @@ type App struct {
 	portingMu              sync.RWMutex
 	portingRuns            map[string]*PortingBuildRun
 	portingCancels         map[string]context.CancelFunc
+	testGridMu             sync.Mutex
+	testGrid               *TestGrid
 }
 
 type APIError struct {
@@ -194,6 +198,19 @@ type OpenRequest struct {
 }
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "testgrid":
+			os.Exit(runTestGridCLI(os.Args[2:]))
+		case "serve":
+			if err := configureServeCommand(os.Args[2:]); err != nil {
+				if errors.Is(err, errServeHelp) {
+					return
+				}
+				log.Fatal(err)
+			}
+		}
+	}
 	cfgDir, err := configDir()
 	if err != nil {
 		log.Fatal(err)
@@ -268,25 +285,56 @@ func main() {
 	} else {
 		fmt.Println(appURL)
 	}
+	if tokenFile := strings.TrimSpace(os.Getenv("MMV_TOKEN_FILE")); tokenFile != "" {
+		tokenFile, err = filepath.Abs(filepath.Clean(tokenFile))
+		if err != nil {
+			log.Printf("token file: %v", err)
+		} else if err := os.MkdirAll(filepath.Dir(tokenFile), 0o755); err != nil {
+			log.Printf("token file: %v", err)
+		} else if err := os.WriteFile(tokenFile, []byte(a.token+"\n"), 0o600); err != nil {
+			log.Printf("token file: %v", err)
+		}
+	}
+
+	signalContext, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	shutdown := func() {
+		a.shutdownTestGrid()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = server.Shutdown(ctx)
+		cancel()
+	}
+	if os.Getenv("MMV_HEADLESS") == "1" {
+		<-signalContext.Done()
+		shutdown()
+		return
+	}
 
 	// Exit after the UI has disappeared. The browser sends a heartbeat while the app is open.
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-	for range ticker.C {
-		a.mu.RLock()
-		seen := a.seenHeartbeat
-		last := a.lastHeartbeat
-		a.mu.RUnlock()
-		if seen && time.Since(last) > 75*time.Second {
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			_ = server.Shutdown(ctx)
-			cancel()
+	for {
+		select {
+		case <-signalContext.Done():
+			shutdown()
 			return
+		case <-ticker.C:
+			a.mu.RLock()
+			seen := a.seenHeartbeat
+			last := a.lastHeartbeat
+			a.mu.RUnlock()
+			if seen && time.Since(last) > 75*time.Second {
+				shutdown()
+				return
+			}
 		}
 	}
 }
 
 func configDir() (string, error) {
+	if configured := strings.TrimSpace(os.Getenv("MMV_CONFIG_DIR")); configured != "" {
+		return filepath.Abs(filepath.Clean(configured))
+	}
 	base, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
@@ -509,6 +557,12 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/creators/transcript", a.auth(a.handleCreatorTranscript))
 	mux.HandleFunc("/api/transcription/status", a.auth(a.handleTranscriptionStatus))
 	mux.HandleFunc("/api/transcription/prepare", a.auth(a.handleTranscriptionPrepare))
+	mux.HandleFunc("/api/testgrid/capabilities", a.auth(a.handleTestGridCapabilities))
+	mux.HandleFunc("/api/testgrid/runs", a.auth(a.handleTestGridRuns))
+	mux.HandleFunc("/api/testgrid/run", a.auth(a.handleTestGridRun))
+	mux.HandleFunc("/api/testgrid/validate", a.auth(a.handleTestGridValidate))
+	mux.HandleFunc("/api/testgrid/cancel", a.auth(a.handleTestGridCancel))
+	mux.HandleFunc("/api/testgrid/file", a.auth(a.handleTestGridFile))
 
 	sub, _ := fs.Sub(embeddedFiles, "web")
 	indexHTML, indexErr := fs.ReadFile(sub, "index.html")
