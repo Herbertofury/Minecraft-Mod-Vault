@@ -38,10 +38,10 @@ public final class ForgeMod {
         });
     }
     private static void buildCreativeTab(BuildCreativeModeTabContentsEvent event){
-        if(event.getTabKey().equals(ItemGroups.FUNCTIONAL)) event.accept(RuneCraftingBlock.ITEM);
+        if(event.getTabKey().equals(ItemGroups.FUNCTIONAL)) event.accept(() -> RuneCraftingBlock.ITEM);
         if(event.getTabKey().equals(ItemGroups.COMBAT)){
-            for(var entry:RuneItems.all()) event.accept(entry.item());
-            for(var entry:RunePouches.all()) event.accept(entry.item());
+            for(var entry:RuneItems.all()) event.accept(entry::item);
+            for(var entry:RunePouches.all()) event.accept(entry::item);
         }
     }
 }
