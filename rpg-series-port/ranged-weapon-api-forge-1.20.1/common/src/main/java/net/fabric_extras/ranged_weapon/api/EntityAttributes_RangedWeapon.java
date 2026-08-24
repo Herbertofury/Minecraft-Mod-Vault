@@ -31,7 +31,7 @@ public final class EntityAttributes_RangedWeapon {
         public double asMultiplier(double value) { return value / baseValue; }
         public Entry setBaseAttributeId(Identifier id) { this.baseModifierId = id; return this; }
         @Nullable public Identifier getBaseAttributeId() { return baseModifierId; }
-        public void bindRegistryEntry() { this.entry = Registries.ATTRIBUTE.getEntry(id); }
+        public void bindRegistryEntry() { this.entry = Registries.ATTRIBUTE.getEntry(attribute); }
     }
     public static final Entry DAMAGE = entry("damage", 0, true).setBaseAttributeId(AttributeModifierIDs.WEAPON_DAMAGE_ID);
     public static final Entry PULL_TIME = entry("pull_time", 0.1, 1.0, true).setBaseAttributeId(AttributeModifierIDs.WEAPON_PULL_TIME_ID);

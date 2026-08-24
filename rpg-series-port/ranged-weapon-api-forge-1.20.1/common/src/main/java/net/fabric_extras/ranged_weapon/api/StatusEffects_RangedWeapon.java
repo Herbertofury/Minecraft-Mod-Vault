@@ -16,7 +16,7 @@ public final class StatusEffects_RangedWeapon {
         public final StatusEffect effect;
         @Nullable public RegistryEntry<StatusEffect> entry;
         Entry(String name, int color) { id = new Identifier(NAMESPACE, name); effect = new CustomStatusEffect(StatusEffectCategory.BENEFICIAL, color); }
-        public void bindRegistryEntry() { this.entry = Registries.STATUS_EFFECT.getEntry(id); }
+        public void bindRegistryEntry() { this.entry = Registries.STATUS_EFFECT.getEntry(effect); }
     }
     public static final ArrayList<Entry> all = new ArrayList<>();
     private static Entry entry(String name, int color) { var e = new Entry(name, color); all.add(e); return e; }

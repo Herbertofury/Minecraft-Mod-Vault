@@ -13,6 +13,7 @@ for rel in [
  'net/fabric_extras/ranged_weapon/client/RangedWeaponAPIClient.java',
  'net/fabric_extras/ranged_weapon/client/ModelPredicateHelper.java',
  'net/fabric_extras/ranged_weapon/client/TooltipHelper.java',
+ 'net/fabric_extras/ranged_weapon/client/TooltipUtil.java',
  'net/fabric_extras/ranged_weapon/api/AttributeModifierIDs.java',
  'net/fabric_extras/ranged_weapon/api/RangedConfig.java',
  'net/fabric_extras/ranged_weapon/api/EntityAttributes_RangedWeapon.java',

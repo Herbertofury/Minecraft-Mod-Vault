@@ -13,6 +13,7 @@
     "item.RangedWeaponItemMixin"
   ],
   "client": [
+    "ModelPredicateProviderRegistryInvoker",
     "client.AbstractClientPlayerEntityMixin",
     "client.HeldItemRendererMixin",
     "client.MinecraftClientMixin",
