@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   export:
-    if: github.head_ref == 'ragdoll-forge-1.20.1-port' || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.head_ref, 'ragdoll-forge-1.20.1-port') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
