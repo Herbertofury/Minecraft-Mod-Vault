@@ -19,7 +19,13 @@ dependencies {
     forge "net.minecraftforge:forge:$rootProject.forge_version"
     common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionForge')
-    include implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+
+    // Jar-in-jar for release builds, plus explicit Forge dev-runtime wiring.
+    // Architectury Loom does not reliably expose included plain libraries to
+    // the Forge module layer during runServer/runClient (architectury-loom#201).
+    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+    include tinyConfig
+    forgeRuntimeLibrary tinyConfig
 }
 processResources {
     inputs.property 'version', project.version
