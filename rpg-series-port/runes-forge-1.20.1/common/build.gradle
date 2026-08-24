@@ -4,7 +4,15 @@ repositories {
         name = 'Sleeping Town'
         url = 'https://repo.sleeping.town/'
     }
+    maven {
+        name = 'SpongePowered'
+        url = 'https://repo.spongepowered.org/repository/maven-public/'
+    }
 }
 dependencies {
+    // Compile-only: Forge 1.20.1 supplies Mixin at runtime. Keep the common source independent
+    // from Fabric Loader while compiling the standard Sponge @Mixin/@Unique annotations directly.
+    compileOnly "org.spongepowered:mixin:0.8.5"
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
     modCompileOnly "dev.emi:emi-xplat-intermediary:$rootProject.emi_version:api"
 }
