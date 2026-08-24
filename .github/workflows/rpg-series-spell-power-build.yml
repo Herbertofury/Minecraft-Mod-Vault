@@ -1,12 +1,6 @@
 name: RPG Series - Spell Power Forge 1.20.1
 
 on:
-  push:
-    branches:
-      - workbench/rpg-series-forge-1.20.1
-    paths:
-      - 'rpg-series-port/spell_power-forge-1.20.1/**'
-      - '.github/workflows/rpg-series-spell-power-build.yml'
   pull_request:
     branches:
       - main
@@ -16,7 +10,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: rpg-series-spell-power-${{ github.event.pull_request.number || github.ref }}
+  group: rpg-series-spell-power-pr-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:

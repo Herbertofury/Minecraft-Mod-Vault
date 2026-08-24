@@ -53,7 +53,7 @@ public final class ForgeMod {
     }
     private static void add(EntityAttributeModificationEvent event,net.minecraft.entity.EntityType<? extends net.minecraft.entity.LivingEntity> type,EntityAttribute attribute){
         var entry=Registries.ATTRIBUTE.getEntry(attribute);
-        if(entry.isPresent() && !event.has(type,entry.get())) event.add(type,entry.get());
+        if(!event.has(type,entry)) event.add(type,entry);
     }
     private static void commonSetup(FMLCommonSetupEvent event){ event.enqueueWork(SpellPowerMod::applyEnchantments); }
     private static void playerLogin(PlayerEvent.PlayerLoggedInEvent event){ }
