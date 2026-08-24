@@ -1,0 +1,3 @@
+a83d2f60cf2dbfe420c85ca7fe33793ed415c55ff8752a2b68f38601dba9dbfa  mojang-version-details-v2.jsonl.gz
+74fa5d0935c26a7f21184961a7f48dffa9591be6b3a61e5d27bca484716575c0  Mojang-deep-seed-summary.json
+74fa5d0935c26a7f21184961a7f48dffa9591be6b3a61e5d27bca484716575c0  MCMETA-BUILD-LOG.txt

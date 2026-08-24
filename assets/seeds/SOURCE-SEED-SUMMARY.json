@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-08-20T00:00:00Z",
+  "schemaVersion": 1,
+  "sources": {
+    "fabric-game-versions.json": {
+      "bytes": 29646,
+      "records": 519
+    },
+    "fabric-loader-versions.json": {
+      "bytes": 38616,
+      "records": 251
+    },
+    "fabric-loom-maven-metadata.xml": {
+      "bytes": 30572,
+      "latest": "1.18.0-alpha.16",
+      "records": 867
+    },
+    "forge-maven-metadata.xml": {
+      "bytes": 211302,
+      "latest": "26.1.2-64.1.2",
+      "records": 5043
+    },
+    "forgegradle-maven-metadata.xml": {
+      "bytes": 12947,
+      "latest": "6.0.54",
+      "records": 392
+    },
+    "moddevgradle-plugin-maven-metadata.xml": {
+      "bytes": 7248,
+      "latest": "2.0.144",
+      "records": 204
+    },
+    "modrinth-game-versions.json": {
+      "bytes": 83526,
+      "records": 907
+    },
+    "modrinth-loaders.json": {
+      "bytes": 25622,
+      "records": 29
+    },
+    "mojang-version-manifest-v2.json": {
+      "bytes": 274104,
+      "records": 907
+    },
+    "neoforge-maven-metadata.xml": {
+      "bytes": 61832,
+      "latest": "26.1.2.97",
+      "records": 1667
+    },
+    "neoform-maven-metadata.xml": {
+      "bytes": 12173,
+      "latest": "26.3-snapshot-9-1",
+      "records": 248
+    },
+    "neogradle-userdev-maven-metadata.xml": {
+      "bytes": 6501,
+      "latest": "7.1.38",
+      "records": 191
+    },
+    "quilt-game-versions.json": {
+      "bytes": 24165,
+      "records": 430
+    },
+    "quilt-loader-versions.json": {
+      "bytes": 140366,
+      "records": 299
+    }
+  }
+}

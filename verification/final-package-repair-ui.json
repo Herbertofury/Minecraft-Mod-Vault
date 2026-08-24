@@ -1,0 +1,524 @@
+{
+  "schema": 1,
+  "name": "Minecraft Mod Vault v0.9.0 Repair Lab Chromium UI smoke",
+  "startedAt": "2026-08-21T04:31:46Z",
+  "completedAt": "2026-08-21T04:32:07Z",
+  "passed": true,
+  "harness": {
+    "browser": "system Chromium",
+    "navigation": "production HTML/CSS/JS rendered via set_content due managed URLBlocklist",
+    "backend": "real compiled v0.9.0 loopback backend through authenticated bridges",
+    "productionPaths": [
+      "file input/FormData",
+      "migration controls",
+      "execution acknowledgement",
+      "build polling",
+      "artifact rendering",
+      "download links",
+      "brain search",
+      "rollback"
+    ],
+    "transportOnlyChanges": [
+      "api() forwarded to authenticated bridge",
+      "FormData bytes forwarded to real multipart endpoint",
+      "exact UI-rendered download URL fetched from real authenticated endpoint outside policy-blocked Chromium",
+      "history.replaceState disabled for about:blank"
+    ]
+  },
+  "inputs": {
+    "sourceRoot": "/mnt/data/mmv-v090-candidate-extract/source/Minecraft-Mod-Vault-0.9.0-source",
+    "fixture": "/mnt/data/mmv-v090-repair-fixture.zip",
+    "fixtureSha256": "37984c98020933ee047b8d1fd640306309dcb4ccaccf7b74e3558fb4ece051c2",
+    "htmlSha256": "f93db6781fc207139cadf888404f69b6adb5916aca9874e5a8ad72bd1f137531",
+    "cssSha256": "d84c03ee1d5f0127a4bcc30e1ed6f7694db24fdcd257de47281635c515f62a0b",
+    "catalogSha256": "88285adc74e1d6d120e92c351005e5d61c5dbd4e594dbc822b4047eeef7b8ea5",
+    "repairLabSha256": "bb7121c955b7b8a91f8eb0a929cf23e33954ac2698cc0f6e3413211f4fa502a6",
+    "appSha256": "ca867249ce9531d95b95b7944e39c941116a1fb00bee20850a59b8af2643fed8"
+  },
+  "assertions": [
+    {
+      "name": "production runtime reports v0.9.0",
+      "passed": true,
+      "observed": "v0.9.0"
+    },
+    {
+      "name": "Repair Lab is a distinct active top-level workspace",
+      "passed": true,
+      "observed": "Repair Lab"
+    },
+    {
+      "name": "Porting Lab remains separately available",
+      "passed": true,
+      "observed": 1
+    },
+    {
+      "name": "Repair Lab renders four live capability metrics",
+      "passed": true,
+      "observed": 4
+    },
+    {
+      "name": "Compatibility Brain is live in the UI",
+      "passed": true,
+      "observed": "919 Minecraft versions \u00b7 SQLite 3.53.3"
+    },
+    {
+      "name": "source ZIP creates a real immutable repair session",
+      "passed": true,
+      "observed": {
+        "title": "mmv-v090-repair-fixture",
+        "state": "imported"
+      }
+    },
+    {
+      "name": "session exposes immutable source and tree identities",
+      "passed": true,
+      "observed": "Session repair-20260821T043155Z-c8ce1ec9a07f \u00b7 source 37984c980209\u2026 \u00b7 immutable tree 1b7568e68f01\u2026 \u00b7 7 files / 2.0 KB"
+    },
+    {
+      "name": "migration stages at least ten traceable known-field edits",
+      "passed": true,
+      "observed": 10
+    },
+    {
+      "name": "target resolution is explicit",
+      "passed": true,
+      "observed": "1.21.1 / fabric"
+    },
+    {
+      "name": "build action refuses execution without explicit acknowledgement",
+      "passed": true,
+      "observed": "Acknowledge build-script code execution for this action."
+    },
+    {
+      "name": "refused execution does not enter running state",
+      "passed": true,
+      "observed": "PREPARED"
+    },
+    {
+      "name": "controlled wrapper build succeeds",
+      "passed": true,
+      "observed": "build \u00b7 succeeded"
+    },
+    {
+      "name": "successful build discovers hashed output artifacts",
+      "passed": true,
+      "observed": {
+        "count": 1,
+        "hashes": [
+          "ee20a4b4ef72f18019\u2026"
+        ]
+      }
+    },
+    {
+      "name": "build log is surfaced in the real UI",
+      "passed": true,
+      "observed": "repair-20260821T043155Z-c8ce1ec9a07f\nStarted: 2026-08-21T04:31:56Z\nWorking directory: /mnt/data/mmv-v090-candidate-runtime/config/MinecraftModVault/repair-lab/sessions/repair-20260821T043155Z-c8ce1ec9a07f/work/mmv-v090-fixture-src\nCommand: /mnt/data/mmv-v090-candidate-runtime/config/MinecraftModVault/repair-lab/sessions/repair-20260821T043155Z-c8ce1ec9a07f/work/mmv-v090-fixture-src/gradlew --no-daemon --stacktrace build\nTimeout: 30m0s\n\nMMV fixture build succeeded\n\nFinished: 2026-08-21T04:31:56Z\n"
+    },
+    {
+      "name": "Repair Lab creates prepared-source and proof exports",
+      "passed": true,
+      "observed": 2
+    },
+    {
+      "name": "production UI renders authenticated artifact and proof download links",
+      "passed": true,
+      "observed": {
+        "artifact": "/api/repair-lab/download?id=repair-20260821T043155Z-c8ce1ec9a07f&kind=artifact&token=ui-smoke-authenticated-bridge&index=0",
+        "proofBundle": "/api/repair-lab/download?id=repair-20260821T043155Z-c8ce1ec9a07f&kind=export&token=ui-smoke-authenticated-bridge&index=1"
+      }
+    },
+    {
+      "name": "UI-rendered artifact and proof-bundle links return complete bytes",
+      "passed": true,
+      "observed": [
+        {
+          "kind": "artifact",
+          "name": "mmv-repair-fixture-1.0.0.jar",
+          "path": "/mnt/data/mmv-v090-candidate-runtime/evidence/repair-ui-downloads/mmv-repair-fixture-1.0.0.jar",
+          "uiHref": "/api/repair-lab/download?id=repair-20260821T043155Z-c8ce1ec9a07f&kind=artifact&token=ui-smoke-authenticated-bridge&index=0",
+          "size": 1167,
+          "sha256": "ee20a4b4ef72f18019babb20c0494a53086dc39629cf5faad32fb5bf65bfbd93"
+        },
+        {
+          "kind": "proof-bundle",
+          "name": "Minecraft-Mod-Vault-repair-20260821T043155Z-c8ce1ec9a07f-repair-bundle.zip",
+          "path": "/mnt/data/mmv-v090-candidate-runtime/evidence/repair-ui-downloads/Minecraft-Mod-Vault-repair-20260821T043155Z-c8ce1ec9a07f-repair-bundle.zip",
+          "uiHref": "/api/repair-lab/download?id=repair-20260821T043155Z-c8ce1ec9a07f&kind=export&token=ui-smoke-authenticated-bridge&index=1",
+          "size": 9166,
+          "sha256": "9811f45ec4ae3edf5e4cbd42e4fd780f44fe63e5e5514601f1ca32432c05c9c6"
+        }
+      ]
+    },
+    {
+      "name": "Compatibility Brain full-text search returns exact repair tooling",
+      "passed": true,
+      "observed": [
+        "FPGradle",
+        "RetroFuturaGradle"
+      ]
+    },
+    {
+      "name": "Repair Lab has no page-level horizontal overflow",
+      "passed": true,
+      "observed": {
+        "innerWidth": 1440,
+        "rootWidth": 1440,
+        "bodyWidth": 1440,
+        "active": "repair",
+        "height": 2978
+      }
+    },
+    {
+      "name": "repair session survives a fresh production UI instance",
+      "passed": true,
+      "observed": {
+        "active": "repair",
+        "state": "SUCCEEDED"
+      }
+    },
+    {
+      "name": "rollback returns working copy to immutable source",
+      "passed": true,
+      "observed": {
+        "state": "IMPORTED",
+        "changes": "0",
+        "artifacts": "0"
+      }
+    },
+    {
+      "name": "all bridged authenticated production API calls succeeded",
+      "passed": true,
+      "observed": []
+    },
+    {
+      "name": "no uncaught page exceptions",
+      "passed": true,
+      "observed": []
+    },
+    {
+      "name": "no meaningful Chromium console errors",
+      "passed": true,
+      "observed": []
+    },
+    {
+      "name": "no meaningful browser request failures",
+      "passed": true,
+      "observed": []
+    }
+  ],
+  "trace": [
+    {
+      "step": "succeeded-before-fresh-ui",
+      "state": "SUCCEEDED",
+      "changes": 10,
+      "artifacts": 1,
+      "exports": 2,
+      "layout": {
+        "innerWidth": 1440,
+        "rootWidth": 1440,
+        "bodyWidth": 1440,
+        "active": "repair",
+        "height": 2978
+      }
+    }
+  ],
+  "apiCalls": [
+    {
+      "method": "GET",
+      "path": "/api/system",
+      "status": 200,
+      "durationMs": 9,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/taxonomy",
+      "status": 200,
+      "durationMs": 8001,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/recommendations",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/creators/channels",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/creators/recommendations",
+      "status": 200,
+      "durationMs": 0,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/transcription/status",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/heartbeat",
+      "status": 200,
+      "durationMs": 0,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/status",
+      "status": 200,
+      "durationMs": 127,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/repair-lab/import",
+      "status": 201,
+      "durationMs": 43,
+      "ok": true,
+      "upload": true,
+      "bytes": 3955
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/status",
+      "status": 200,
+      "durationMs": 134,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/session",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/repair-lab/prepare",
+      "status": 200,
+      "durationMs": 9,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/status",
+      "status": 200,
+      "durationMs": 151,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/session",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/repair-lab/run",
+      "status": 202,
+      "durationMs": 5,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/session",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/status",
+      "status": 200,
+      "durationMs": 150,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/session",
+      "status": 200,
+      "durationMs": 10,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/repair-lab/export",
+      "status": 200,
+      "durationMs": 9,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/download",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true,
+      "download": true,
+      "bytes": 1167
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/download",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true,
+      "download": true,
+      "bytes": 9166
+    },
+    {
+      "method": "GET",
+      "path": "/api/brain/search",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/system",
+      "status": 200,
+      "durationMs": 3,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/taxonomy",
+      "status": 200,
+      "durationMs": 8002,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/recommendations",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/creators/channels",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/creators/recommendations",
+      "status": 200,
+      "durationMs": 0,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/transcription/status",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/heartbeat",
+      "status": 200,
+      "durationMs": 0,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/status",
+      "status": 200,
+      "durationMs": 152,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/session",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/repair-lab/reset",
+      "status": 200,
+      "durationMs": 13,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/status",
+      "status": 200,
+      "durationMs": 192,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/repair-lab/session",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true
+    }
+  ],
+  "downloads": [
+    {
+      "kind": "artifact",
+      "name": "mmv-repair-fixture-1.0.0.jar",
+      "path": "/mnt/data/mmv-v090-candidate-runtime/evidence/repair-ui-downloads/mmv-repair-fixture-1.0.0.jar",
+      "uiHref": "/api/repair-lab/download?id=repair-20260821T043155Z-c8ce1ec9a07f&kind=artifact&token=ui-smoke-authenticated-bridge&index=0",
+      "size": 1167,
+      "sha256": "ee20a4b4ef72f18019babb20c0494a53086dc39629cf5faad32fb5bf65bfbd93"
+    },
+    {
+      "kind": "proof-bundle",
+      "name": "Minecraft-Mod-Vault-repair-20260821T043155Z-c8ce1ec9a07f-repair-bundle.zip",
+      "path": "/mnt/data/mmv-v090-candidate-runtime/evidence/repair-ui-downloads/Minecraft-Mod-Vault-repair-20260821T043155Z-c8ce1ec9a07f-repair-bundle.zip",
+      "uiHref": "/api/repair-lab/download?id=repair-20260821T043155Z-c8ce1ec9a07f&kind=export&token=ui-smoke-authenticated-bridge&index=1",
+      "size": 9166,
+      "sha256": "9811f45ec4ae3edf5e4cbd42e4fd780f44fe63e5e5514601f1ca32432c05c9c6"
+    }
+  ],
+  "browserDiagnostics": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "requestFailures": []
+  },
+  "screenshot": "/mnt/data/mmv-v090-ultimate/verification/final-package-repair-ui.png",
+  "failure": null
+}

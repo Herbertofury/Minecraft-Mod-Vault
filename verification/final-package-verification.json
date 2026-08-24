@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "name": "Minecraft Mod Vault 0.9.0 fresh-package verification",
+  "recordedAt": "2026-08-21T04:34:00Z",
+  "passed": true,
+  "verifiedImplementationCommit": "4191fad",
+  "verificationInputArchives": [
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-windows-x64.zip",
+      "size": 13167177,
+      "sha256": "4162f03bc45ba23384e63a4da2c67ce4fdbf73b56272932f87852baa5a91f916"
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-linux-x64.tar.gz",
+      "size": 13082725,
+      "sha256": "2f44bf38acd2febfea8eca2f4f9297d13242ea06361c20d6ab96b066e9afab3f"
+    },
+    {
+      "name": "Minecraft-Mod-Vault-0.9.0-source.zip",
+      "size": 36088350,
+      "sha256": "1f10964af6deda1a39dd9e69ee4e9abc5b7de8cd0fc866563f875ddfd76b1d9c"
+    }
+  ],
+  "note": "These verification-input archives were regenerated after this evidence was inserted. The sibling final checksum manifest and external release receipt identify the final outer archive bytes; the executable payloads remained byte-identical.",
+  "archiveIntegrity": {
+    "windowsZip": true,
+    "linuxTarGz": true,
+    "sourceZip": true,
+    "internalManifestEntries": {
+      "windows": 48,
+      "linux": 48,
+      "source": 2155
+    },
+    "allInternalHashesPassed": true,
+    "runtimeLicenseDirectoriesPresent": true
+  },
+  "sourceRebuild": {
+    "passed": true,
+    "go": "1.27.0",
+    "linuxBinaryByteIdentical": true,
+    "linuxSha256": "0e6720b4b1b9a6bb31f90fe2d498a7f4fbfac43df264d7e87bd23062d89ed2ee",
+    "windowsBinaryByteIdentical": true,
+    "windowsSha256": "6b5967461a34cb8658d93644f9d60196bb3bdbd162519f9dda1aff3ef4fa9598"
+  },
+  "extractedRuntime": {
+    "version": "0.9.0",
+    "brainReady": true,
+    "sqliteVersion": "3.53.3",
+    "journalMode": "wal",
+    "seedDigest": "eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4",
+    "minecraftVersions": 919,
+    "toolchainReleases": 15133,
+    "knowledgeDocuments": 342,
+    "repairRecords": 8
+  },
+  "extractedPackageUI": {
+    "repairLab": {
+      "passed": true,
+      "assertions": 25,
+      "apiCalls": 38,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "requestFailures": []
+      },
+      "evidenceSha256": "86073adfc1cd3ca28808d9f4f339a24bac55e41d3bcc803d816e9fb30e01a138"
+    },
+    "portingLab": {
+      "passed": true,
+      "assertions": 29,
+      "apiCalls": 23,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [],
+        "requestFailures": []
+      },
+      "evidenceSha256": "3d3517e20c11b78fa4582de997d02af11d74cd2e052746ab79d1209da2e7a073"
+    }
+  },
+  "restartPersistence": {
+    "passed": true,
+    "sessions": [
+      [
+        "repair-20260821T043155Z-c8ce1ec9a07f",
+        "imported",
+        "rolled-back-to-immutable-source"
+      ]
+    ],
+    "brainSeedDigest": "eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4"
+  }
+}

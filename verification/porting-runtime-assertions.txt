@@ -1,0 +1,17 @@
+Minecraft Mod Vault 0.9.0 source-binary runtime assertions
+Date: 2026-08-21 UTC
+Binary: /mnt/data/mmv-work/Minecraft-Mod-Vault-0.9.0-source/dist/Minecraft-Mod-Vault-0.9.0-linux-x64
+Binary SHA-256: 95c8c6307e695d3a48dd7b23207fe50d6f3ee7880d6852f025b1334b35207843
+Loopback: 127.0.0.1 with random token authentication
+
+PASS app version 0.9.0 reported by /api/system
+PASS root UI served with Content-Security-Policy and Porting Lab view
+PASS Version Atlas returned 1.20.1 plus immutable source evidence
+PASS local toolchain probe found required Java/Javac/Git and remained planning-ready
+PASS runtime Doctor catalog reported 167 tools and 9 repair patterns
+PASS live Forge JAR analysis produced binary mode, critical cross-loader risk, Java 17, exact hashes, dependencies, Mixins/access rules, resources, and 8 migration phases
+PASS isolated workspace generated with hash-locked copied input and 12+ manifest files
+PASS exact duplicate repair planned exactly one cryptographic quarantine action
+PASS repair applied one recoverable quarantine move and wrote an atomic receipt
+PASS restore returned the quarantined JAR to its original path and preserved byte identity
+PASS installed original and restored duplicate both remain present

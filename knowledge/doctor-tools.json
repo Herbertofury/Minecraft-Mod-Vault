@@ -1,0 +1,1368 @@
+[
+  {
+    "id": "fabric-loom",
+    "name": "Fabric Loom",
+    "category": "build-remap",
+    "maturity": "stable",
+    "capability": "Gradle workspace setup, Minecraft dependency provisioning, decompilation, remapping, access widener migration, run configurations, production runs and game-test integration.",
+    "bestFor": "Fabric source ports, namespace migration and reproducible target builds.",
+    "officialUrl": "https://docs.fabricmc.net/develop/loom/",
+    "repositoryUrl": "https://github.com/FabricMC/fabric-loom",
+    "integration": "Generate version-pinned workspaces and invoke mapping migration, remapJar, runClient, runServer and production test tasks inside isolated build sandboxes.",
+    "currentEvidence": "Loom 1.16 is the latest stable release observed on 2026-08-20; active 1.17 development builds are already used for Minecraft 26.2.",
+    "risks": [
+      "Build scripts are version-sensitive",
+      "New unobfuscated Minecraft versions use different plugin/remapping paths"
+    ]
+  },
+  {
+    "id": "fabric-loader",
+    "name": "Fabric Loader",
+    "category": "loader",
+    "maturity": "stable",
+    "capability": "Mostly version-independent Fabric loader, metadata validation, dependency resolution and entrypoint discovery.",
+    "bestFor": "Exact Fabric runtime contract validation and clean target profiles.",
+    "officialUrl": "https://fabricmc.net/use/",
+    "repositoryUrl": "https://github.com/FabricMC/fabric-loader",
+    "integration": "Resolve supported loader versions from Fabric Meta, validate fabric.mod.json and launch clean compatibility matrices.",
+    "currentEvidence": "Actively maintained through July 2026."
+  },
+  {
+    "id": "fabric-api",
+    "name": "Fabric API",
+    "category": "loader-api",
+    "maturity": "stable",
+    "capability": "Core event, registry, networking, rendering, lifecycle and game-test APIs used by a large share of Fabric mods.",
+    "bestFor": "Determining whether a Fabric port depends on loader-only APIs or Fabric API modules.",
+    "officialUrl": "https://fabricmc.net/develop/",
+    "repositoryUrl": "https://github.com/FabricMC/fabric",
+    "integration": "Map module-level dependencies, detect API removals and run version-specific compile/runtime tests.",
+    "currentEvidence": "Actively maintained for current Minecraft releases."
+  },
+  {
+    "id": "fabric-docs",
+    "name": "Fabric Documentation",
+    "category": "authoritative-docs",
+    "maturity": "stable",
+    "capability": "Official build, mappings, data generation, networking, rendering and migration documentation.",
+    "bestFor": "Version-correct source transformations and explanation links in repair plans.",
+    "officialUrl": "https://docs.fabricmc.net/",
+    "repositoryUrl": "https://github.com/FabricMC/fabric-docs",
+    "integration": "Index versioned migration pages and attach the exact relevant documentation to generated actions."
+  },
+  {
+    "id": "mapping-io",
+    "name": "Mapping IO",
+    "category": "mappings",
+    "maturity": "stable",
+    "capability": "Read, write, transform and compose mapping formats and namespaces.",
+    "bestFor": "Building source-to-target mapping graphs across official, intermediary, Yarn and custom mappings.",
+    "officialUrl": "https://github.com/FabricMC/mapping-io",
+    "repositoryUrl": "https://github.com/FabricMC/mapping-io",
+    "integration": "Normalize every mapping source into one graph, retain provenance and reject unresolved or ambiguous symbols."
+  },
+  {
+    "id": "tiny-remapper",
+    "name": "Tiny Remapper",
+    "category": "remap",
+    "maturity": "stable",
+    "capability": "Fast Java bytecode remapping with hierarchy-aware member resolution and extension points.",
+    "bestFor": "Rewriting compiled mod JAR namespaces and class/member references before deeper API repair.",
+    "officialUrl": "https://github.com/FabricMC/tiny-remapper",
+    "repositoryUrl": "https://github.com/FabricMC/tiny-remapper",
+    "integration": "Perform deterministic dry-run remaps, capture unresolved references, compare class trees and preserve reproducible inputs."
+  },
+  {
+    "id": "yarn",
+    "name": "Yarn Mappings",
+    "category": "mappings",
+    "maturity": "stable",
+    "capability": "Community-readable names and documentation for Minecraft classes, fields and methods.",
+    "bestFor": "Human-understandable Fabric source reconstruction and cross-version symbol comparison.",
+    "officialUrl": "https://github.com/FabricMC/yarn",
+    "repositoryUrl": "https://github.com/FabricMC/yarn",
+    "integration": "Version-pin mappings and retain official/intermediary/Yarn namespace correspondences in the porting graph.",
+    "risks": [
+      "Mapping names can change independently of behavior"
+    ]
+  },
+  {
+    "id": "intermediary",
+    "name": "Fabric Intermediary",
+    "category": "mappings",
+    "maturity": "stable",
+    "capability": "Stable intermediary namespace traditionally used to keep Fabric mods portable across obfuscated releases.",
+    "bestFor": "Cross-version identity and binary remapping for pre-26.1 Minecraft releases.",
+    "officialUrl": "https://github.com/FabricMC/intermediary",
+    "repositoryUrl": "https://github.com/FabricMC/intermediary",
+    "integration": "Use as one mapping edge for legacy versions; bypass where post-26.1 unobfuscated builds make it unnecessary.",
+    "risks": [
+      "Post-26.1 unobfuscated Minecraft changes the need for intermediary remapping"
+    ]
+  },
+  {
+    "id": "enigma",
+    "name": "Enigma",
+    "category": "mappings",
+    "maturity": "stable",
+    "capability": "Interactive deobfuscation and mapping editor with source/class views.",
+    "bestFor": "Resolving ambiguous decompiler output and authoring missing mappings during closed-source reconstruction.",
+    "officialUrl": "https://github.com/FabricMC/Enigma",
+    "repositoryUrl": "https://github.com/FabricMC/Enigma",
+    "integration": "Open only unresolved symbol clusters and export reviewed mappings back into the project mapping graph."
+  },
+  {
+    "id": "vineflower",
+    "name": "Vineflower",
+    "category": "decompiler",
+    "maturity": "stable",
+    "capability": "Modern Java decompiler derived from Fernflower with strong support for current bytecode constructs.",
+    "bestFor": "Primary reproducible decompilation of closed-source Minecraft mods.",
+    "officialUrl": "https://vineflower.org/",
+    "repositoryUrl": "https://github.com/Vineflower/vineflower",
+    "integration": "Decompile with pinned options, retain line maps and compare output against a second decompiler where constructs are ambiguous.",
+    "currentEvidence": "Version 1.12.0 was the latest release observed during the 2026-08-20 research pass."
+  },
+  {
+    "id": "cfr",
+    "name": "CFR",
+    "category": "decompiler",
+    "maturity": "stable",
+    "capability": "Independent Java decompiler with different reconstruction heuristics from Vineflower.",
+    "bestFor": "Cross-checking switches, lambdas, generics, exception flow and synthetic constructs.",
+    "officialUrl": "https://www.benf.org/other/cfr/",
+    "repositoryUrl": "https://github.com/leibnitz27/cfr",
+    "integration": "Run as a disagreement detector rather than blindly selecting one decompiler output."
+  },
+  {
+    "id": "parchment",
+    "name": "ParchmentMC Mappings",
+    "category": "mappings",
+    "maturity": "stable",
+    "capability": "Parameter names and community documentation layered over official Mojang mappings.",
+    "bestFor": "Readable Forge/NeoForge migrations and method-signature intent recovery.",
+    "officialUrl": "https://parchmentmc.org/",
+    "repositoryUrl": "https://github.com/ParchmentMC",
+    "integration": "Add a versioned documentation layer to official mappings and preserve its source/version in every generated transform."
+  },
+  {
+    "id": "moddevgradle",
+    "name": "NeoForge ModDevGradle",
+    "category": "build-remap",
+    "maturity": "stable",
+    "capability": "Modern NeoForge development plugin with run configurations, configuration-cache support and current Gradle practices.",
+    "bestFor": "NeoForge source ports and target runtime matrices.",
+    "officialUrl": "https://docs.neoforged.net/toolchain/docs/plugins/mdg/",
+    "repositoryUrl": "https://github.com/neoforged/ModDevGradle",
+    "integration": "Generate version-pinned NeoForge workspaces, run client/server/data/game-test targets and capture produced artifacts and logs."
+  },
+  {
+    "id": "neogradle",
+    "name": "NeoGradle",
+    "category": "build-remap",
+    "maturity": "stable",
+    "capability": "NeoForge Gradle toolchain used by supported NeoForge development templates.",
+    "bestFor": "Projects whose target version or upstream source expects NeoGradle rather than ModDevGradle.",
+    "officialUrl": "https://docs.neoforged.net/toolchain/docs/plugins/ng/",
+    "repositoryUrl": "https://github.com/neoforged/NeoGradle",
+    "integration": "Select from project/target compatibility evidence and avoid gratuitous build-system migration."
+  },
+  {
+    "id": "neoforge-primers",
+    "name": "NeoForge Version Primers",
+    "category": "authoritative-docs",
+    "maturity": "stable",
+    "capability": "Official change guides describing Java, mappings, registry, rendering, networking, data and API changes between Minecraft versions.",
+    "bestFor": "Recipe-backed upgrades and downgrades across major Minecraft API transitions.",
+    "officialUrl": "https://docs.neoforged.net/primer/",
+    "repositoryUrl": "https://github.com/neoforged/Documentation",
+    "integration": "Convert each primer delta into testable migration rules while retaining the original source link and target range.",
+    "currentEvidence": "The 1.21.11 to 26.1 primer documents Java 25 and the return to unobfuscated game executables."
+  },
+  {
+    "id": "forgegradle",
+    "name": "ForgeGradle",
+    "category": "build-remap",
+    "maturity": "stable",
+    "capability": "MinecraftForge development, mappings, reobfuscation and run-configuration toolchain.",
+    "bestFor": "Forge source ports and faithful rebuilding of Forge-origin projects.",
+    "officialUrl": "https://docs.minecraftforge.net/en/latest/gettingstarted/",
+    "repositoryUrl": "https://github.com/MinecraftForge/ForgeGradle",
+    "integration": "Generate target Forge workspaces, preserve access transformers and test client/server/data/game-test runs."
+  },
+  {
+    "id": "forge-docs",
+    "name": "MinecraftForge Documentation",
+    "category": "authoritative-docs",
+    "maturity": "stable",
+    "capability": "Official Forge metadata, registries, events, networking, resources and lifecycle documentation.",
+    "bestFor": "Validating Forge-specific source and metadata migrations.",
+    "officialUrl": "https://docs.minecraftforge.net/en/latest/",
+    "repositoryUrl": "https://github.com/MinecraftForge/Documentation",
+    "integration": "Link exact documentation sections to generated findings and code transformations."
+  },
+  {
+    "id": "quilt-loader",
+    "name": "Quilt Loader",
+    "category": "loader",
+    "maturity": "stable",
+    "capability": "Fabric-compatible loader with Quilt metadata and loader-specific dependency semantics.",
+    "bestFor": "Quilt-native target validation and Fabric-on-Quilt compatibility testing.",
+    "officialUrl": "https://quiltmc.org/en/",
+    "repositoryUrl": "https://github.com/QuiltMC/quilt-loader",
+    "integration": "Validate quilt.mod.json, dependency groups and Fabric compatibility in isolated target profiles.",
+    "currentEvidence": "Quilt announced its non-obfuscated-era direction in February 2026."
+  },
+  {
+    "id": "architectury-loom",
+    "name": "Architectury Loom",
+    "category": "multi-loader-build",
+    "maturity": "stable",
+    "capability": "Loom-derived Gradle plugin supporting Fabric, Forge, NeoForge and Quilt development workflows.",
+    "bestFor": "Multi-loader projects that benefit from shared source and loader-specific outputs.",
+    "officialUrl": "https://docs.architectury.dev/loom/introduction",
+    "repositoryUrl": "https://github.com/architectury/architectury-loom",
+    "integration": "Use only when a shared-source architecture reduces duplicated behavior without hiding loader-specific correctness."
+  },
+  {
+    "id": "architectury-api",
+    "name": "Architectury API and Plugin",
+    "category": "multi-loader-api",
+    "maturity": "stable",
+    "capability": "Cross-loader abstractions, common-source transforms and loader-specific project structure.",
+    "bestFor": "Maintaining one source base across supported loaders when the abstraction covers the required APIs.",
+    "officialUrl": "https://docs.architectury.dev/",
+    "repositoryUrl": "https://github.com/architectury/architectury-api",
+    "integration": "Generate common and loader-specific modules, then verify each produced artifact independently.",
+    "risks": [
+      "Abstractions do not eliminate loader-specific behavior or testing"
+    ]
+  },
+  {
+    "id": "modstitch",
+    "name": "Modstitch",
+    "category": "multi-loader-build",
+    "maturity": "beta",
+    "capability": "Unifies official Loom and ModDevGradle workflows and translates access wideners/access transformers for multi-loader projects.",
+    "bestFor": "Modern Fabric/NeoForge shared-source ports needing loader-native toolchains.",
+    "officialUrl": "https://github.com/isXander/Modstitch",
+    "repositoryUrl": "https://github.com/isXander/Modstitch",
+    "integration": "Evaluate as the high-capability shared-build path; retain generated loader-native outputs and independent runtime proof.",
+    "risks": [
+      "Fast-moving build integration requires version pinning and regression tests"
+    ]
+  },
+  {
+    "id": "stonecutter",
+    "name": "Stonecutter",
+    "category": "multi-version-build",
+    "maturity": "stable",
+    "capability": "Preprocessor and Gradle workflow for maintaining source variants across many Minecraft versions.",
+    "bestFor": "One mod that must build old and new Minecraft targets without cloning the entire codebase.",
+    "officialUrl": "https://stonecutter.kikugie.dev/",
+    "repositoryUrl": "https://github.com/kikugie/stonecutter",
+    "integration": "Generate explicit version branches/conditions, compile every supported target in CI and reject dead conditional paths."
+  },
+  {
+    "id": "multiloader-template",
+    "name": "Jared's MultiLoader Template",
+    "category": "multi-loader-template",
+    "maturity": "stable",
+    "capability": "Practical common-source project template for Fabric, Forge and NeoForge without a required third-party runtime library.",
+    "bestFor": "Bootstrapping source ports that need transparent loader modules and shared logic.",
+    "officialUrl": "https://github.com/jaredlll08/MultiLoader-Template",
+    "repositoryUrl": "https://github.com/jaredlll08/MultiLoader-Template",
+    "integration": "Use as a generated starting topology, then transplant only verified project behavior and version-specific APIs."
+  },
+  {
+    "id": "porting-lib",
+    "name": "Porting Lib",
+    "category": "loader-adapter",
+    "maturity": "beta",
+    "capability": "Forge-inspired utilities and compatibility abstractions for Fabric.",
+    "bestFor": "Reducing repeated Forge-to-Fabric rewrites when the needed subsystem is already implemented.",
+    "officialUrl": "https://github.com/Fabricators-of-Create/Porting-Lib",
+    "repositoryUrl": "https://github.com/Fabricators-of-Create/Porting-Lib",
+    "integration": "Select subsystem-by-subsystem and verify API/version support instead of treating it as a universal Forge compatibility layer."
+  },
+  {
+    "id": "openrewrite",
+    "name": "OpenRewrite",
+    "category": "source-transform",
+    "maturity": "stable",
+    "capability": "Loss-minimizing Java source transformation recipes with type attribution and repeatable Gradle/Maven integration.",
+    "bestFor": "Automating known package, symbol, signature and build migrations while keeping diffs reviewable.",
+    "officialUrl": "https://docs.openrewrite.org/",
+    "repositoryUrl": "https://github.com/openrewrite/rewrite",
+    "integration": "Maintain Minecraft-versioned recipes, apply in dry-run mode, compile after each recipe group and retain provenance for every edit."
+  },
+  {
+    "id": "mixin",
+    "name": "SpongePowered Mixin",
+    "category": "bytecode-transform",
+    "maturity": "stable",
+    "capability": "Declarative runtime bytecode injections used throughout the Minecraft mod ecosystem.",
+    "bestFor": "Inspecting, remapping and repairing injection targets, accessors, invokers and overwrite conflicts.",
+    "officialUrl": "https://github.com/SpongePowered/Mixin/wiki",
+    "repositoryUrl": "https://github.com/SpongePowered/Mixin",
+    "integration": "Parse configs and annotations, resolve exact target bytecode, run audit/export and compare transformed classes in every runtime matrix."
+  },
+  {
+    "id": "mixinextras",
+    "name": "MixinExtras",
+    "category": "bytecode-transform",
+    "maturity": "stable",
+    "capability": "Additional expressive and safer injection primitives layered onto Mixin.",
+    "bestFor": "Replacing brittle redirects or local-capture patterns during a source port.",
+    "officialUrl": "https://github.com/LlamaLad7/MixinExtras/wiki",
+    "repositoryUrl": "https://github.com/LlamaLad7/MixinExtras",
+    "integration": "Detect bundled/runtime versions and only rewrite injections when target semantics and loader packaging are verified."
+  },
+  {
+    "id": "asm",
+    "name": "OW2 ASM",
+    "category": "bytecode-analysis",
+    "maturity": "stable",
+    "capability": "Low-level JVM class parsing, verification, transformation and analysis.",
+    "bestFor": "Deterministic class structure inspection, descriptor changes, reference graphs and narrowly proven bytecode patches.",
+    "officialUrl": "https://asm.ow2.io/",
+    "repositoryUrl": "https://gitlab.ow2.org/asm/asm",
+    "integration": "Use structured visitors instead of raw string replacement, run CheckClassAdapter and compare intended class-level changes."
+  },
+  {
+    "id": "recaf",
+    "name": "Recaf",
+    "category": "bytecode-analysis",
+    "maturity": "stable",
+    "capability": "Modern bytecode/source workspace, decompilers, assemblers, scripting/API and headless operations.",
+    "bestFor": "Interactive investigation and scripted narrow repairs of closed-source JARs.",
+    "officialUrl": "https://recaf.coley.software/",
+    "repositoryUrl": "https://github.com/Col-E/Recaf",
+    "integration": "Use a pinned headless/scripted path for reproducibility; preserve originals and emit entry-level diffs and verification reports."
+  },
+  {
+    "id": "byte-buddy",
+    "name": "Byte Buddy",
+    "category": "bytecode-analysis",
+    "maturity": "stable",
+    "capability": "High-level Java bytecode generation and runtime instrumentation.",
+    "bestFor": "Building compatibility shims and controlled adapters when direct JAR mutation is too brittle.",
+    "officialUrl": "https://bytebuddy.net/",
+    "repositoryUrl": "https://github.com/raphw/byte-buddy",
+    "integration": "Generate explicit adapters with tests and class-loader constraints; avoid opaque runtime magic."
+  },
+  {
+    "id": "japicmp",
+    "name": "japicmp",
+    "category": "api-diff",
+    "maturity": "stable",
+    "capability": "Binary compatibility comparison between Java archives.",
+    "bestFor": "Proving removed/changed classes, methods, fields, descriptors and inheritance across mod or dependency versions.",
+    "officialUrl": "https://siom79.github.io/japicmp/",
+    "repositoryUrl": "https://github.com/siom79/japicmp",
+    "integration": "Compare exact old/new dependency JARs and feed break records into source or bytecode repair planning."
+  },
+  {
+    "id": "revapi",
+    "name": "Revapi",
+    "category": "api-diff",
+    "maturity": "stable",
+    "capability": "Extensible API analysis across Java archives with configurable compatibility rules.",
+    "bestFor": "Maintaining compatibility baselines and detecting accidental API regressions in rebuilt mods.",
+    "officialUrl": "https://revapi.org/",
+    "repositoryUrl": "https://github.com/revapi/revapi",
+    "integration": "Run before and after ports, classify intentional changes and block unexplained public API drift."
+  },
+  {
+    "id": "classgraph",
+    "name": "ClassGraph",
+    "category": "classpath-analysis",
+    "maturity": "stable",
+    "capability": "Fast classpath/module scanning, annotation discovery and dependency metadata inspection.",
+    "bestFor": "Duplicate classes, shaded libraries, entrypoints and cross-JAR ownership maps.",
+    "officialUrl": "https://github.com/classgraph/classgraph",
+    "repositoryUrl": "https://github.com/classgraph/classgraph",
+    "integration": "Build a complete class ownership index and retain collisions as first-class compatibility findings."
+  },
+  {
+    "id": "sinytra-connector",
+    "name": "Sinytra Connector",
+    "category": "runtime-bridge",
+    "maturity": "beta",
+    "capability": "Runs many Fabric mods on NeoForge through translation and compatibility layers.",
+    "bestFor": "A controlled temporary or permanent runtime path where the exact mod graph is supported.",
+    "officialUrl": "https://connector.sinytra.org/",
+    "repositoryUrl": "https://github.com/Sinytra/Connector",
+    "integration": "Probe exact combinations in isolated profiles, capture incompatibilities and keep source-port plans for unsupported behavior.",
+    "currentEvidence": "1.21.1 is the primary supported line; 1.20.1 receives long-term critical fixes.",
+    "risks": [
+      "Not every Fabric API or mixin pattern is compatible",
+      "Bridge success is not equivalent to a converted mod"
+    ]
+  },
+  {
+    "id": "forgified-fabric-api",
+    "name": "Forgified Fabric API",
+    "category": "runtime-bridge",
+    "maturity": "beta",
+    "capability": "NeoForge-side implementation/port of Fabric API needed by Connector workflows.",
+    "bestFor": "Fabric API-dependent mods running through Connector.",
+    "officialUrl": "https://github.com/Sinytra/ForgifiedFabricAPI",
+    "repositoryUrl": "https://github.com/Sinytra/ForgifiedFabricAPI",
+    "integration": "Resolve exact Connector-compatible versions and test only the modules required by the target graph."
+  },
+  {
+    "id": "connector-extras",
+    "name": "Connector Extras",
+    "category": "runtime-bridge",
+    "maturity": "beta",
+    "capability": "Additional compatibility bridges for selected APIs and mod integrations around Sinytra Connector.",
+    "bestFor": "Known gaps such as config/menu, recipe viewer or energy/API interoperability covered by a released module.",
+    "officialUrl": "https://github.com/Sinytra/ConnectorExtras",
+    "repositoryUrl": "https://github.com/Sinytra/ConnectorExtras",
+    "integration": "Select explicit modules from detected dependencies and keep each as an auditable compatibility decision."
+  },
+  {
+    "id": "kilt",
+    "name": "Kilt",
+    "category": "runtime-bridge",
+    "maturity": "experimental",
+    "capability": "Attempts to run Forge/NeoForge mods on Fabric.",
+    "bestFor": "Research and isolated compatibility probes when a source port is not yet available.",
+    "officialUrl": "https://github.com/KiltMC/Kilt",
+    "repositoryUrl": "https://github.com/KiltMC/Kilt",
+    "integration": "Never apply automatically to a real profile. Clone the instance, test world safety, collect exact incompatibilities and preserve a source-port fallback.",
+    "currentEvidence": "Current releases remain explicitly experimental.",
+    "risks": [
+      "May crash or corrupt worlds",
+      "Coverage varies sharply by mod and Forge API surface"
+    ]
+  },
+  {
+    "id": "sinytra-adapter",
+    "name": "Sinytra Adapter",
+    "category": "compatibility-research",
+    "maturity": "experimental",
+    "capability": "Sinytra research tooling for adapting incompatible mod behavior and transformations.",
+    "bestFor": "Harvesting repeatable compatibility patches discovered by Connector analysis.",
+    "officialUrl": "https://github.com/Sinytra/Adapter",
+    "repositoryUrl": "https://github.com/Sinytra/Adapter",
+    "integration": "Evaluate as a compatibility-rule source; import only rules that pass exact artifact/runtime regression tests."
+  },
+  {
+    "id": "sinytra-probe",
+    "name": "Sinytra Probe",
+    "category": "compatibility-research",
+    "maturity": "experimental",
+    "capability": "Inspection and probing utilities in the Sinytra compatibility ecosystem.",
+    "bestFor": "Collecting unsupported symbols and translation gaps from runtime-bridge failures.",
+    "officialUrl": "https://github.com/Sinytra/Probe",
+    "repositoryUrl": "https://github.com/Sinytra/Probe",
+    "integration": "Normalize findings into the Vault's compatibility knowledge graph and link them to exact versions."
+  },
+  {
+    "id": "packwiz",
+    "name": "packwiz",
+    "category": "modpack-management",
+    "maturity": "stable",
+    "capability": "Declarative, version-controlled modpack management with Modrinth/CurseForge metadata and refresh/update workflows.",
+    "bestFor": "Reproducible dependency manifests, pack upgrades and rollback-friendly instance composition.",
+    "officialUrl": "https://packwiz.infra.link/",
+    "repositoryUrl": "https://github.com/packwiz/packwiz",
+    "integration": "Import/export manifests, reuse CurseForge fingerprint logic, solve provider metadata and verify final pack state."
+  },
+  {
+    "id": "ferium",
+    "name": "Ferium",
+    "category": "modpack-management",
+    "maturity": "stable",
+    "capability": "CLI mod manager for upgrading projects from Modrinth, CurseForge and GitHub releases.",
+    "bestFor": "A comparative implementation and command-line fallback for straightforward provider updates.",
+    "officialUrl": "https://github.com/gorilla-devs/ferium",
+    "repositoryUrl": "https://github.com/gorilla-devs/ferium",
+    "integration": "Benchmark identity/update behavior and borrow only proven provider-resolution ideas while retaining the Vault's deeper repair stages."
+  },
+  {
+    "id": "modrinth-api",
+    "name": "Modrinth API",
+    "category": "provider-api",
+    "maturity": "stable",
+    "capability": "Project/version search, exact hash lookup, update lookup, dependency metadata and package downloads.",
+    "bestFor": "Exact SHA identity, compatible release resolution and dependency staging.",
+    "officialUrl": "https://docs.modrinth.com/api/",
+    "repositoryUrl": "https://github.com/modrinth/code",
+    "integration": "Use SHA-512 identity first, cache versioned metadata, verify published hashes/size and preserve source/project lineage."
+  },
+  {
+    "id": "curseforge-api",
+    "name": "CurseForge API",
+    "category": "provider-api",
+    "maturity": "stable",
+    "capability": "Project/file search, fingerprint matching, dependency metadata and downloads where permitted by project distribution settings.",
+    "bestFor": "Exact MurmurHash2 identity and target-file resolution for CurseForge-hosted mods.",
+    "officialUrl": "https://docs.curseforge.com/",
+    "repositoryUrl": "https://github.com/CurseForgeCommunity",
+    "integration": "Use authenticated exact fingerprints, verify file/game/loader relations and retain required-dependency changes for explicit review."
+  },
+  {
+    "id": "github-api",
+    "name": "GitHub API and Releases",
+    "category": "provider-api",
+    "maturity": "stable",
+    "capability": "Source discovery, tags, commits, release assets, checksums, issues, pull requests and CI evidence.",
+    "bestFor": "Resolving canonical source and ports not represented by Modrinth or CurseForge.",
+    "officialUrl": "https://docs.github.com/en/rest",
+    "repositoryUrl": "https://github.com/",
+    "integration": "Require explicit repository identity and target-version/loader evidence before treating an asset as an update."
+  },
+  {
+    "id": "mclogs",
+    "name": "mclo.gs and mclogs API",
+    "category": "diagnostics",
+    "maturity": "stable",
+    "capability": "Minecraft log parsing, paste hosting and structured analyzer integrations.",
+    "bestFor": "Turning fresh launch logs into normalized failure signatures and shareable evidence.",
+    "officialUrl": "https://mclo.gs/",
+    "repositoryUrl": "https://github.com/aternosorg/mclogs",
+    "integration": "Keep local/private analysis primary; optionally use structured analyzer rules and preserve exact source lines in repair records."
+  },
+  {
+    "id": "spark",
+    "name": "spark",
+    "category": "diagnostics",
+    "maturity": "stable",
+    "capability": "Minecraft profiler for CPU, memory, tick, heap and server/client performance investigations.",
+    "bestFor": "Performance repair after correctness and compatibility are established.",
+    "officialUrl": "https://spark.lucko.me/",
+    "repositoryUrl": "https://github.com/lucko/spark",
+    "integration": "Capture comparable before/after workloads and reject fixes that merely reduce content or fidelity."
+  },
+  {
+    "id": "fabric-gametest",
+    "name": "Fabric GameTest",
+    "category": "runtime-verification",
+    "maturity": "stable",
+    "capability": "Automated in-game tests integrated with Fabric API/Loom.",
+    "bestFor": "Repeatable behavior verification across Fabric versions and loader targets.",
+    "officialUrl": "https://docs.fabricmc.net/develop/automatic-testing",
+    "repositoryUrl": "https://github.com/FabricMC/fabric",
+    "integration": "Generate tests from known repair reproducers and run them in target CI/runtime matrices."
+  },
+  {
+    "id": "neoforge-gametest",
+    "name": "NeoForge Game Tests",
+    "category": "runtime-verification",
+    "maturity": "stable",
+    "capability": "GameTest framework integration and dedicated run targets for NeoForge mods.",
+    "bestFor": "Behavioral regression proof for NeoForge ports and compatibility patches.",
+    "officialUrl": "https://docs.neoforged.net/docs/misc/gametest/",
+    "repositoryUrl": "https://github.com/neoforged/NeoForge",
+    "integration": "Run server/client-relevant tests plus clean dedicated-server startup before packaging."
+  },
+  {
+    "id": "gradle-toolchains",
+    "name": "Gradle Java Toolchains",
+    "category": "build-runtime",
+    "maturity": "stable",
+    "capability": "Reproducible JDK selection, download and compile/test/runtime separation.",
+    "bestFor": "Building old and new Minecraft targets with their exact Java requirements.",
+    "officialUrl": "https://docs.gradle.org/current/userguide/toolchains.html",
+    "repositoryUrl": "https://github.com/gradle/gradle",
+    "integration": "Declare target JDKs per version, compile with release constraints and record vendor/version in build receipts."
+  },
+  {
+    "id": "minecraft-wiki",
+    "name": "Minecraft Wiki Technical Documentation",
+    "category": "authoritative-docs",
+    "maturity": "community",
+    "capability": "Detailed version history, data/resource pack formats, NBT, registries, commands, world data and technical mechanics.",
+    "bestFor": "Data-only migrations and cross-checking version-specific schema changes.",
+    "officialUrl": "https://minecraft.wiki/",
+    "integration": "Use alongside official release notes and loader primers; store exact page/revision access dates for migration rules."
+  },
+  {
+    "id": "mcdev-plugin",
+    "name": "Minecraft Development for IntelliJ",
+    "category": "developer-assistance",
+    "maturity": "stable",
+    "capability": "IDE inspections, project generation and support for major Minecraft mod/plugin ecosystems.",
+    "bestFor": "Human review of generated workspaces, mappings, mixins and metadata.",
+    "officialUrl": "https://mcdev.io/",
+    "repositoryUrl": "https://github.com/minecraft-dev/MinecraftDev",
+    "integration": "Optional review environment, not a headless correctness oracle; CI remains authoritative."
+  },
+  {
+    "id": "modforge",
+    "name": "ModForge",
+    "category": "source-remapper",
+    "maturity": "beta",
+    "capability": "Deterministic class/member migration across Minecraft versions using real mappings and target JAR verification, API deltas, Gradle migration, Mixin checks and an MCP server.",
+    "bestFor": "Source ports where false-positive renames are more dangerous than explicit unresolved findings.",
+    "officialUrl": "https://github.com/champmk/modforge",
+    "repositoryUrl": "https://github.com/champmk/modforge",
+    "integration": "Run bridge/delta/mixin-check in a copied source workspace; auto-apply only EXACT findings, preserve CANDIDATE and UNRESOLVED evidence, and expose its MCP tools to the porting agent.",
+    "currentEvidence": "Observed v0.1.2 with current 2026 work, Node 24+, deterministic audit chains and a 170-test suite.",
+    "risks": [
+      "Semantic API redesigns are not automatically solved",
+      "Current strongest lane centers on the 1.21.x to 26.x naming boundary",
+      "Requires target artifacts and a warmed verified cache for offline operation"
+    ],
+    "priority": 100
+  },
+  {
+    "id": "modlens-mcp",
+    "name": "ModLens MCP",
+    "category": "bytecode-indexer",
+    "maturity": "beta",
+    "capability": "Persistent mod/JAR metadata, class, member, dependency, Mixin, AT/AW and decompiled-source indexing with CLI and MCP access, cross-mod queries, diffs and crash analysis.",
+    "bestFor": "Giving the Vault and coding agents a searchable local corpus of the exact mods and Minecraft sources being repaired.",
+    "officialUrl": "https://github.com/CreeperHost/modlens-mcp",
+    "repositoryUrl": "https://github.com/CreeperHost/modlens-mcp",
+    "integration": "Use embedded SQLite by default; ingest exact JARs by hash, call scoped CLI/MCP actions from Doctor reports, and keep the Vault as the authority for mutation/rollback.",
+    "currentEvidence": "Active through 2026-08-16; recent work includes Node 26 support, SQLite template repair, crash facts and remote modpack ingestion.",
+    "risks": [
+      "Large MCP tool schemas consume context unless profiles disable unused tools",
+      "Optional semantic search adds Ollama and database complexity",
+      "External decompiler/indexer downloads must be hash-pinned"
+    ],
+    "priority": 100
+  },
+  {
+    "id": "mc-mod-porter",
+    "name": "MC Mod Porter",
+    "category": "source-converter",
+    "maturity": "beta",
+    "capability": "Version-chain rules, build.gradle/gradle.properties/metadata rewrites, Java source patches, resource migrations, build attempts, static debugging and visual testing helpers.",
+    "bestFor": "Bootstrapping adjacent-version source ports and harvesting verified migration recipes.",
+    "officialUrl": "https://github.com/reqsery/mc-mod-porter",
+    "repositoryUrl": "https://github.com/reqsery/mc-mod-porter",
+    "integration": "Run only on a copied source project, ingest its verified rule corpus, compare every edit, then compile and exercise the actual mod.",
+    "currentEvidence": "Observed beta 1.1.3 with active July/August 2026 commits and version-chain migration work through 26.2.",
+    "risks": [
+      "Known-pattern rewriting cannot prove semantic equivalence",
+      "Third-party mod APIs and major logic redesigns remain manual",
+      "Input must be a source project, not a compiled JAR"
+    ],
+    "priority": 88
+  },
+  {
+    "id": "retromod",
+    "name": "Retromod",
+    "category": "runtime-bridge",
+    "maturity": "experimental",
+    "capability": "Transforms older mod bytecode, mappings, Mixins, access wideners/transformers, metadata, nested JARs and selected runtime contracts for newer Minecraft hosts.",
+    "bestFor": "Binary-only simple content, library and quality-of-life mods when a source port is unavailable.",
+    "officialUrl": "https://bownlux.github.io/Retromod/",
+    "repositoryUrl": "https://github.com/Bownlux/Retromod",
+    "integration": "Use its standalone CLI in a sandbox, require a compatibility-database match, compare every changed entry, and then launch a copied client/server profile.",
+    "currentEvidence": "Stable 1.2.0 is the current verified release; the project documents older-mod transformation for modern hosts including current 26.x targets.",
+    "risks": [
+      "Renderer, loader-internal and save-affecting mods may require real source ports",
+      "Broad runtime transformation claims demand tuple-specific verification",
+      "Never apply directly to the only copy of a modpack or world"
+    ],
+    "priority": 90
+  },
+  {
+    "id": "crash-assistant",
+    "name": "Crash Assistant",
+    "category": "diagnostic",
+    "maturity": "stable",
+    "capability": "Collects game, launcher and JVM crash artifacts, analyzes known causes, routes reports, identifies environment problems and performs selected common fixes.",
+    "bestFor": "Reliable end-user crash intake and expanding the Vault signature/remediation corpus.",
+    "officialUrl": "https://github.com/KostromDan/Crash-Assistant",
+    "repositoryUrl": "https://github.com/KostromDan/Crash-Assistant",
+    "integration": "Import only evidence-backed signatures and fixes into the Repair Brain; keep complete logs and the earliest causal chain.",
+    "currentEvidence": "Actively maintained multi-branch Fabric/Forge/NeoForge project with shared app/config code and version-specific shims.",
+    "risks": [
+      "A matched warning is not necessarily the terminal root cause",
+      "Auto-fixes must remain reversible and version-gated"
+    ],
+    "priority": 95
+  },
+  {
+    "id": "unimined",
+    "name": "Unimined",
+    "category": "build-tool",
+    "maturity": "beta",
+    "capability": "Multi-loader, multi-version and legacy-aware Gradle provisioning, mappings, remapping, runs and custom transformation pipelines.",
+    "bestFor": "Reconstructing and testing modern or legacy source workspaces with one extensible toolchain.",
+    "officialUrl": "https://unimined.github.io/",
+    "repositoryUrl": "https://github.com/unimined/Unimined",
+    "integration": "Generate a clean target workspace from the current LTS branch, pin every loader/mapping version, and compare output against loader-native builds.",
+    "currentEvidence": "Repository default branch observed as lts/1.4 on 2026-08-20.",
+    "risks": [
+      "Very broad support matrix has uneven maturity",
+      "Custom/legacy combinations need exact fixture projects and runtime tests"
+    ],
+    "priority": 86
+  },
+  {
+    "id": "multisource",
+    "name": "Multisource",
+    "category": "build-tool",
+    "maturity": "experimental",
+    "capability": "Gradle settings plugin that models common and loader-specific source sets through feature variants and delegated Architectury Loom projects.",
+    "bestFor": "Low-duplication Fabric/NeoForge source ownership with explicit parent source sets.",
+    "officialUrl": "https://github.com/lukebemishprojects/Multisource",
+    "repositoryUrl": "https://github.com/lukebemishprojects/Multisource",
+    "integration": "Evaluate in a generated sample, verify remap/publishing artifacts and compare against established Architectury/Stonecutter layouts.",
+    "currentEvidence": "Repository and plugin documentation available in 2026; adoption remains small.",
+    "risks": [
+      "Limited adoption and release history",
+      "Not a binary conversion engine"
+    ],
+    "priority": 72
+  },
+  {
+    "id": "spyglass",
+    "name": "Spyglass",
+    "category": "static-analysis",
+    "maturity": "beta",
+    "capability": "Minecraft data/resource language server and parser infrastructure using mcdoc schemas for diagnostics, completion and version-aware structured-text analysis.",
+    "bestFor": "Validating JSON, commands, NBT-like data and resource/data-pack migrations before runtime.",
+    "officialUrl": "https://github.com/SpyglassMC/Spyglass",
+    "repositoryUrl": "https://github.com/SpyglassMC/Spyglass",
+    "integration": "Run target-version validation across changed resources and feed precise diagnostics into Doctor findings and generated migration tests.",
+    "currentEvidence": "Active organization/repository observed in August 2026.",
+    "risks": [
+      "Schema validation cannot prove gameplay semantics",
+      "Version schema selection must be exact"
+    ],
+    "priority": 92
+  },
+  {
+    "id": "nbt-studio",
+    "name": "NBT Studio",
+    "category": "world-tool",
+    "maturity": "stable",
+    "capability": "GUI viewer/editor for Java NBT, Java region files, Bedrock little-endian NBT and SNBT with undo/redo, multiselect and format conversion.",
+    "bestFor": "Human verification of copied worlds, structures and repaired NBT payloads.",
+    "officialUrl": "https://github.com/tryashtar/nbt-studio",
+    "repositoryUrl": "https://github.com/tryashtar/nbt-studio",
+    "integration": "Open only copied artifacts after deterministic repair, compare semantic paths, and preserve automated before/after hashes separately.",
+    "currentEvidence": "Current maintained successor to NBTExplorer with Java and Bedrock support.",
+    "risks": [
+      "Manual edits are not reproducible unless exported as a patch receipt",
+      "Region/world changes still require runtime validation"
+    ],
+    "priority": 82
+  },
+  {
+    "id": "repair-brain",
+    "name": "Minecraft Repair Brain",
+    "category": "knowledge",
+    "maturity": "internal",
+    "capability": "Append-only, versioned repair cases covering signatures, exact artifacts, root causes, fixes, failed attempts, supersession, verification and user-confirmed outcomes.",
+    "bestFor": "Preventing repeated failed repairs and reusing proven fixes only on matching version tuples.",
+    "officialUrl": "https://drive.google.com/drive/folders/1SEI9cZQHMEalLcKTMqpXGbfNJDZ1zWbS",
+    "repositoryUrl": "https://github.com/Herbertofury/Minecraft-Mod-Vault",
+    "integration": "Search before every diagnosis; update the canonical JSONL only after preserving evidence, hashes and applicability.",
+    "currentEvidence": "Five recovered real repair records were loaded into the v0.8.0 Doctor classifier on 2026-08-20.",
+    "risks": [
+      "Never promote partial static evidence to runtime success",
+      "Never overwrite failed or superseded attempts"
+    ],
+    "priority": 100
+  },
+  {
+    "id": "stonecraft",
+    "name": "Stonecraft",
+    "category": "build-tool",
+    "maturity": "beta",
+    "capability": "Versioned Gradle plugin and template that wires Stonecutter and Architectury for multi-version, multi-loader mod projects.",
+    "bestFor": "Reducing repeated build logic in source-owned Architectury projects.",
+    "officialUrl": "https://github.com/meza/Stonecraft",
+    "repositoryUrl": "https://github.com/meza/Stonecraft",
+    "integration": "Generate or migrate in a branch, run all target builds and compare published metadata/artifacts.",
+    "currentEvidence": "Current repository documentation advertises a maintained plugin and template.",
+    "risks": [
+      "Adds an abstraction layer over two other toolchains",
+      "Generated publishing behavior needs target-by-target verification"
+    ],
+    "priority": 80
+  },
+  {
+    "id": "cloche",
+    "name": "Cloche",
+    "category": "build-tool",
+    "maturity": "experimental",
+    "capability": "Target-oriented cross-platform Minecraft Gradle plugin with source-set separation, data generation, tests, runs, metadata generation and pre-applied Mixin support.",
+    "bestFor": "Exploring a single-project target model for complex multi-loader/version builds.",
+    "officialUrl": "https://github.com/terrarium-earth/cloche",
+    "repositoryUrl": "https://github.com/terrarium-earth/cloche",
+    "integration": "Benchmark against loader-native builds in isolated generated projects before adopting.",
+    "currentEvidence": "Active repository documented in August 2026.",
+    "risks": [
+      "Some debugging/Mixin features are explicitly work in progress",
+      "Smaller production evidence base than loader-native tooling"
+    ],
+    "priority": 82
+  },
+  {
+    "id": "blahaj",
+    "name": "Blahaj",
+    "category": "build-tool",
+    "maturity": "research",
+    "capability": "Stonecutter-based Gradle plugin for multiversion project setup, dependency declarations, compatibility metadata and publishing.",
+    "bestFor": "Mining automation ideas and rapidly testing version matrices.",
+    "officialUrl": "https://github.com/txnimc/Blahaj",
+    "repositoryUrl": "https://github.com/txnimc/Blahaj",
+    "integration": "Keep as a research adapter until it passes the Vault cross-version fixture matrix.",
+    "currentEvidence": "Current repository exists with a fluent multi-platform DSL but limited adoption evidence.",
+    "risks": [
+      "Research-grade maturity",
+      "Must not replace proven builds solely for convenience"
+    ],
+    "priority": 60
+  },
+  {
+    "id": "balm",
+    "name": "Balm",
+    "category": "compat-library",
+    "maturity": "stable",
+    "capability": "Common interfaces, events, configs, networking and third-party integrations for Fabric, Forge and NeoForge source mods using loader-native build plugins.",
+    "bestFor": "Reference architecture or dependency for maintainable source-level loader convergence.",
+    "officialUrl": "https://github.com/TwelveIterations/Balm",
+    "repositoryUrl": "https://github.com/TwelveIterations/Balm",
+    "integration": "Use as an explicit library dependency in source ports and test every loader artifact separately.",
+    "currentEvidence": "Battle-tested across a large family of maintained mods.",
+    "risks": [
+      "Not a binary cross-loader bridge",
+      "Adds a runtime library dependency"
+    ],
+    "priority": 82
+  },
+  {
+    "id": "hopper",
+    "name": "Hopper",
+    "category": "dependency-updater",
+    "maturity": "beta",
+    "capability": "Platform-aware runtime server-plugin dependency resolution from Hangar, Modrinth, Spiget, GitHub Releases and direct URLs with range/update policies.",
+    "bestFor": "Designing the Vault server-plugin dependency and update lane.",
+    "officialUrl": "https://github.com/oraxen/hopper",
+    "repositoryUrl": "https://github.com/oraxen/hopper",
+    "integration": "Borrow provider-resolution and policy ideas; stage downloads and verify hot-load behavior in disposable Paper/Folia/Velocity profiles.",
+    "currentEvidence": "Current repository documentation covers multiple providers and platform detection.",
+    "risks": [
+      "Runtime hot-loading has platform-specific failure modes",
+      "Remote dependency policies require provenance and rollback"
+    ],
+    "priority": 72
+  },
+  {
+    "id": "neoform",
+    "name": "NeoForm",
+    "category": "source-reconstruction",
+    "maturity": "official",
+    "capability": "Creates reproducible and recompilable modern Minecraft sources and adjacent-version patch workspaces.",
+    "bestFor": "Exact modern game-source reconstruction and tracking upstream changes across releases.",
+    "officialUrl": "https://github.com/neoforged/NeoForm",
+    "repositoryUrl": "https://github.com/neoforged/NeoForm",
+    "integration": "Create isolated patch workspaces, preserve the exact branch/tag/config, apply updates with reject capture, and hash every generated artifact.",
+    "currentEvidence": "Active NeoForged project; current branches distinguish obfuscated pre-26.1 inputs from unobfuscated Minecraft generations.",
+    "risks": [
+      "Generated game source is reference/build input, not automatically publishable mod source",
+      "Branch selection is version-sensitive"
+    ],
+    "priority": 100
+  },
+  {
+    "id": "neoform-runtime",
+    "name": "NeoForm Runtime",
+    "category": "source-reconstruction",
+    "maturity": "official",
+    "capability": "Standalone execution-graph CLI for deobfuscation, merging, patching, recompilation, assets and artifact resolution.",
+    "bestFor": "Deterministic, auditable Minecraft/NeoForge artifact generation outside a full Gradle plugin.",
+    "officialUrl": "https://github.com/neoforged/NeoFormRuntime",
+    "repositoryUrl": "https://github.com/neoforged/NeoFormRuntime",
+    "integration": "Invoke with pinned NeoForm or NeoForge coordinates, print the graph, redirect every named result, and retain caches/manifests/logs as provenance.",
+    "currentEvidence": "Actively maintained in the NeoForge toolchain through July 2026.",
+    "risks": [
+      "Large cached artifact graph must be isolated per tuple",
+      "Custom repositories and manifests can change reproducibility"
+    ],
+    "priority": 100
+  },
+  {
+    "id": "retromcp-java",
+    "name": "RetroMCP-Java",
+    "category": "legacy-source-recovery",
+    "maturity": "stable",
+    "capability": "Version-profile-driven download, deobfuscation, decompilation, patching, recompilation and reobfuscation for many classic Minecraft versions.",
+    "bestFor": "Recovering reviewable source and build workspaces for alpha, beta and old release mods.",
+    "officialUrl": "https://github.com/NeRdTheNed/RetroMCP-Java",
+    "repositoryUrl": "https://github.com/NeRdTheNed/RetroMCP-Java",
+    "integration": "Select an exact version profile, record mappings/decompiler/patches, build the untouched baseline, then layer port changes with output diffs.",
+    "currentEvidence": "v1.2 is the current verified release; the project remains the broadest maintained MCP-style legacy reconstruction option found.",
+    "risks": [
+      "Coverage and fidelity differ by historical version",
+      "Decompiled source requires ambiguity review"
+    ],
+    "priority": 96
+  },
+  {
+    "id": "retrofuturagradle",
+    "name": "RetroFuturaGradle",
+    "category": "legacy-build-remap",
+    "maturity": "stable",
+    "capability": "Modern Gradle replacement for legacy ForgeGradle 1.7.10 development with toolchains, caches, dependency deobfuscation and reliable reobfuscation.",
+    "bestFor": "Rebuilding and porting source-owned Minecraft 1.7.10 Forge mods.",
+    "officialUrl": "https://github.com/GTNewHorizons/RetroFuturaGradle",
+    "repositoryUrl": "https://github.com/GTNewHorizons/RetroFuturaGradle",
+    "integration": "Generate or migrate an isolated 1.7.10 workspace, build the untouched source, run deobfuscation/reobfuscation checks, and compare output JAR structure.",
+    "currentEvidence": "2.0.2 is the latest verified release; 2.0 added Gradle 9 support and a Java 25 build requirement.",
+    "risks": [
+      "Build JVM requirements differ from game runtime requirements",
+      "Legacy coremods still require runtime transformer tests"
+    ],
+    "priority": 99
+  },
+  {
+    "id": "retrofuturabootstrap",
+    "name": "RetroFuturaBootstrap",
+    "category": "legacy-runtime-bootstrap",
+    "maturity": "stable",
+    "capability": "Backwards-compatible LaunchWrapper replacement with ordered compatibility plugins and class/transformer dump diagnostics.",
+    "bestFor": "Modern-Java legacy runtime bootstrapping and diagnosing early transformer incompatibilities.",
+    "officialUrl": "https://github.com/GTNewHorizons/RetroFuturaBootstrap",
+    "repositoryUrl": "https://github.com/GTNewHorizons/RetroFuturaBootstrap",
+    "integration": "Launch disposable profiles with class-dump flags, retain per-transformer outputs, and compare class ordering before and after compatibility plugins.",
+    "currentEvidence": "Active and used by LWJGL3ify as the early-load foundation.",
+    "risks": [
+      "Bootstrap success does not prove mod behavior",
+      "Compatibility plugins can introduce ordering conflicts"
+    ],
+    "priority": 94
+  },
+  {
+    "id": "cleanroom",
+    "name": "Cleanroom",
+    "category": "legacy-loader-runtime",
+    "maturity": "beta",
+    "capability": "Minecraft 1.12.2 loader/runtime continuation with modern Java, LWJGL3, Mixin and compatibility patches.",
+    "bestFor": "Testing whether 1.12.2 packs can run on modern Java before or alongside source repair.",
+    "officialUrl": "https://cleanroommc.com/",
+    "repositoryUrl": "https://github.com/CleanroomMC/Cleanroom",
+    "integration": "Create a copied profile, install exact Cleanroom/Fugue versions, run client/server/world/restart matrices, and store mod-by-mod compatibility evidence.",
+    "currentEvidence": "Active CleanroomMC project in July-August 2026; README advertises Java 25+ and LWJGL3.",
+    "risks": [
+      "Broad compatibility percentages are maintainer claims, not proof for a specific pack",
+      "Coremods and graphics mods need dedicated coverage"
+    ],
+    "priority": 92
+  },
+  {
+    "id": "mixinbooter",
+    "name": "MixinBooter",
+    "category": "legacy-mixin-runtime",
+    "maturity": "stable",
+    "capability": "Unified Mixin configuration discovery, CleanMix/MixinExtras integration and dedicated diagnostics for 1.8-1.12.2.",
+    "bestFor": "Porting or stabilizing Mixin-heavy legacy Forge mods and resolving competing Mixin loaders.",
+    "officialUrl": "https://github.com/CleanroomMC/MixinBooter",
+    "repositoryUrl": "https://github.com/CleanroomMC/MixinBooter",
+    "integration": "Detect existing Mixin providers, select one compatible backend, register configs explicitly, and retain mixinbooter.log and trace output.",
+    "currentEvidence": "Current 11.x line uses CleanMix and supports 1.8 through 1.12.2.",
+    "risks": [
+      "Multiple embedded Mixin versions can still conflict",
+      "Blacklist toggles are diagnostic, not a substitute for fixing broken injections"
+    ],
+    "priority": 92
+  },
+  {
+    "id": "unimixins",
+    "name": "UniMixins",
+    "category": "legacy-mixin-runtime",
+    "maturity": "stable",
+    "capability": "Modular compatibility layer combining legacy Mixin loader features without forcing one monolithic provider.",
+    "bestFor": "Minecraft 1.7.10 Mixin compatibility and selected 1.8.9-1.12.2 cases.",
+    "officialUrl": "https://github.com/LegacyModdingMC/UniMixins",
+    "repositoryUrl": "https://github.com/LegacyModdingMC/UniMixins",
+    "integration": "Resolve required modules from artifact metadata, reject duplicate providers, and execute the project's published compatibility fixtures plus pack-specific tests.",
+    "currentEvidence": "0.3.1 released 2026-05-27 with signed release assets and an ASM remapper fix.",
+    "risks": [
+      "Module overlap must be solved explicitly",
+      "Partial support above 1.7.10 requires tuple-specific proof"
+    ],
+    "priority": 95
+  },
+  {
+    "id": "lwjgl3ify",
+    "name": "LWJGL3ify",
+    "category": "legacy-java-runtime",
+    "maturity": "stable",
+    "capability": "LWJGL2-to-LWJGL3 compatibility, modern-Java bootstrap, native/runtime replacement and targeted ASM/Mixin fixes for 1.7.10.",
+    "bestFor": "Modernizing the runtime environment of large 1.7.10 packs without pretending the mods were source-ported.",
+    "officialUrl": "https://github.com/GTNewHorizons/lwjgl3ify",
+    "repositoryUrl": "https://github.com/GTNewHorizons/lwjgl3ify",
+    "integration": "Build a separate Prism/MultiMC profile, install required UniMixins/Hodgepodge components, validate all OS/native paths, then exercise rendering, input, sound and server startup.",
+    "currentEvidence": "Active current line documents modern Java and bundles RetroFuturaBootstrap.",
+    "risks": [
+      "Graphics/native behavior is platform-specific",
+      "Old reflection and coremod assumptions still need per-mod patches"
+    ],
+    "priority": 93
+  },
+  {
+    "id": "fugue",
+    "name": "Fugue",
+    "category": "legacy-compatibility-patches",
+    "maturity": "beta",
+    "capability": "Targeted Cleanroom-era compatibility patches for mods that otherwise fail on modern Java or the revised 1.12.2 runtime.",
+    "bestFor": "Known per-mod fixes after a Cleanroom baseline identifies exact failures.",
+    "officialUrl": "https://github.com/CleanroomMC/Fugue",
+    "repositoryUrl": "https://github.com/CleanroomMC/Fugue",
+    "integration": "Match exact mod/version tuples, enable only applicable patches, and verify the original reproducer plus regression paths.",
+    "currentEvidence": "Repository was actively pushed on 2026-08-12.",
+    "risks": [
+      "Patch coverage is finite and version-sensitive",
+      "A compatibility patch can hide a deeper semantic break"
+    ],
+    "priority": 90
+  },
+  {
+    "id": "papermc-dataconverter",
+    "name": "PaperMC DataConverter",
+    "category": "data-migration-research",
+    "maturity": "research",
+    "capability": "High-performance rewrite of Minecraft data conversion with explicit walkers and debuggable conversion code.",
+    "bestFor": "Researching faster conversion architecture, diffing vanilla schema behavior and constructing focused data fixtures.",
+    "officialUrl": "https://github.com/PaperMC/DataConverter",
+    "repositoryUrl": "https://github.com/PaperMC/DataConverter",
+    "integration": "Index converter implementations and test vectors as reference only; never dispatch its Fabric mod against a modded world.",
+    "currentEvidence": "The official README explicitly warns that mod-registered data fixers are skipped and modded-world data can be corrupted.",
+    "risks": [
+      "Unsafe for modded worlds",
+      "Not a general downgrade engine",
+      "Architecture findings must be reimplemented with complete mod datafixer coverage"
+    ],
+    "priority": 65
+  },
+  {
+    "id": "mod-publish-plugin",
+    "name": "Mod Publish Plugin",
+    "category": "publishing",
+    "maturity": "stable",
+    "capability": "Gradle artifact publication to common Minecraft destinations with configuration-cache support.",
+    "bestFor": "Source-owned projects that need reproducible multi-destination publication after verification.",
+    "officialUrl": "https://plugins.gradle.org/plugin/me.modmuss50.mod-publish-plugin",
+    "repositoryUrl": "https://github.com/modmuss50/mod-publish-plugin",
+    "integration": "Generate publication configuration from verified build metadata, publish only signed/checksummed artifacts, and re-download remote objects for hashing.",
+    "currentEvidence": "2.1.1 was published 2026-06-25 and listed as current on 2026-08-20.",
+    "risks": [
+      "Upload acknowledgement is not byte verification",
+      "Credentials and provider metadata must remain external to project memory"
+    ],
+    "priority": 96
+  },
+  {
+    "id": "forgix",
+    "name": "Forgix",
+    "category": "multi-loader-packaging",
+    "maturity": "stable",
+    "capability": "Merges loader-specific Fabric/Quilt/Forge-family outputs into one distributable JAR.",
+    "bestFor": "Packaging already verified multi-loader builds while retaining native artifacts.",
+    "officialUrl": "https://plugins.gradle.org/plugin/io.github.pacifistmc.forgix",
+    "repositoryUrl": "https://github.com/PacifistMC/Forgix",
+    "integration": "Run after every native loader build passes; inspect merged metadata/resources/services and launch every loader from a fresh profile.",
+    "currentEvidence": "1.3.4 is the current stable plugin release; 2.0.0 is available only as snapshots.",
+    "risks": [
+      "Merged JARs can conceal resource or service collisions",
+      "A merged artifact cannot replace native-loader verification"
+    ],
+    "priority": 88
+  },
+  {
+    "id": "modshade",
+    "name": "ModShade",
+    "category": "dependency-packaging",
+    "maturity": "stable",
+    "capability": "Relocates and shades plain Java libraries while preserving unshaded debug artifacts and clean publication metadata.",
+    "bestFor": "Bundling non-mod Java dependencies that would otherwise conflict on a shared mod classpath.",
+    "officialUrl": "https://github.com/mezz/ModShade",
+    "repositoryUrl": "https://github.com/mezz/ModShade",
+    "integration": "Shade only explicitly classified plain libraries, retain unshaded outputs, scan relocated packages, and test service/resource merges.",
+    "currentEvidence": "Current documentation specifies plugin 0.5.0, Gradle 8.3+, Java 17+, and configuration-cache support.",
+    "risks": [
+      "Never embed another Minecraft mod with it",
+      "Relocation can break reflection, services or serialized class names"
+    ],
+    "priority": 90
+  },
+  {
+    "id": "neoforge-mod-generator",
+    "name": "NeoForge Mod Generator",
+    "category": "workspace-generator",
+    "maturity": "official",
+    "capability": "Official browser-embeddable and CLI-core project generator for clean NeoForge workspaces.",
+    "bestFor": "Creating a known-current target skeleton before migrating recovered source.",
+    "officialUrl": "https://neoforged.net/mod-generator",
+    "repositoryUrl": "https://github.com/neoforged/mod-generator",
+    "integration": "Generate into a disposable branch, lock all selected versions, diff output against templates, then transplant source through compiler-driven steps.",
+    "currentEvidence": "Active official NeoForged generator with shared web/CLI generator core.",
+    "risks": [
+      "Generated defaults still require target-specific review",
+      "A scaffold is not a completed port"
+    ],
+    "priority": 92
+  },
+  {
+    "id": "mcp-reborn",
+    "name": "MCP-Reborn",
+    "category": "source-reconstruction-research",
+    "maturity": "research",
+    "capability": "MCPConfig/ForgeGradle-based game-source research workspaces for Minecraft 1.13 through current generations.",
+    "bestFor": "Inspecting exact game changes and validating symbol assumptions where official/loader tooling is insufficient.",
+    "officialUrl": "https://github.com/Hexeption/MCP-Reborn",
+    "repositoryUrl": "https://github.com/Hexeption/MCP-Reborn",
+    "integration": "Use in an isolated research workspace, record version and JDK requirements, and extract only independently described API findings.",
+    "currentEvidence": "Repository advertises coverage through 26.2 and documents the JDK transition through Java 25.",
+    "risks": [
+      "Generated code is explicitly non-publishable",
+      "Research output must not be copied into release artifacts"
+    ],
+    "priority": 80
+  },
+  {
+    "id": "fabric-meta",
+    "name": "Fabric Meta",
+    "category": "version-metadata-api",
+    "maturity": "official",
+    "capability": "Frequently refreshed JSON API for Fabric game, loader, intermediary, mappings, installer and launcher metadata.",
+    "bestFor": "Resolving exact compatible Fabric version tuples instead of scraping download pages.",
+    "officialUrl": "https://meta.fabricmc.net/",
+    "repositoryUrl": "https://github.com/FabricMC/fabric-meta",
+    "integration": "Consume V2 endpoints, cache response hashes/timestamps, retain stable flags and Maven coordinates, and fail closed on incompatible tuples.",
+    "currentEvidence": "Official service states metadata is refreshed every five minutes; repository was active in July 2026.",
+    "risks": [
+      "Newest is not always stable",
+      "Cached metadata must carry a freshness timestamp"
+    ],
+    "priority": 100
+  },
+  {
+    "id": "ornithe-feather",
+    "name": "Ornithe Feather",
+    "category": "legacy-mappings",
+    "maturity": "stable",
+    "capability": "CC0 mappings and version graph for Minecraft c0.0.12a_03 through 1.14.4, with mapping and dual-decompiler tasks.",
+    "bestFor": "Ancient game-source comparison and named legacy workspaces outside modern mapping coverage.",
+    "officialUrl": "https://github.com/OrnitheMC/feather",
+    "repositoryUrl": "https://github.com/OrnitheMC/feather",
+    "integration": "Resolve the exact Feather graph node, map to named, compare CFR/Vineflower outputs, and retain unmapped/ambiguous symbols.",
+    "currentEvidence": "Active Ornithe mapping project with coverage from classic alpha through 1.14.4.",
+    "risks": [
+      "Decompiler output is not necessarily recompilable",
+      "Mapping propagation across a graph must preserve confidence and provenance"
+    ],
+    "priority": 96
+  },
+  {
+    "id": "ornithe-ploceus",
+    "name": "Ornithe Ploceus",
+    "category": "legacy-build-remap",
+    "maturity": "stable",
+    "capability": "Extends Fabric/Quilt Loom with Ornithe mappings, loader support and legacy Minecraft workspace behavior.",
+    "bestFor": "Source-owned Ornithe ports and reproducible ancient-version target builds.",
+    "officialUrl": "https://github.com/OrnitheMC/ploceus",
+    "repositoryUrl": "https://github.com/OrnitheMC/ploceus",
+    "integration": "Generate from the official template, pin the full mapping/loader/plugin/JDK tuple, then run client/server/remap tasks.",
+    "currentEvidence": "Pinned official Ornithe tooling and actively maintained organization in August 2026.",
+    "risks": [
+      "Legacy versions vary widely in structure and launch behavior",
+      "Mappings and loader support must be verified for the exact release"
+    ],
+    "priority": 94
+  },
+  {
+    "id": "legacy-fabric-api",
+    "name": "Legacy Fabric API",
+    "category": "legacy-loader-api",
+    "maturity": "stable",
+    "capability": "Fabric-style hooks and interoperability modules for Minecraft 1.3.x through 1.13.2.",
+    "bestFor": "Native Legacy Fabric source ports and API compatibility analysis.",
+    "officialUrl": "https://legacyfabric.net/",
+    "repositoryUrl": "https://github.com/Legacy-Fabric/fabric",
+    "integration": "Read the per-version module matrix, map actual imported APIs, and compile/test only against modules marked for the selected target.",
+    "currentEvidence": "Repository remained active in June 2026 and documents module support by Minecraft version.",
+    "risks": [
+      "API coverage is not uniform across versions",
+      "Modern Fabric documentation may not apply"
+    ],
+    "priority": 92
+  },
+  {
+    "id": "legacy-fabric-looming",
+    "name": "Legacy Looming",
+    "category": "legacy-build-remap",
+    "maturity": "stable",
+    "capability": "Legacy Fabric extension of Loom for old Minecraft mappings, setup and remapping.",
+    "bestFor": "Reproducible Legacy Fabric workspaces where normal current Loom does not support the target.",
+    "officialUrl": "https://github.com/Legacy-Fabric/legacy-looming",
+    "repositoryUrl": "https://github.com/Legacy-Fabric/legacy-looming",
+    "integration": "Pin Legacy Looming with Legacy Intermediaries/Yarn/API and prove decompile, remapJar, client and server tasks.",
+    "currentEvidence": "Repository updated in May 2026 within the active Legacy Fabric organization.",
+    "risks": [
+      "Toolchain tuples are tightly coupled",
+      "Historical Java and launcher behavior vary by version"
+    ],
+    "priority": 90
+  },
+  {
+    "id": "stationapi",
+    "name": "StationAPI",
+    "category": "legacy-loader-api",
+    "maturity": "stable",
+    "capability": "General API ecosystem for Babric/Fabric mods on Minecraft Beta 1.7.3.",
+    "bestFor": "Native beta 1.7.3 mod development and compatibility repairs.",
+    "officialUrl": "https://github.com/ModificationStation/StationAPI",
+    "repositoryUrl": "https://github.com/ModificationStation/StationAPI",
+    "integration": "Generate from the documented example path, keep StationAPI as an explicit dependency, and run the Babric profile on the required Java version.",
+    "currentEvidence": "Repository updated August 2026 and documents current Beta 1.7.3 Babric usage.",
+    "risks": [
+      "Only applies to its specific legacy ecosystem",
+      "Sparse documentation requires source inspection and fixtures"
+    ],
+    "priority": 91
+  },
+  {
+    "id": "legacyfix",
+    "name": "LegacyFix",
+    "category": "legacy-compatibility-patches",
+    "maturity": "stable",
+    "capability": "Version-aware runtime/coremod patches for legacy Minecraft across Forge, Fabric and direct agent-style installations.",
+    "bestFor": "Reproducing and fixing launcher/runtime failures in very old versions before attempting source conversion.",
+    "officialUrl": "https://github.com/betacraftuk/legacyfix",
+    "repositoryUrl": "https://github.com/betacraftuk/legacyfix",
+    "integration": "Choose installation mode by exact game/loader version, retain an unpatched profile, and compare startup/network/resource behavior.",
+    "currentEvidence": "Current repository provides stable and nightly builds with loader-specific installation instructions.",
+    "risks": [
+      "Patch behavior differs substantially by game version",
+      "Runtime repair is not a source port"
+    ],
+    "priority": 88
+  },
+  {
+    "id": "ornithe-gitcraft",
+    "name": "Ornithe Gitcraft",
+    "category": "source-diff-research",
+    "maturity": "research",
+    "capability": "Generates decompiled Minecraft history repositories using multiple mapping and manifest sources.",
+    "bestFor": "Finding exact adjacent-version implementation/API changes across modern and legacy versions.",
+    "officialUrl": "https://github.com/OrnitheMC/gitcraft",
+    "repositoryUrl": "https://github.com/OrnitheMC/gitcraft",
+    "integration": "Generate private repositories with selected mappings, compare adjacent commits, export only evidence/patch recipes, and never publish generated source trees.",
+    "currentEvidence": "Current tool supports Mojmap, Parchment, Yarn, Intermediary, Calamus and Feather mapping modes plus historic manifests.",
+    "risks": [
+      "Generated repositories must not be shared",
+      "Decompiler differences can create false diffs"
+    ],
+    "priority": 85
+  },
+  {
+    "id": "fpgradle",
+    "name": "FPGradle",
+    "category": "legacy-build-remap",
+    "maturity": "stable",
+    "capability": "Declarative Gradle plugin for Minecraft 1.7.10 mod development.",
+    "bestFor": "Alternative modernized source build path for selected 1.7.10 Forge projects.",
+    "officialUrl": "https://plugins.gradle.org/plugin/com.falsepattern.fpgradle-mc",
+    "repositoryUrl": "https://github.com/FalsePattern/FPGradle",
+    "integration": "Benchmark clean builds and reobfuscation against RetroFuturaGradle, then select the path that reproduces the upstream artifact with fewer project-specific patches.",
+    "currentEvidence": "2.1.1 was published 2025-10-26 and remains the current verified plugin version.",
+    "risks": [
+      "Smaller ecosystem than RetroFuturaGradle",
+      "Do not churn a working build solely for DSL preference"
+    ],
+    "priority": 84
+  },
+  {
+    "id": "hodgepodge",
+    "name": "Hodgepodge",
+    "category": "legacy-compatibility-patches",
+    "maturity": "stable",
+    "capability": "Configurable bug, performance and Java-compatibility fixes for large Minecraft 1.7.10 modpacks.",
+    "bestFor": "Pack-level compatibility gaps that LWJGL3ify intentionally leaves to mod-specific patches.",
+    "officialUrl": "https://github.com/GTNewHorizons/Hodgepodge",
+    "repositoryUrl": "https://github.com/GTNewHorizons/Hodgepodge",
+    "integration": "Enable only relevant fixes, record configuration, run the failing feature, then test adjacent mods and restart persistence.",
+    "currentEvidence": "Explicitly recommended by LWJGL3ify for multiple Java 17+ compatibility cases.",
+    "risks": [
+      "Large patch surface can mask root causes",
+      "Pack-specific configuration needs regression evidence"
+    ],
+    "priority": 82
+  },
+  {
+    "id": "intermed",
+    "name": "InterMed",
+    "category": "static-analysis",
+    "maturity": "alpha",
+    "capability": "Read-only static analysis of Minecraft mods, modpacks, servers, crash logs and Spark profiles with dependency, resource, mixin, security, SBOM and performance findings traceable to exact files.",
+    "bestFor": "Evidence-first preflight before repair, loader migration, upgrade or downgrade work.",
+    "officialUrl": "https://github.com/jarettr/intermed",
+    "repositoryUrl": "https://github.com/jarettr/intermed",
+    "integration": "Run inside the Porting Lab workspace against immutable inputs, retain JSON/SARIF/HTML evidence, and correlate findings with the Vault's own JAR graph before proposing mutations.",
+    "currentEvidence": "Repository and 0.1.4-alpha scope were reviewed on 2026-08-20; analysis is tested but commands and output shapes may still change.",
+    "risks": [
+      "Alpha CLI and schemas can change",
+      "Findings explain risk but do not prove or perform a repair",
+      "Tuple-specific runtime verification remains mandatory"
+    ],
+    "priority": 96
+  },
+  {
+    "id": "modcrawl",
+    "name": "modcrawl",
+    "category": "artifact-analysis",
+    "maturity": "early-active",
+    "capability": "Rust CLI/library/FFI for loader detection, metadata and dependency extraction, class/Java inspection, constant-pool search, Mixin target extraction and duplicate-class analysis without decompilation.",
+    "bestFor": "Fast independent cross-checks of JAR identity, dependency declarations, class references, Mixins and classpath conflicts.",
+    "officialUrl": "https://github.com/SirCesarium/modcrawl",
+    "repositoryUrl": "https://github.com/SirCesarium/modcrawl",
+    "integration": "Invoke its JSON commands in isolated workspaces and compare results with the Vault forensic model; use the library/FFI only after API pinning and fixture tests.",
+    "currentEvidence": "Primary repository reviewed on 2026-08-20; supports Fabric, Forge, NeoForge, Bukkit/Spigot and Paper metadata plus JSON output and C bindings.",
+    "risks": [
+      "Young project with limited adoption",
+      "Metadata edge cases and nested/shaded archives need independent verification",
+      "Constant-pool evidence is not semantic proof"
+    ],
+    "priority": 90
+  },
+  {
+    "id": "modpack-inspector",
+    "name": "Modpack Inspector",
+    "category": "modpack-forensics",
+    "maturity": "early-active",
+    "capability": "Desktop modpack scanner with loader-manifest parsing, dependency graphing, provider enrichment, unused-library hints, config ownership clues and log-oriented inspection.",
+    "bestFor": "Human-readable pack inventory and a second opinion on dependency/config relationships.",
+    "officialUrl": "https://github.com/Rearth/Modpack-Inspector",
+    "repositoryUrl": "https://github.com/Rearth/Modpack-Inspector",
+    "integration": "Use exported observations as comparison evidence; never treat unused-library or config ownership heuristics as an automatic delete decision.",
+    "currentEvidence": "Primary repository reviewed on 2026-08-20; the Wails desktop application is under active early development.",
+    "risks": [
+      "Early project and UI contracts can change",
+      "Provider enrichment may require credentials and network access",
+      "Heuristics need pack-specific proof before mutation"
+    ],
+    "priority": 84
+  },
+  {
+    "id": "modpack-resolver",
+    "name": "ModpackResolver",
+    "category": "availability-compatibility",
+    "maturity": "experimental",
+    "capability": "Web and CLI visualization that compares selected mods across Minecraft versions to find the versions with the broadest provider availability.",
+    "bestFor": "Early pack-version triage before exact dependency and runtime compatibility analysis.",
+    "officialUrl": "https://github.com/iTrooz/ModpackResolver",
+    "repositoryUrl": "https://github.com/iTrooz/ModpackResolver",
+    "integration": "Use as a coarse candidate generator, then resolve exact files, loaders, dependency ranges, hashes and runtime behavior independently.",
+    "currentEvidence": "Primary repository reviewed on 2026-08-20; project provides a website and nightly CLI artifacts.",
+    "risks": [
+      "File availability is not API or runtime compatibility",
+      "Small experimental project",
+      "Provider metadata gaps can skew results"
+    ],
+    "priority": 72
+  }
+]

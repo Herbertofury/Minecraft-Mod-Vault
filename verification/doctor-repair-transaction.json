@@ -1,0 +1,91 @@
+{
+  "plan": {
+    "id": "7b547375f310124f1eac48db",
+    "createdAt": "2026-08-21T03:55:08Z",
+    "modsDirectory": "/mnt/data/mmv-runtime-090/home/.minecraft/mods",
+    "status": "planned-no-mutations",
+    "actions": [
+      {
+        "id": "exact-duplicate-8426c924dc6e4d8c",
+        "kind": "quarantine-exact-duplicate",
+        "title": "Quarantine byte-identical duplicate JARs",
+        "sha512": "8426c924dc6e4d8c7a2d5366aa08ea0823dbfcc211b59b18eb2dd4666347a672401d42e4c468d4165970d79c23737886482c4b47717da08b5fdab6f7c79835f2",
+        "keep": {
+          "path": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar",
+          "filename": "vault-fixture.jar",
+          "enabled": true,
+          "size": 1504
+        },
+        "quarantine": [
+          {
+            "path": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture-copy.jar",
+            "filename": "vault-fixture-copy.jar",
+            "enabled": true,
+            "size": 1504
+          }
+        ],
+        "recoverable": true,
+        "confidence": "cryptographic-exact",
+        "rationale": "All candidate files have the same SHA-512 digest. The deterministic keeper prefers an enabled copy, then the shortest stable filename. Other copies are moved to the Vault quarantine, never deleted.",
+        "verification": [
+          "Re-hash keeper and every candidate",
+          "Move only non-keeper copies",
+          "Write receipt with original and quarantine paths",
+          "Re-scan mods directory after apply"
+        ],
+        "requiresReview": false
+      }
+    ],
+    "safeActionCount": 1,
+    "totalBytes": 1504,
+    "warnings": [
+      "Only byte-identical duplicate JARs are eligible for automatic quarantine in this release.",
+      "Duplicate mod IDs with different bytes, conflicting classes, dependency changes, and version replacements remain review-only.",
+      "Every file is re-hashed immediately before mutation; any drift aborts the whole operation."
+    ]
+  },
+  "receipt": {
+    "schemaVersion": 1,
+    "id": "20260821T035508Z-990bedd1",
+    "planId": "7b547375f310124f1eac48db",
+    "createdAt": "2026-08-21T03:55:08Z",
+    "quarantineRoot": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T035508Z-990bedd1",
+    "receiptPath": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T035508Z-990bedd1/receipt.json",
+    "status": "applied-recoverable",
+    "moves": [
+      {
+        "actionId": "exact-duplicate-8426c924dc6e4d8c",
+        "sha512": "8426c924dc6e4d8c7a2d5366aa08ea0823dbfcc211b59b18eb2dd4666347a672401d42e4c468d4165970d79c23737886482c4b47717da08b5fdab6f7c79835f2",
+        "originalPath": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture-copy.jar",
+        "quarantinePath": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T035508Z-990bedd1/exact-duplicate-8426c924dc6e4d8c/vault-fixture-copy.jar",
+        "size": 1504
+      }
+    ],
+    "verification": [
+      "All inputs passed immediate SHA-512 revalidation",
+      "No installed JAR was deleted",
+      "Every move has an original path, quarantine path, size, and digest",
+      "Every quarantine destination passed post-move SHA-512 verification",
+      "Every deterministic keeper passed post-transaction SHA-512 verification"
+    ],
+    "restore": {
+      "endpoint": "/api/doctor/repair/restore",
+      "receiptPath": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T035508Z-990bedd1/receipt.json",
+      "rule": "Restore refuses to overwrite an occupied original path and revalidates every quarantined SHA-512 digest."
+    }
+  },
+  "restore": {
+    "receiptPath": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T035508Z-990bedd1/receipt.json",
+    "restoredAt": "2026-08-21T03:55:08Z",
+    "status": "restored",
+    "moves": [
+      {
+        "actionId": "exact-duplicate-8426c924dc6e4d8c",
+        "sha512": "8426c924dc6e4d8c7a2d5366aa08ea0823dbfcc211b59b18eb2dd4666347a672401d42e4c468d4165970d79c23737886482c4b47717da08b5fdab6f7c79835f2",
+        "originalPath": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture-copy.jar",
+        "quarantinePath": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T035508Z-990bedd1/exact-duplicate-8426c924dc6e4d8c/vault-fixture-copy.jar",
+        "size": 1504
+      }
+    ]
+  }
+}

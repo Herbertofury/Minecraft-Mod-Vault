@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "name": "Minecraft Mod Vault v0.9.0 Porting Lab Chromium UI smoke",
+  "startedAt": "2026-08-21T04:02:11Z",
+  "completedAt": "2026-08-21T04:02:25Z",
+  "passed": true,
+  "harness": {
+    "browser": "system Chromium",
+    "navigation": "production HTML/CSS/JS rendered via set_content due managed URLBlocklist",
+    "backend": "real compiled v0.9.0 loopback backend through authenticated Playwright binding",
+    "applicationTransportChanges": [
+      "api() forwarded to authenticated bridge",
+      "history.replaceState disabled for about:blank",
+      "TOKEN replaced with non-secret harness marker"
+    ],
+    "notClaimed": [
+      "direct loopback URL navigation",
+      "browser reload persistence through URL",
+      "external artwork network availability"
+    ]
+  },
+  "inputs": {
+    "sourceRoot": "/mnt/data/mmv-work/Minecraft-Mod-Vault-0.9.0-source",
+    "runtimeRoot": "/mnt/data/mmv-runtime-090",
+    "fixture": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar",
+    "fixtureSha256": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e",
+    "htmlSha256": "f3cd6a47db7f1e2e34aa03b23b8561458eb230d6c7940ec66c7342b76a46d236",
+    "cssSha256": "9b3c530f5433d18e716cb2b093aaa83eed3db768a43503eb6ee63b57b20ba55a",
+    "catalogSha256": "88285adc74e1d6d120e92c351005e5d61c5dbd4e594dbc822b4047eeef7b8ea5",
+    "appSha256": "605d9e0686968d093eee2fe920409f5c3ce2db4bc1d19db8ae17ec7cc88913bc"
+  },
+  "assertions": [
+    {
+      "name": "production bootstrap reports v0.9.0",
+      "passed": true,
+      "observed": "v0.9.0"
+    },
+    {
+      "name": "navigation includes distinct Porting Lab",
+      "passed": true,
+      "observed": 1
+    },
+    {
+      "name": "Manager exposes exact JAR Porting Lab action",
+      "passed": true,
+      "observed": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar"
+    },
+    {
+      "name": "Manager action opens real Porting Lab workspace",
+      "passed": true,
+      "observed": "Porting Lab"
+    },
+    {
+      "name": "Manager transfers exact selected JAR path",
+      "passed": true,
+      "observed": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar"
+    },
+    {
+      "name": "Manager switches starting evidence to binary",
+      "passed": true,
+      "observed": "binary"
+    },
+    {
+      "name": "toolchain probe renders target Java evidence",
+      "passed": true,
+      "observed": "Local build essentials ready\nTarget 1.21.1 requests Java 21\njava\nopenjdk version \"21.0.11\" 2026-04-21\nready\njavac\njavac 21.0.11\nready\ngit\ngit version 2.47.3\nready\ngradle\nFallback when a generated workspace does not yet contain a wrapper\noptional\nnode\nv22.16.0\nready\npython\nPython 3.13.5\nready\nunzip\nUnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.\nready\ntar\ntar (GNU tar) 1.35\nready"
+    },
+    {
+      "name": "Porting Lab renders eight gated migration phases",
+      "passed": true,
+      "observed": 8
+    },
+    {
+      "name": "live JAR forensics identifies fixture mod",
+      "passed": true,
+      "observed": true
+    },
+    {
+      "name": "plan selects current InterMed evidence",
+      "passed": true,
+      "observed": true
+    },
+    {
+      "name": "plan selects current modcrawl evidence",
+      "passed": true,
+      "observed": true
+    },
+    {
+      "name": "plan is cross-loader critical-risk route",
+      "passed": true,
+      "observed": "PLAN 4c1923aafba3f716208b957e\n1.20.1 / forge \u2192 1.21.1 / neoforge\n\nupgrade \u00b7 binary evidence \u00b7 critical risk \u00b7 Java 21\n\nCRITICAL\nLIVE JAR FORENSICS\nVault Fixture \u00b7 vault_fixture\n\nvault-fixture.jar \u00b7 1.5 KB \u00b7 1 classes \u00b7 forge\n\nSHA-256 bb7784ac47d400166dc3515e\u2026\nDeclared version\n1.0.0\nMinecraft declaration\nnot declared\nDependencies\n2\nData / assets\n1 / 1\nJava 17\n1 mixin config\n1 access transformer\nUnsafe\nreflection\nNo source repository is declared in the JAR metadata.\n1 mixin configuration(s) requir"
+    },
+    {
+      "name": "workspace generation unlocks only after a plan",
+      "passed": true,
+      "observed": true
+    },
+    {
+      "name": "workspace generation produces a new persistent card",
+      "passed": true,
+      "observed": {
+        "before": 2,
+        "after": 3
+      }
+    },
+    {
+      "name": "generated workspace preserves requested project identity",
+      "passed": true,
+      "observed": "ui-smoke-port-1787284943"
+    },
+    {
+      "name": "Porting Lab desktop layout has no page-level horizontal overflow",
+      "passed": true,
+      "observed": {
+        "innerWidth": 1440,
+        "rootWidth": 1440,
+        "bodyWidth": 1440
+      }
+    },
+    {
+      "name": "Doctor exposes only proven duplicate quarantine actions",
+      "passed": true,
+      "observed": 1
+    },
+    {
+      "name": "quarantine action is selected and apply enabled",
+      "passed": true,
+      "observed": {
+        "checked": 1,
+        "enabled": true
+      }
+    },
+    {
+      "name": "repair apply renders recoverable receipt",
+      "passed": true,
+      "observed": "applied-recoverable\n1 moves\n20260821T040225Z-c15fb7be\nDuplicate quarantine completed without deletion\n\nEvery moved JAR has an original path, quarantine path, size, and SHA-512 digest. Restore refuses to overwrite an occupied original path.\n\n/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture-copy.jar \u2192 /mnt/data/mmv-runtime-090/config/MinecraftModVault/quarantine/doctor/20260821T040225Z-c15fb7be/exact-duplicate-8426c924dc6e4d8c/vault-fixture-copy.jar\nOpen receipt\nRestore all moved JARs"
+    },
+    {
+      "name": "duplicate leaves managed mods directory after quarantine",
+      "passed": true,
+      "observed": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture-copy.jar"
+    },
+    {
+      "name": "keeper remains present after quarantine",
+      "passed": true,
+      "observed": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar"
+    },
+    {
+      "name": "receipt restore returns quarantined JAR",
+      "passed": true,
+      "observed": "restored\n1 JARs returned to their original paths after SHA-512 verification."
+    },
+    {
+      "name": "duplicate path restored",
+      "passed": true,
+      "observed": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture-copy.jar"
+    },
+    {
+      "name": "restored duplicate remains byte-identical",
+      "passed": true,
+      "observed": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e"
+    },
+    {
+      "name": "keeper hash unchanged",
+      "passed": true,
+      "observed": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e"
+    },
+    {
+      "name": "all bridged authenticated UI API calls succeeded",
+      "passed": true,
+      "observed": []
+    },
+    {
+      "name": "no uncaught page exceptions",
+      "passed": true,
+      "observed": []
+    },
+    {
+      "name": "no meaningful Chromium console errors",
+      "passed": true,
+      "observed": []
+    }
+  ],
+  "apiCalls": [
+    {
+      "method": "GET",
+      "path": "/api/system",
+      "status": 200,
+      "durationMs": 577,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/taxonomy",
+      "status": 200,
+      "durationMs": 8001,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/recommendations",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/creators/channels",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/creators/recommendations",
+      "status": 200,
+      "durationMs": 0,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/transcription/status",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/heartbeat",
+      "status": 200,
+      "durationMs": 0,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/manager",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/porting/atlas",
+      "status": 200,
+      "durationMs": 6,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/porting/environment",
+      "status": 200,
+      "durationMs": 163,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/porting/workspaces",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/porting/environment",
+      "status": 200,
+      "durationMs": 158,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/porting/plan",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/porting/environment",
+      "status": 200,
+      "durationMs": 144,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/porting/workspace",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/porting/workspaces",
+      "status": 200,
+      "durationMs": 4,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/doctor/tools",
+      "status": 200,
+      "durationMs": 4,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/doctor/sources",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/doctor/repair/plan",
+      "status": 200,
+      "durationMs": 2,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/doctor/repair/apply",
+      "status": 200,
+      "durationMs": 6,
+      "ok": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/doctor/repair/restore",
+      "status": 200,
+      "durationMs": 1,
+      "ok": true
+    }
+  ],
+  "browserDiagnostics": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "requestFailures": []
+  },
+  "screenshots": [
+    "/mnt/data/mmv-work/Minecraft-Mod-Vault-0.9.0-source/verification/porting-ui-smoke.png"
+  ],
+  "failure": null
+}

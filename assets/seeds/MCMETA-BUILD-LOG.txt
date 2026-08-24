@@ -1,0 +1,29 @@
+{
+  "count": 907,
+  "generatedAt": "2026-08-20T00:00:00Z",
+  "gzipBytes": 2122168,
+  "gzipSHA256": "a83d2f60cf2dbfe420c85ca7fe33793ed415c55ff8752a2b68f38601dba9dbfa",
+  "latestRelease": "26.2",
+  "latestSnapshot": "26.3-snapshot-9",
+  "newest": "26.3-snapshot-9",
+  "oldest": "rd-132211",
+  "runtimeLibraryRows": 52491,
+  "schemaVersion": 1,
+  "source": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+  "sourceManifestSHA256": "98498b88264e524aa59a30b444cad571181a13cbfea5b73d0d7aebcd20bb8511",
+  "types": {
+    "old_alpha": 35,
+    "old_beta": 26,
+    "release": 102,
+    "snapshot": 744
+  },
+  "uncompressedBytes": 22475225,
+  "uniqueRuntimeLibraries": 1006,
+  "versionsWithAssetIndex": 907,
+  "versionsWithClient": 907,
+  "versionsWithClientMappings": 384,
+  "versionsWithJavaRuntime": 889,
+  "versionsWithLogging": 793,
+  "versionsWithServer": 840,
+  "versionsWithServerMappings": 384
+}

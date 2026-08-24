@@ -1,0 +1,5 @@
+/dist/
+/release/
+/scripts/__pycache__/
+*.pyc
+*.tmp

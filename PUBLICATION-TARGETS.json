@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "project": "Minecraft Mod Vault",
+  "version": "0.9.0",
+  "preparedAt": "2026-08-21T04:35:00Z",
+  "targets": [
+    {
+      "provider": "Google Drive",
+      "folderId": "1nkX40V3f0psEQldm0WjAZH9o-gnAO-Ln",
+      "folderName": "Minecraft Mod Vault",
+      "status": "final-publication-pending-remote-byte-proof"
+    },
+    {
+      "provider": "GitHub",
+      "repository": "Herbertofury/Minecraft-Mod-Vault",
+      "releaseTag": "v0.9.0",
+      "status": "final-publication-pending-remote-byte-proof"
+    }
+  ],
+  "verificationRequirement": "Do not mark either target published until the remote bytes are re-read or downloaded and match the local SHA-256 and size.",
+  "localArtifactState": "verified-release-ready-for-final-deterministic-packaging"
+}

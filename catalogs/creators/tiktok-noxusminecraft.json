@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "tiktok-noxusminecraft",
+  "title": "NoxusMinecraft TikTok follow",
+  "updatedAt": "2026-08-24T16:30:00Z",
+  "source": "User-requested Creator Vault follow",
+  "sourceUrl": "https://www.tiktok.com/@noxusminecraft",
+  "creator": {
+    "platform": "tiktok",
+    "handle": "@noxusminecraft",
+    "url": "https://www.tiktok.com/@noxusminecraft",
+    "title": "NoxusMinecraft",
+    "required": true,
+    "source": "curated-catalog"
+  },
+  "coverage": {
+    "expectedVideos": 0,
+    "complete": false,
+    "notes": "The Creator Vault performs full-history first sync and incremental refresh after provider access is available."
+  },
+  "videos": []
+}

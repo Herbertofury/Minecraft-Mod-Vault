@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T04:29:00Z",
+  "sourceCommit": "4191fad",
+  "system": {
+    "arch": "amd64",
+    "bedrockExists": false,
+    "configDir": "/mnt/data/mmv-v090-final-runtime/config/MinecraftModVault",
+    "javaExists": true,
+    "name": "Minecraft Mod Vault",
+    "os": "linux",
+    "serverExists": false,
+    "settings": {
+      "javaRoot": "/mnt/data/mmv-v090-final-runtime/home/.minecraft",
+      "bedrockRoot": "",
+      "worldRoot": "",
+      "serverRoot": "",
+      "serverPlatform": "PAPER",
+      "gameVersion": "1.21.1",
+      "loader": "fabric",
+      "activeProfile": "Default",
+      "curseForgeApiKey": "",
+      "githubToken": "",
+      "youtubeApiKey": "",
+      "builtByBitApiKey": "",
+      "builtByBitOAuthToken": "",
+      "nexusApiKey": "",
+      "autoRefreshMinutes": 15,
+      "creatorRefreshMinutes": 60,
+      "creatorTranscriptModel": "large-v3-turbo-q5_0",
+      "creatorArchiveConcurrency": 2,
+      "preferredTags": [
+        "furniture",
+        "cute",
+        "cozy",
+        "pets",
+        "railroads",
+        "vehicles",
+        "technology",
+        "magic",
+        "particles",
+        "water",
+        "foliage",
+        "cards",
+        "creature collecting"
+      ],
+      "enabledSources": [
+        "modrinth",
+        "curseforge",
+        "github",
+        "smithed",
+        "planetminecraft",
+        "mcpedl",
+        "marketplace",
+        "hangar",
+        "spigot",
+        "bukkitdev",
+        "spongeore",
+        "polymart",
+        "minecraftmaps",
+        "resourcepacknet",
+        "texturepacks",
+        "moddb",
+        "atlauncher",
+        "technic",
+        "ftb",
+        "vanillatweaks",
+        "minecrafthub",
+        "mcreator",
+        "shaderpackscom",
+        "shaderpacksnet",
+        "minecraftshader",
+        "skindex"
+      ],
+      "providerSchemaVersion": 6
+    },
+    "version": "0.9.0",
+    "worldExists": false
+  },
+  "brain": {
+    "ready": true,
+    "databasePath": "/mnt/data/mmv-v090-final-runtime/config/MinecraftModVault/compatibility-brain.sqlite3",
+    "schemaVersion": 1,
+    "sqliteVersion": "3.53.3",
+    "journalMode": "wal",
+    "seedDigest": "eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4",
+    "importedAt": "2026-08-21T04:26:50Z",
+    "minecraftVersions": 919,
+    "loaderGameRows": 949,
+    "loaderReleases": 550,
+    "toolchainReleases": 15133,
+    "knowledgeDocuments": 342,
+    "repairRecords": 8,
+    "oldestMinecraft": "rd-132211",
+    "newestMinecraft": "26.3-snapshot-9",
+    "latestStableMinecraft": "26.2"
+  },
+  "repairLab": {
+    "schemaVersion": 1,
+    "ready": true,
+    "root": "/mnt/data/mmv-v090-final-runtime/config/MinecraftModVault/repair-lab",
+    "sessions": [
+      {
+        "id": "repair-20260821T042711Z-f23995d06b24",
+        "name": "mmv-v090-repair-fixture",
+        "state": "imported",
+        "phase": "rolled-back-to-immutable-source",
+        "updatedAt": "2026-08-21T04:27:22Z",
+        "source": "mmv-v090-repair-fixture.zip",
+        "projectRoot": "mmv-v090-fixture-src",
+        "loader": "fabric",
+        "gameVersion": "1.20.1"
+      }
+    ],
+    "tools": [
+      {
+        "id": "java",
+        "name": "Java runtime",
+        "path": "/usr/bin/java",
+        "version": "openjdk version \"21.0.11\" 2026-04-21",
+        "ready": true,
+        "role": "Execute Gradle/Maven and Minecraft-compatible build tools."
+      },
+      {
+        "id": "javac",
+        "name": "Java compiler",
+        "path": "/usr/bin/javac",
+        "version": "javac 21.0.11",
+        "ready": true,
+        "role": "Compile Java source when the project build requests it."
+      },
+      {
+        "id": "git",
+        "name": "Git",
+        "path": "/usr/bin/git",
+        "version": "git version 2.47.3",
+        "ready": true,
+        "role": "Capture source lineage and support build scripts that read Git metadata."
+      }
+    ],
+    "atlas": {
+      "schemaVersion": 1,
+      "reviewedAt": "2026-08-20T00:00:00Z",
+      "generatedAt": "2026-08-20T00:00:00Z",
+      "mojangVersions": 907,
+      "mcmetaVersions": 450,
+      "latestRelease": "26.2",
+      "latestSnapshot": "26.3-snapshot-9",
+      "newestVersion": "26.3-snapshot-9",
+      "oldestVersion": "rd-132211",
+      "versionsWithJava": 889,
+      "versionsWithServer": 840,
+      "versionsWithMappings": 384,
+      "runtimeLibraryRows": 52491,
+      "toolchains": 17,
+      "evidenceSources": [
+        {
+          "id": "mojang-version-manifest-v2",
+          "name": "Mojang version manifest v2 and per-version manifests",
+          "url": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+          "seedPath": "assets/seeds/mojang-version-details-v2.jsonl.gz",
+          "sha256": "a83d2f60cf2dbfe420c85ca7fe33793ed415c55ff8752a2b68f38601dba9dbfa",
+          "records": 907,
+          "retrieved": "2026-08-20T00:00:00Z"
+        },
+        {
+          "id": "mcmeta-versions",
+          "name": "Misode mcmeta version catalog",
+          "url": "https://github.com/misode/mcmeta",
+          "seedPath": "assets/seeds/mcmeta-versions.json",
+          "records": 450,
+          "retrieved": "2026-08-20T00:00:00Z"
+        },
+        {
+          "id": "fabric-meta",
+          "name": "Fabric Meta",
+          "url": "https://meta.fabricmc.net/",
+          "seedPath": "assets/seeds/fabric-game-versions.json",
+          "records": 519,
+          "retrieved": "2026-08-20T00:00:00Z"
+        },
+        {
+          "id": "quilt-meta",
+          "name": "Quilt Meta",
+          "url": "https://meta.quiltmc.org/",
+          "seedPath": "assets/seeds/quilt-game-versions.json",
+          "records": 430,
+          "retrieved": "2026-08-20T00:00:00Z"
+        },
+        {
+          "id": "modrinth-tags",
+          "name": "Modrinth version and loader tags",
+          "url": "https://docs.modrinth.com/api/operations/gettaggameversion/",
+          "seedPath": "assets/seeds/modrinth-game-versions.json",
+          "records": 907,
+          "retrieved": "2026-08-20T00:00:00Z"
+        },
+        {
+          "id": "official-maven-metadata",
+          "name": "Official loader, mappings, and build-plugin Maven metadata",
+          "url": "https://maven.fabricmc.net/",
+          "seedPath": "assets/seeds/",
+          "records": 17,
+          "retrieved": "2026-08-20T00:00:00Z"
+        }
+      ],
+      "loaderCoverage": {
+        "fabric": 519,
+        "modrinth": 907,
+        "quilt": 430
+      },
+      "toolchainHighlights": [
+        {
+          "id": "fabric-loom",
+          "name": "Fabric Loom",
+          "version": "1.17.19",
+          "channel": "stable",
+          "reason": "Latest version captured from the official Maven metadata seed.",
+          "officialUrl": "https://docs.fabricmc.net/develop/loom/",
+          "sourcePath": "assets/seeds/fabric-loom-maven-metadata.xml"
+        },
+        {
+          "id": "moddevgradle",
+          "name": "ModDevGradle",
+          "version": "2.0.144",
+          "channel": "stable",
+          "reason": "Latest version captured from the official Maven metadata seed.",
+          "officialUrl": "https://docs.neoforged.net/toolchain/docs/plugins/mdg/",
+          "sourcePath": "assets/seeds/moddevgradle-plugin-maven-metadata.xml"
+        },
+        {
+          "id": "forgegradle",
+          "name": "ForgeGradle",
+          "version": "6.0.54",
+          "channel": "stable",
+          "reason": "Latest version captured from the official Maven metadata seed.",
+          "officialUrl": "https://docs.minecraftforge.net/en/latest/gettingstarted/",
+          "sourcePath": "assets/seeds/forgegradle-maven-metadata.xml"
+        },
+        {
+          "id": "neoforge",
+          "name": "NeoForge",
+          "version": "26.2.0.64",
+          "channel": "stable",
+          "reason": "Latest version captured from the official Maven metadata seed.",
+          "officialUrl": "https://neoforged.net/",
+          "sourcePath": "assets/seeds/neoforge-maven-metadata.xml"
+        },
+        {
+          "id": "architectury-loom",
+          "name": "Architectury Loom",
+          "version": "1.17.491",
+          "channel": "stable",
+          "reason": "Latest version captured from the official Maven metadata seed.",
+          "officialUrl": "https://docs.architectury.dev/loom/introduction",
+          "sourcePath": "assets/seeds/architectury-loom-maven-metadata.xml"
+        }
+      ]
+    },
+    "brain": {
+      "ready": true,
+      "databasePath": "/mnt/data/mmv-v090-final-runtime/config/MinecraftModVault/compatibility-brain.sqlite3",
+      "schemaVersion": 1,
+      "sqliteVersion": "3.53.3",
+      "journalMode": "wal",
+      "seedDigest": "eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4",
+      "importedAt": "2026-08-21T04:26:50Z",
+      "minecraftVersions": 919,
+      "loaderGameRows": 949,
+      "loaderReleases": 550,
+      "toolchainReleases": 15133,
+      "knowledgeDocuments": 342,
+      "repairRecords": 8,
+      "oldestMinecraft": "rd-132211",
+      "newestMinecraft": "26.3-snapshot-9",
+      "latestStableMinecraft": "26.2"
+    },
+    "executionPhrase": "I_UNDERSTAND_BUILD_SCRIPTS_EXECUTE_CODE",
+    "securityBoundaries": {
+      "immutableOriginal": true,
+      "zipSlipProtection": true,
+      "symlinkProtection": true,
+      "archiveBombLimits": true,
+      "sanitizedEnvironment": true,
+      "dedicatedToolCaches": true,
+      "explicitCodeExecutionAck": true,
+      "sourceVerifiedAfterRuns": true,
+      "limitations": [
+        "Build wrappers and build scripts are project code. They are executed only after explicit acknowledgement, but this release does not claim operating-system or virtual-machine isolation.",
+        "Automatic edits are limited to recognized version, loader, mapping, Java, metadata, and pack-format fields. Semantic API rewrites still require source-aware repair work and runtime proof."
+      ]
+    },
+    "capabilities": [
+      {
+        "id": "immutable-intake",
+        "name": "Immutable source intake",
+        "description": "ZIP-slip, link, duplicate-path, entry-count, extracted-size, and suspicious-compression checks with SHA-256 source identity.",
+        "state": "ready"
+      },
+      {
+        "id": "version-atlas",
+        "name": "Offline Version Atlas",
+        "description": "Exact Mojang, mcmeta, Fabric, Quilt, Modrinth, Forge, NeoForge, mappings, and build-plugin resolution from embedded reviewed seeds.",
+        "state": "ready"
+      },
+      {
+        "id": "recognized-migration",
+        "name": "Recognized migration edits",
+        "description": "Conservative version, loader, mapping, Java, metadata, and pack-format changes in a disposable working copy with per-field evidence.",
+        "state": "ready"
+      },
+      {
+        "id": "controlled-builds",
+        "name": "Controlled wrapper execution",
+        "description": "Only detected project wrappers and fixed build/test/clean actions, with explicit acknowledgement, dedicated caches, sanitized environment, logs, cancellation, and timeout.",
+        "state": "ready"
+      },
+      {
+        "id": "artifact-proof",
+        "name": "Artifact proof",
+        "description": "SHA-256, JAR metadata/class inspection, immutable-source re-verification, receipts, deterministic prepared-source ZIPs, and repair bundles.",
+        "state": "ready"
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "dist/Minecraft-Mod-Vault-0.9.0-linux-x64",
+      "size": 18657404,
+      "sha256": "0e6720b4b1b9a6bb31f90fe2d498a7f4fbfac43df264d7e87bd23062d89ed2ee"
+    },
+    {
+      "path": "dist/Minecraft-Mod-Vault-0.9.0-windows-x64.exe",
+      "size": 19001344,
+      "sha256": "6b5967461a34cb8658d93644f9d60196bb3bdbd162519f9dda1aff3ef4fa9598"
+    }
+  ],
+  "uiEvidence": [
+    {
+      "path": "verification/repair-lab-ui-smoke-final.json",
+      "passed": true,
+      "assertions": 25,
+      "apiCalls": 38,
+      "sha256": "5693ed022ffed1456f05f76f349b87868870e3c102dcb5dab7eab2da6fbde694"
+    },
+    {
+      "path": "verification/porting-ui-smoke-final.json",
+      "passed": true,
+      "assertions": 29,
+      "apiCalls": 23,
+      "sha256": "9ee814a08f918fb604a7badddce920c7a4ca5f3fc6cbe4a0e1d97452be923795"
+    }
+  ]
+}

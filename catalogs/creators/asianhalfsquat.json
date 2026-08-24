@@ -1,0 +1,1499 @@
+{
+  "schemaVersion": 1,
+  "id": "asianhalfsquat",
+  "title": "AsianHalfSquat Creator Archive Bootstrap",
+  "updatedAt": "2026-08-24T16:30:00Z",
+  "source": "Current public creator/channel research plus creator video descriptions",
+  "sourceUrl": "https://www.youtube.com/@AsianHalfSquat",
+  "creator": {
+    "platform": "youtube",
+    "handle": "@AsianHalfSquat",
+    "url": "https://www.youtube.com/@AsianHalfSquat",
+    "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+    "title": "AsianHalfSquat",
+    "required": true,
+    "source": "catalog:asianhalfsquat"
+  },
+  "coverage": {
+    "expectedVideos": 349,
+    "complete": false,
+    "notes": "349-video channel target verified from current channel analytics. This bootstrap contains the newest 11 exact videos exposed by the research surface and 93 evidence-backed project recommendations. The normal full-history sync fills the remaining historical videos when YouTube/yt-dlp access is available."
+  },
+  "videos": [
+    {
+      "id": "_h-2powUiRs",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=_h-2powUiRs",
+      "title": "An Amazing Minecraft Mod That Makes Grass Look Like This",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-07-15T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 208,
+      "description": "",
+      "mods": []
+    },
+    {
+      "id": "Y8HmNvkfbTo",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=Y8HmNvkfbTo",
+      "title": "Top 10 Minecraft Mods (26.1.2) - June 2026",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-06-25T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 301,
+      "description": "",
+      "mods": []
+    },
+    {
+      "id": "QWfiGE0lTLk",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=QWfiGE0lTLk",
+      "title": "One of The Most Unique Minecraft Shaders I’ve Seen",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-05-21T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 182,
+      "description": "",
+      "mods": [
+        {
+          "name": "CazToon",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "The video description explicitly says “Download CazToon here”.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Whimscape",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Fresh Animations: Player Extension",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Atmosfera",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Auto HUD",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "First-person Model",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Leawind's Third Person",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Presence Footsteps",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Subtle Effects",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Tectonic",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Voxy",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    },
+    {
+      "id": "0AqzzgZZUfo",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=0AqzzgZZUfo",
+      "title": "Top 10 Minecraft Mods (26.1.2) - 2026",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-05-02T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 315,
+      "description": "",
+      "mods": [
+        {
+          "name": "Ecliptic Seasons",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:31",
+          "timestampSeconds": 31,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Vertical Scroll",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:02",
+          "timestampSeconds": 62,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Terralith",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:16",
+          "timestampSeconds": 76,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Big Water",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:49",
+          "timestampSeconds": 109,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Shippy Ships",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:09",
+          "timestampSeconds": 129,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Bits and Balance",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:49",
+          "timestampSeconds": 169,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Wayfinder",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:14",
+          "timestampSeconds": 194,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Better Smoke",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:34",
+          "timestampSeconds": 214,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "OmniCrossbow",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:57",
+          "timestampSeconds": 237,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Axiom",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "4:20",
+          "timestampSeconds": 260,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Bliss Shaders",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "MakeUp Ultra Fast",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Rethinking Voxels",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    },
+    {
+      "id": "irE4tcDtUIg",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=irE4tcDtUIg",
+      "title": "The Most Realistic Minecraft Terrain Generator I’ve Ever Seen",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-04-20T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 490,
+      "description": "",
+      "mods": [
+        {
+          "name": "Terrain Diffusion",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "The video and corroborating summary identify Terrain Diffusion as the showcased procedural terrain-generation mod.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "id": "ayvwcfV34OA",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=ayvwcfV34OA",
+      "title": "The Most Impressive Minecraft Physics Mods",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-04-10T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 282,
+      "description": "",
+      "mods": [
+        {
+          "name": "Physics Mod Pro",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:11",
+          "timestampSeconds": 11,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Valkyrien Skies",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:41",
+          "timestampSeconds": 41,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Dropz",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:05",
+          "timestampSeconds": 65,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Flowing Fluids",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:40",
+          "timestampSeconds": 100,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Solid Mobs",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:03",
+          "timestampSeconds": 123,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Explosion Overhaul",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:27",
+          "timestampSeconds": 147,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Falling Sand",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:56",
+          "timestampSeconds": 176,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Physics Toys",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:16",
+          "timestampSeconds": 196,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Timber Physics",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:41",
+          "timestampSeconds": 221,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "DynamX Physics Mod",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "4:04",
+          "timestampSeconds": 244,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Bliss",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Complementary",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Photon",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Solas",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    },
+    {
+      "id": "F8KhlI-W7WM",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=F8KhlI-W7WM",
+      "title": "Making Minecraft As Satisfying As Possible With Mods 3.0",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-04-01T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 896,
+      "description": "",
+      "mods": [
+        {
+          "name": "Making Minecraft As Satisfying As Possible 3.0 Modpack",
+          "projectType": "modpack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "The creator description explicitly offers a downloadable modpack and says all included mods are on its modpack page; the exact child URL was not exposed by the research surface, so no URL is invented.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.98
+        }
+      ]
+    },
+    {
+      "id": "yypjdKNxRk4",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=yypjdKNxRk4",
+      "title": "Top 10 Minecraft Mods (1.21.11) - 2026",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-03-24T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 291,
+      "description": "",
+      "mods": [
+        {
+          "name": "Atmosfera",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:13",
+          "timestampSeconds": 13,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Cosy Critters & Creepy Crawlies",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:45",
+          "timestampSeconds": 45,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Just Like Rays",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:26",
+          "timestampSeconds": 86,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Puddles & Floods",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:47",
+          "timestampSeconds": 107,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Pufferfish's Biome Dither",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:07",
+          "timestampSeconds": 127,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Slabbed",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:25",
+          "timestampSeconds": 145,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Sculk Radio",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:56",
+          "timestampSeconds": 176,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Wet Sand",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:18",
+          "timestampSeconds": 198,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Crop Critters",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "3:38",
+          "timestampSeconds": 218,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Flashback",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "4:12",
+          "timestampSeconds": 252,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Complementary Reimagined",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Solas Shader",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    },
+    {
+      "id": "1MLnVFc9CDg",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=1MLnVFc9CDg",
+      "title": "Awesome New Minecraft Mods You Should Try Today",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-03-17T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 296,
+      "description": "",
+      "mods": []
+    },
+    {
+      "id": "6OcWD3Xn8Jo",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=6OcWD3Xn8Jo",
+      "title": "Minecraft Mod Combinations That Work Perfectly Together #9",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-03-12T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 751,
+      "description": "",
+      "mods": [
+        {
+          "name": "Countered's Smooth F5",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:16",
+          "timestampSeconds": 16,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Fresh Animations: Player Extension",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "0:16",
+          "timestampSeconds": 16,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Shoulder Surfing Reloaded",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "0:16",
+          "timestampSeconds": 16,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Atmospherics",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:37",
+          "timestampSeconds": 97,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Nature X",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:37",
+          "timestampSeconds": 97,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Subtle Effects",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "1:37",
+          "timestampSeconds": 97,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "ParCool!",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:55",
+          "timestampSeconds": 175,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Real Camera",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "2:55",
+          "timestampSeconds": 175,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Body Camera Shader",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "2:55",
+          "timestampSeconds": 175,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Leash Fences",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "4:08",
+          "timestampSeconds": 248,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Connectible Chains",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "4:08",
+          "timestampSeconds": 248,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Zipline",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "4:08",
+          "timestampSeconds": 248,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Field Guide",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "5:31",
+          "timestampSeconds": 331,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Spyglass Astronomy",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "5:31",
+          "timestampSeconds": 331,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Simply Tents",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "6:46",
+          "timestampSeconds": 406,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Sleeping Overhaul 2",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "6:46",
+          "timestampSeconds": 406,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Swinging Lanterns",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "7:45",
+          "timestampSeconds": 465,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Arcane Lanterns",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "7:45",
+          "timestampSeconds": 465,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Better Mob Combat",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "8:58",
+          "timestampSeconds": 538,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Cover Them In Armor",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "8:58",
+          "timestampSeconds": 538,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Guard Villagers",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "8:58",
+          "timestampSeconds": 538,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Epic Fight",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "10:07",
+          "timestampSeconds": 607,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Omnidirectional Movement",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "10:07",
+          "timestampSeconds": 607,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "L_Ender's Cataclysm",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "10:07",
+          "timestampSeconds": 607,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Leawind's Third Person",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "10:07",
+          "timestampSeconds": 607,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Complementary",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Rethinking Voxels",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Solas",
+          "projectType": "shader",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    },
+    {
+      "id": "BIw9cJRraNs",
+      "platform": "youtube",
+      "url": "https://www.youtube.com/watch?v=BIw9cJRraNs",
+      "title": "Hardware Accelerated Ray Tracing in Minecraft With the RTX 5090",
+      "creator": "AsianHalfSquat",
+      "creatorUrl": "https://www.youtube.com/@AsianHalfSquat",
+      "channelId": "UC0E_vIe1e1lVeojYOgVg_5Q",
+      "channelHandle": "@AsianHalfSquat",
+      "publishedAt": "2026-03-03T00:00:00Z",
+      "videoKind": "video",
+      "durationSeconds": 294,
+      "description": "",
+      "mods": [
+        {
+          "name": "Radiance",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "The creator description explicitly says to check out the Radiance mod and installation instructions.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "ATi Structures - Vanilla Edition",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Better Third Person",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Camera Utils",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Dungeons and Taverns Stronghold Overhaul",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "FPS Overlay",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Hudless",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "YUNG's Better Jungle Temples",
+          "projectType": "mod",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "AVPBR Retextured",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Fresh Animations: Player Extension",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "Pixlli",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "rotrBLOCKS",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "name": "SPBR",
+          "projectType": "resourcepack",
+          "url": "",
+          "timestamp": "",
+          "timestampSeconds": 0,
+          "videoLink": "",
+          "evidence": "Listed in the creator video description.",
+          "sourceKinds": [
+            "description",
+            "catalog"
+          ],
+          "confidence": 0.97
+        }
+      ]
+    }
+  ]
+}

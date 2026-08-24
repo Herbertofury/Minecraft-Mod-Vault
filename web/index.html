@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Minecraft Mod Vault</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="omnimanager.css">
+  <link rel="stylesheet" href="conversion.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark" id="brandMark"></div><div><strong>Minecraft Mod Vault</strong><span>Desktop 0.11.0</span></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-card intelligence-card"><div class="side-card-title"><span id="shieldIcon"></span> Live intelligence</div><p>Multi-source discovery refreshes in the background. Exact updates use cryptographic/fingerprint identity before automatic replacement.</p><div class="intelligence-dot"><i></i><span id="backgroundStatus">Initializing live index…</span></div></div>
+    <div class="side-footer">Java + Bedrock · multi-source native browser<br>Automatic backups before safe updates</div>
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <div><h1 id="pageTitle">Home</h1><p id="pageSubtitle">A living Minecraft mod library that searches, ranks, updates, and remembers what is worth playing.</p></div>
+      <div class="top-status"><span class="status-pill" id="versionPill">v0.11.0</span><span class="status-pill status-good" id="runtimePill">Desktop backend</span></div>
+    </header>
+
+    <section class="view active" data-view="home">
+      <div class="hero-grid">
+        <article class="hero card"><div class="eyebrow">LIVE MOD INTELLIGENCE</div><h2>Find the right mod. Keep it working.</h2><p>The Vault now federates Minecraft mod hubs, plugin repositories, community sites, Bedrock catalogs, marketplaces, source releases, and modpack launchers inside one native browser, then layers on custom categories, real project art, creator metadata, a transactional updater, and creator-video mod lists.</p><div class="hero-actions"><button class="btn primary" data-go="mods"><span data-icon="search"></span> Browse Mods</button><button class="btn" data-go="updater"><span data-icon="refresh"></span> Ultimate Updater</button><button class="btn" data-go="doctor"><span data-icon="hammer"></span> Mod Doctor</button><button class="btn" data-go="porting"><span data-icon="compass"></span> Porting Lab</button><button class="btn success" data-go="repair"><span data-icon="shield"></span> Repair Lab</button><button class="btn" data-go="creators"><span data-icon="video"></span> Creator Picks</button></div></article>
+        <div class="stats card" id="homeStats"></div>
+      </div>
+      <div class="section-heading split"><div><span class="eyebrow">FOR YOU · LIVE</span><h2>Current recommendations</h2><p>Ranked from live providers around your version, loader, interests, freshness, popularity, compatibility, and source diversity.</p></div><button class="btn" id="refreshRecommendations"><span data-icon="refresh"></span> Refresh intelligence</button></div>
+      <div class="result-meta"><span id="recommendationStatus">Loading recommendation cache…</span></div>
+      <div class="rich-grid" id="recommendationGrid"></div>
+      <div class="section-heading"><div><span class="eyebrow">LIVE BROWSE LANES</span><h2>Explore the catalog your way</h2><p>These lanes come from the current provider taxonomies plus your Vault deep-dives, and are re-ranked around your interests instead of being a frozen mod list.</p></div></div>
+      <div class="category-lane-grid" id="homeCategoryGrid"></div>
+    </section>
+
+    <section class="view" data-view="mods">
+      <div class="section-heading split"><div><span class="eyebrow">UNIVERSAL MOD BROWSER</span><h2>Every serious Minecraft source in one browser</h2><p>Provider toggles are real data sources, not external-link buttons. Search results are normalized, deduplicated, compatibility-ranked, and enriched with project images, author identity, versions, loaders, and source variants.</p></div><button class="btn" id="openModsFolder"><span data-icon="folder"></span> Open mods folder</button></div>
+      <div class="toolbar mods-toolbar card">
+        <div class="search-field wide"><span data-icon="search"></span><input id="modQuery" placeholder="Search furniture, Create trains, magic, water splashes, Cobblemon…"></div>
+        <select id="modType"><option value="all">All content</option><option value="mod">Mods</option><option value="modpack">Modpacks</option><option value="resourcepack">Resource / texture packs</option><option value="shader">Shaders</option><option value="datapack">Data packs</option><option value="plugin">Server plugins</option><option value="addon">Bedrock add-ons</option><option value="world">Maps / worlds</option><option value="skin">Skins</option><option value="tool">Tools</option></select>
+        <input class="compact-input" id="modGameVersion" placeholder="1.21.1" aria-label="Minecraft version">
+        <select id="modLoader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option><option value="any">Any loader</option></select>
+        <select id="modSort"><option value="relevance">Smart ranking</option><option value="downloads">Most used</option><option value="updated">Recently updated</option><option value="name">Name</option></select>
+        <button class="btn primary" id="modSearchBtn"><span data-icon="search"></span> Search</button>
+      </div>
+      <div class="provider-control card">
+        <div class="provider-control-head"><div><b>Search providers</b><span>Search every integrated Minecraft site together or hand-pick exactly which sources participate.</span></div><span id="providerSelectionSummary"></span></div>
+        <div class="provider-workbench"><div class="search-field provider-filter-field"><span data-icon="search"></span><input id="providerFilter" placeholder="Find a source: Modrinth, CurseForge, maps, plugins…"></div><button class="btn small" id="selectRelevantProviders">Select all relevant</button><button class="btn small" id="clearProviderFilter">Clear source filter</button></div>
+        <div class="provider-presets" id="providerPresets"></div><div class="provider-strip" id="providerStrip"></div>
+      </div>
+      <div class="category-browser card"><div class="category-browser-head"><b>Categories</b><span>Unified live provider taxonomy + Vault deep dives</span></div><div class="category-strip" id="modCategoryStrip"></div></div>
+      <div class="result-meta split-meta"><span id="modStatus">Loading taxonomy…</span><span id="providerErrors"></span></div>
+      <div class="result-source-facets" id="modSourceFacets" aria-label="Results by source"></div>
+      <div class="browser-result-toolbar"><span id="modLoadedSummary">Results stay fully loaded as you browse.</span><div><button class="btn small active" id="modViewGrid">Grid</button><button class="btn small" id="modViewList">List</button><button class="btn small" id="modResetBtn">Reset browser</button></div></div>
+      <div class="rich-grid" id="modResults"></div>
+      <div class="load-more-wrap" id="modLoadMoreWrap" hidden><button class="btn primary" id="modLoadMoreBtn"><span data-icon="refresh"></span> Load more from all selected sites</button><span id="modLoadMoreHint"></span></div>
+    </section>
+
+    <section class="view" data-view="updater">
+      <div class="section-heading split"><div><span class="eyebrow">ULTIMATE UPDATER</span><h2>Move your mod folder to a new Minecraft version safely</h2><p>Local JARs are fingerprinted, matched to provider identities, checked against your target version/loader, and backed up before any automatic replacement. Ambiguous ports, forks, and continuations stay review-only.</p></div><button class="btn" id="openUpdaterMods"><span data-icon="folder"></span> Open mods folder</button></div>
+      <div class="updater-controls card"><div><label>Target Minecraft<input id="updateGameVersion" value="1.21.1"></label><label>Loader<select id="updateLoader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option></select></label></div><div class="updater-actions"><button class="btn primary" id="scanUpdates"><span data-icon="radar"></span> Scan every installed mod</button><button class="btn success" id="applySafeUpdates" disabled><span data-icon="shield"></span> Apply all verified-safe updates</button></div></div>
+      <div class="update-summary" id="updateSummary"></div>
+      <div class="update-list" id="updateList"><div class="card empty">Run a scan to identify installed JARs by SHA-512/CurseForge fingerprint and resolve compatible releases.</div></div>
+    </section>
+
+    <section class="view" data-view="doctor">
+      <div class="section-heading split"><div><span class="eyebrow">MOD DOCTOR · FORENSICS + SAFE REPAIR</span><h2>Diagnose every JAR before the next crash</h2><p>Inspect the real installed mod graph, prove Java and loader compatibility, detect duplicate classes and dependencies, classify bytecode and data hazards, and generate an evidence-backed upgrade or downgrade plan. Nothing is silently rewritten.</p></div><button class="btn" id="openDoctorMods"><span data-icon="folder"></span> Open mods folder</button></div>
+
+      <div class="doctor-targets card">
+        <div class="doctor-target-grid">
+          <label>Installed Minecraft<input id="doctorSourceGame" value="1.21.1" autocomplete="off"></label>
+          <label>Installed loader<select id="doctorSourceLoader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option></select></label>
+          <label>Desired Minecraft<input id="doctorTargetGame" value="1.21.1" autocomplete="off"></label>
+          <label>Desired loader<select id="doctorTargetLoader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option></select></label>
+        </div>
+        <div class="doctor-actions"><button class="btn primary" id="doctorScan"><span data-icon="radar"></span> Diagnose installed mods</button><span id="doctorScanStatus">Ready to inspect the complete mods folder.</span></div>
+      </div>
+
+      <div class="doctor-summary" id="doctorSummary"><div class="card empty">Run a diagnosis to build the compatibility graph and migration plan.</div></div>
+
+      <section class="doctor-safe-repair card">
+        <div class="doctor-safe-repair-copy"><span class="eyebrow">CRYPTOGRAPHICALLY SAFE EXECUTION</span><h3>Quarantine exact duplicate JARs—with a real undo path</h3><p>The Doctor only automates the case it can prove: byte-identical files with the same SHA-512 digest. Every candidate is re-hashed immediately before the transaction, moved into Vault quarantine, receipt-recorded, and restorable. Different bytes or ambiguous mod IDs remain review-only.</p></div>
+        <div class="doctor-safe-repair-actions"><button class="btn" id="doctorBuildRepairPlan"><span data-icon="shield"></span> Find exact duplicates</button><button class="btn success" id="doctorApplyRepairPlan" disabled><span data-icon="save"></span> Quarantine selected duplicates</button></div>
+        <div id="doctorRepairPlan" class="doctor-repair-plan"><div class="empty">No repair transaction planned yet.</div></div>
+      </section>
+      <div class="doctor-graph card" id="doctorDependencyGraph"><div class="empty">Dependency-first deployment order and required-dependency cycles appear here.</div></div>
+      <div class="doctor-columns">
+        <section><div class="section-heading compact"><div><span class="eyebrow">ROOT CAUSES</span><h3>Compatibility findings</h3></div></div><div class="doctor-stack" id="doctorFindings"><div class="card empty">Global dependency, classpath, Java, loader, mapping, and data findings appear here.</div></div></section>
+        <section><div class="section-heading compact"><div><span class="eyebrow">ORDERED EXECUTION</span><h3>Migration plan</h3></div></div><div class="doctor-stack" id="doctorPlan"><div class="card empty">The Doctor will produce a reversible, testable upgrade or downgrade sequence.</div></div></section>
+      </div>
+
+      <div class="section-heading compact split"><div><span class="eyebrow">ARTIFACT-BY-ARTIFACT</span><h3>Installed JAR inspection</h3><p>Each card shows detected mod IDs, dependencies, Java level, loaders, transformations, risk, and the exact repair route.</p></div><span id="doctorArtifactCount"></span></div>
+      <div class="doctor-artifacts" id="doctorArtifacts"><div class="card empty">No artifacts inspected yet.</div></div>
+
+      <div class="section-heading compact"><div><span class="eyebrow">CRASH + BUILD FAILURE ANALYZER</span><h3>Trace the earliest causal failure</h3><p>Paste a complete crash report, latest.log, debug.log, or compiler output. Known signatures are matched against the durable Repair Brain before generic diagnosis.</p></div></div>
+      <div class="doctor-log card">
+        <div class="doctor-log-meta"><input id="doctorLogFilename" placeholder="latest.log or crash-report.txt" aria-label="Log filename"><input id="doctorLogGame" placeholder="Minecraft version" aria-label="Log Minecraft version"><select id="doctorLogLoader" aria-label="Log loader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option></select></div>
+        <textarea id="doctorLogText" spellcheck="false" placeholder="Paste the complete relevant log here..."></textarea>
+        <div class="doctor-actions"><button class="btn primary" id="doctorAnalyzeLog"><span data-icon="search"></span> Analyze failure chain</button><span id="doctorLogStatus">No log analyzed.</span></div>
+      </div>
+      <div class="doctor-log-result" id="doctorLogResult"></div>
+
+      <div class="section-heading compact split"><div><span class="eyebrow">CURRENT REPAIR ARSENAL</span><h3>Tools, loaders, mappings, decompilers, analyzers, test harnesses, wikis, and APIs</h3><p>The catalog is curated for real integration, not a link dump. Stable and bleeding-edge tools are labeled with their role, limits, and intended pipeline position.</p></div><span id="doctorToolStatus">Loading catalog…</span></div>
+      <div class="doctor-tool-controls card"><div class="search-field wide"><span data-icon="search"></span><input id="doctorToolQuery" placeholder="Search Vineflower, Tiny Remapper, bridges, GameTest, NBT, pack updater..."></div><select id="doctorToolCategory"><option value="all">All categories</option></select><select id="doctorToolMaturity"><option value="all">All maturity levels</option><option value="stable">Stable</option><option value="beta">Beta</option><option value="experimental">Experimental</option><option value="research">Research-grade</option></select></div>
+      <div class="doctor-tools" id="doctorToolGrid"><div class="card loading">Loading the repair and porting catalog…</div></div>
+    </section>
+
+    <section class="view conversion-view" data-view="conversion">
+      <div class="bridge-hero card">
+        <div class="bridge-hero-copy">
+          <span class="eyebrow">OMNIBRIDGE · UNIVERSAL MINECRAFT CONVERSION STUDIO</span>
+          <h2>One source. Every truthful Minecraft target.</h2>
+          <p>Import a Java mod or source project, data/resource pack, Bedrock add-on, behavior/resource pack, script project, world, world template, modpack or structure. OmniBridge freezes the original, builds a Universal Minecraft Content Graph, translates every deterministic feature, generates target-native workspaces for code, and exposes every remaining semantic gap instead of hiding it.</p>
+          <div class="bridge-hero-actions">
+            <button class="btn primary" id="conversionChooseSource"><span data-icon="upload"></span> Import Minecraft content</button>
+            <button class="btn" id="conversionOpenRoot"><span data-icon="folder"></span> Open Conversion Vault</button>
+            <input type="file" id="conversionSourceFile" hidden accept=".jar,.zip,.mrpack,.mcpack,.mcaddon,.mcworld,.mctemplate,.schem,.litematic,.nbt,.bp">
+          </div>
+        </div>
+        <div class="bridge-hero-orbit" aria-label="Conversion capability summary">
+          <div class="bridge-orbit-core"><span data-icon="wand"></span><strong>UMCG</strong><small>immutable graph</small></div>
+          <span class="bridge-orbit-node java">JAVA</span><span class="bridge-orbit-node bedrock">BEDROCK</span><span class="bridge-orbit-node packs">PACKS</span><span class="bridge-orbit-node worlds">WORLDS</span>
+        </div>
+      </div>
+
+      <div class="bridge-trust-grid" id="conversionCapabilities">
+        <div class="card bridge-trust"><span data-icon="shield"></span><div><b>Original stays immutable</b><p>Every output is generated in a session-owned workspace with source and tree hashes.</p></div></div>
+        <div class="card bridge-trust"><span data-icon="cards"></span><div><b>No silent feature loss</b><p>Exact, translated, generated, tool-assisted, review and blocked states remain visible per content node.</p></div></div>
+        <div class="card bridge-trust"><span data-icon="gauge"></span><div><b>Version-aware targets</b><p>Java pack formats, loader workspaces and Bedrock engine requirements are pinned to the selected release.</p></div></div>
+      </div>
+
+      <div class="bridge-workbench">
+        <aside class="bridge-rail">
+          <section class="card bridge-panel">
+            <div class="bridge-panel-head"><div><span class="eyebrow">SESSIONS</span><h3>Conversion Vault</h3></div><button class="btn small" id="conversionRefresh"><span data-icon="refresh"></span></button></div>
+            <div class="bridge-session-list" id="conversionSessionList"><div class="loading">Loading sessions…</div></div>
+          </section>
+          <section class="card bridge-panel">
+            <div class="bridge-panel-head"><div><span class="eyebrow">LOCAL INTAKE</span><h3>Managed path</h3></div></div>
+            <label class="bridge-path-label">Minecraft/Vault file or folder<input id="conversionPath" placeholder="Paste a managed JAR, pack, world, folder or archive path"></label>
+            <button class="btn" id="conversionImportPath"><span data-icon="folder"></span> Import managed path</button>
+          </section>
+          <section class="card bridge-panel bridge-tool-panel">
+            <div class="bridge-panel-head"><div><span class="eyebrow">ADAPTER RADAR</span><h3>Specialized converters</h3></div><span id="conversionToolCount">…</span></div>
+            <div id="conversionTools"><div class="loading">Detecting tools…</div></div>
+          </section>
+        </aside>
+
+        <main class="bridge-stage">
+          <div class="bridge-empty card" id="conversionEmpty">
+            <div class="bridge-drop" id="conversionDropZone" tabindex="0" role="button" aria-label="Import Minecraft content">
+              <span data-icon="upload"></span><h3>Drop any supported Minecraft artifact here</h3><p>JAR · source ZIP · data/resource pack · MCPACK · MCADDON · MCWORLD · MCTEMPLATE · MRPACK · NBT · SCHEM · LITEMATIC</p><button class="btn primary" id="conversionEmptyChoose">Choose source</button>
+            </div>
+          </div>
+
+          <div class="bridge-session" id="conversionSession" hidden>
+            <section class="card bridge-source-card">
+              <div class="bridge-source-icon" id="conversionSourceIcon"><span data-icon="cube"></span></div>
+              <div class="bridge-source-copy"><span class="eyebrow" id="conversionSourceKicker">SOURCE PROFILE</span><h2 id="conversionSourceName">Minecraft content</h2><p id="conversionSourceDescription">Profiling source…</p><div class="bridge-chip-row" id="conversionSourceChips"></div><small id="conversionSourceFileName"></small></div>
+              <div class="bridge-source-actions"><button class="btn" id="conversionOpenSession"><span data-icon="folder"></span> Open session</button><button class="btn danger" id="conversionDeleteSession"><span data-icon="trash"></span> Delete session</button></div>
+            </section>
+
+            <section class="bridge-graph-grid" id="conversionGraphStats"></section>
+
+            <section class="card bridge-target-builder">
+              <div class="bridge-panel-head"><div><span class="eyebrow">TARGET ARCHITECT</span><h3>Choose what this content becomes</h3><p>OmniBridge creates a real target artifact immediately where representation is deterministic, and a complete implementation workspace wherever runtime semantics remain.</p></div><span class="bridge-plan-state" id="conversionPlanState">Not planned</span></div>
+              <div class="bridge-target-grid">
+                <label>Target format<select id="conversionTarget"></select></label>
+                <label>Target Minecraft / Bedrock<input id="conversionGameVersion" value="1.21.1" autocomplete="off"></label>
+                <label>Loader<select id="conversionLoader"><option value="vanilla">Vanilla / pack</option><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="multiloader">Multi-loader</option></select></label>
+                <label>Output name<input id="conversionName" autocomplete="off"></label>
+                <label>Namespace / mod ID<input id="conversionNamespace" autocomplete="off"></label>
+                <label>Strategy<select id="conversionStrategy"><option value="balanced">Balanced fidelity</option><option value="maximum-fidelity">Maximum fidelity</option><option value="vanilla-first">Vanilla-first</option><option value="source-workspace">Source-workspace first</option></select></label>
+              </div>
+              <div class="bridge-target-actions"><button class="btn primary" id="conversionBuildPlan"><span data-icon="compass"></span> Build conversion plan</button><button class="btn success" id="conversionRun" disabled><span data-icon="wand"></span> Generate target + proof</button><span id="conversionActionStatus">Ready to plan.</span></div>
+            </section>
+
+            <div class="bridge-results-grid">
+              <section class="card bridge-coverage-panel"><div class="bridge-panel-head"><div><span class="eyebrow">FIDELITY LEDGER</span><h3>Conversion coverage</h3></div><strong id="conversionCoveragePercent">—</strong></div><div id="conversionCoverage"><div class="empty-inline">Build a plan to classify every graph node.</div></div></section>
+              <section class="card bridge-plan-panel"><div class="bridge-panel-head"><div><span class="eyebrow">ORDERED PIPELINE</span><h3>Execution plan</h3></div></div><div id="conversionSteps"><div class="empty-inline">No plan yet.</div></div></section>
+            </div>
+
+            <section class="card bridge-review-panel"><div class="bridge-panel-head"><div><span class="eyebrow">SEMANTIC REVIEW QUEUE</span><h3>Nothing is quietly dropped</h3><p>Each difficult feature includes the exact reason, evidence and route to a target-native implementation.</p></div><span id="conversionReviewCount">0 items</span></div><div class="bridge-review-list" id="conversionReview"><div class="empty-inline">No review queue until a target is planned.</div></div></section>
+
+            <section class="card bridge-output-panel"><div class="bridge-panel-head"><div><span class="eyebrow">OUTPUT DOCK</span><h3>Generated artifacts and proof</h3><p>Every output is hash-recorded and structurally validated before download.</p></div><button class="btn" id="conversionDownloadReport" disabled><span data-icon="download"></span> Report</button></div><div class="bridge-output-grid" id="conversionOutputs"><div class="empty-inline">Run the plan to create outputs.</div></div></section>
+          </div>
+        </main>
+      </div>
+    </section>
+
+
+    <section class="view" data-view="porting">
+      <div class="section-heading split"><div><span class="eyebrow">PORTING LAB · VERSION ATLAS · ISOLATED WORKSPACES</span><h2>Upgrade, downgrade, or cross loaders without guessing</h2><p>Build a traceable migration plan from 907 official Minecraft manifests, current loader and build-tool metadata, exact Java requirements, mapping availability, pack/protocol boundaries, and the Vault's repair arsenal. Then generate an isolated, hash-recorded workspace that never touches the installed mod.</p></div><button class="btn" id="openPortingWorkspaces"><span data-icon="folder"></span> Open workspaces</button></div>
+
+      <div class="porting-atlas-hero card">
+        <div><span class="eyebrow">OFFICIAL VERSION ATLAS</span><h3 id="portingAtlasHeadline">Loading 907-version evidence graph…</h3><p id="portingAtlasEvidence">Mojang, Fabric, Quilt, Forge, NeoForge, Modrinth, mapping, and Gradle metadata are embedded with SHA-256 source provenance.</p></div>
+        <div class="porting-atlas-stats" id="portingAtlasStats"><div class="loading">Loading atlas…</div></div>
+      </div>
+
+      <div class="porting-layout">
+        <section class="card porting-builder">
+          <div class="section-heading compact"><div><span class="eyebrow">MIGRATION PLANNER</span><h3>Define the exact boundary</h3><p>Versions are validated against the embedded official atlas. Loader changes and binary-only reconstruction are treated as additional risk, not hidden behind a green button.</p></div></div>
+          <div class="porting-target-grid">
+            <label>Source Minecraft<input id="portingSourceGame" list="portingVersionList" value="1.20.1" autocomplete="off"></label>
+            <label>Source loader<select id="portingSourceLoader"><option value="fabric">Fabric</option><option value="quilt">Quilt</option><option value="forge" selected>Forge</option><option value="neoforge">NeoForge</option><option value="vanilla">Vanilla</option><option value="multiloader">Multi-loader</option></select></label>
+            <label>Target Minecraft<input id="portingTargetGame" list="portingVersionList" value="1.21.1" autocomplete="off"></label>
+            <label>Target loader<select id="portingTargetLoader"><option value="fabric">Fabric</option><option value="quilt">Quilt</option><option value="forge">Forge</option><option value="neoforge" selected>NeoForge</option><option value="vanilla">Vanilla</option><option value="multiloader">Multi-loader</option></select></label>
+            <label>Starting evidence<select id="portingSourceMode"><option value="source">Upstream source available</option><option value="binary">Binary/JAR only</option><option value="auto">Auto from input</option></select></label>
+            <label>Workspace name<input id="portingProjectName" value="ultimate-mod-port" autocomplete="off"></label>
+          </div>
+          <datalist id="portingVersionList"></datalist>
+          <label class="porting-input-path">Optional installed JAR path<input id="portingInputJar" placeholder="Select Send to Porting Lab in Manager, or paste a managed .jar path"></label>
+          <div class="porting-actions"><button class="btn primary" id="portingBuildPlan"><span data-icon="compass"></span> Build evidence-backed plan</button><button class="btn" id="portingProbeEnvironment"><span data-icon="gauge"></span> Probe local toolchain</button><button class="btn success" id="portingGenerateWorkspace" disabled><span data-icon="wand"></span> Generate isolated workspace</button></div>
+          <div class="porting-status" id="portingStatus">Ready. No installed file will be changed.</div>
+        </section>
+
+        <aside class="card porting-environment"><div class="section-heading compact"><div><span class="eyebrow">TOOLCHAIN RADAR</span><h3>Can this machine build it?</h3></div></div><div id="portingEnvironment"><div class="loading">Waiting for environment probe…</div></div></aside>
+      </div>
+
+      <div id="portingPlanResult" class="porting-plan-result"><div class="card empty">Build a plan to see exact pins, breakpoints, tool selection, ordered phases, risks, and completion gates.</div></div>
+
+      <div class="section-heading compact split"><div><span class="eyebrow">VERSION ATLAS EXPLORER</span><h3>Search every official release, snapshot, beta, and alpha</h3><p>Java, client/server artifacts, mappings, protocol, data-pack, resource-pack, Fabric, Quilt, and Modrinth coverage are visible without leaving the Vault.</p></div><span id="portingVersionStatus">Loading…</span></div>
+      <div class="toolbar card porting-atlas-toolbar"><div class="search-field wide"><span data-icon="search"></span><input id="portingVersionQuery" placeholder="Search 1.20.1, 26.2, snapshot…"></div><select id="portingVersionType"><option value="all">All version types</option><option value="release">Releases</option><option value="snapshot">Snapshots</option><option value="old_beta">Old beta</option><option value="old_alpha">Old alpha</option></select><button class="btn" id="portingSearchVersions"><span data-icon="search"></span> Search atlas</button></div>
+      <div class="porting-version-grid" id="portingVersionGrid"><div class="card loading">Loading official version records…</div></div>
+
+      <div class="section-heading compact split"><div><span class="eyebrow">ISOLATED WORKSPACES</span><h3>Generated migration labs</h3><p>Every workspace carries the plan, exact pins, input hash, build templates, verification scripts, file hashes, evidence folders, and rollback contract.</p></div><button class="btn" id="refreshPortingWorkspaces"><span data-icon="refresh"></span> Refresh</button></div>
+      <div class="porting-workspace-grid" id="portingWorkspaceGrid"><div class="card empty">No workspaces generated yet.</div></div>
+    </section>
+
+    <section class="view" data-view="repair">
+      <div class="repair-hero card">
+        <div class="repair-hero-copy"><span class="eyebrow">REPAIR LAB · CONTROLLED SOURCE MIGRATION</span><h2>Turn a broken or outdated mod into a reproducible repair session.</h2><p>Import a source ZIP once. The Vault freezes the original, fingerprints every file, resolves the exact target game/loader/toolchain from its offline intelligence corpus, stages only recognized edits in a disposable copy, executes only the project’s pinned wrapper after explicit acknowledgement, and returns hashes, logs, artifacts, rollback, and receipts.</p><div class="repair-hero-actions"><button class="btn primary" id="repairChooseSource"><span data-icon="upload"></span> Import source ZIP</button><button class="btn" id="repairRefresh"><span data-icon="refresh"></span> Refresh lab</button><input id="repairSourceFile" type="file" accept=".zip,application/zip" hidden></div></div>
+        <div class="repair-trust card"><div class="repair-trust-mark"><span data-icon="shield"></span></div><strong>Originals are untouchable.</strong><p>Every edit and build happens in a separate working tree. Build scripts are treated as code execution, never as a harmless file conversion.</p><span id="repairTrustState">Loading safety boundary…</span></div>
+      </div>
+
+      <div class="repair-metrics" id="repairMetrics"><div class="card loading">Loading Version Atlas and Compatibility Brain…</div></div>
+
+      <div class="repair-workbench">
+        <aside class="repair-sidebar">
+          <article class="repair-drop card" id="repairDropZone"><div class="repair-drop-icon"><span data-icon="upload"></span></div><h3>Drop a mod source ZIP</h3><p>Gradle, Maven, Fabric, Forge, NeoForge, Quilt, multi-loader, legacy, or data/resource source projects.</p><small>Archive traversal, links, duplicate paths, device names, oversized files, entry floods, and suspicious compression are rejected before extraction.</small></article>
+          <article class="card repair-session-panel"><div class="repair-panel-head"><div><span class="eyebrow">DURABLE SESSIONS</span><h3>Repair history</h3></div><span id="repairSessionCount">0</span></div><div class="repair-session-list" id="repairSessionList"><div class="empty">No repair sessions yet.</div></div></article>
+        </aside>
+
+        <section class="repair-main">
+          <article class="card repair-empty" id="repairEmpty"><span data-icon="hammer"></span><h3>Import source to begin</h3><p>The first session card will show the detected build system, wrapper identity, loader, source version, Java level, modules, warnings, and immutable SHA-256 proof.</p></article>
+
+          <div id="repairSessionWorkspace" hidden>
+            <article class="card repair-session-hero"><div><div class="repair-session-title-line"><span class="repair-state" id="repairSessionState">idle</span><span id="repairSessionPhase"></span></div><h2 id="repairSessionTitle">Repair session</h2><p id="repairSessionIdentity"></p></div><div class="repair-session-actions"><a class="btn small" id="repairReceiptJSON" href="#"><span data-icon="download"></span> JSON receipt</a><a class="btn small" id="repairReceiptMarkdown" href="#"><span data-icon="download"></span> Markdown receipt</a></div></article>
+
+            <div class="repair-grid two">
+              <article class="card repair-project-card"><div class="repair-panel-head"><div><span class="eyebrow">SOURCE PROFILE</span><h3>Detected project</h3></div><span id="repairConfidence"></span></div><div id="repairProjectSummary"></div></article>
+              <article class="card repair-plan-card"><div class="repair-panel-head"><div><span class="eyebrow">TARGET RESOLUTION</span><h3>Stage a migration</h3></div><span id="repairResolutionBadge">Not staged</span></div><div class="repair-target-controls"><label>Target Minecraft<input id="repairTargetGame" value="1.21.1" autocomplete="off"></label><label>Target loader<select id="repairTargetLoader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option><option value="vanilla">Vanilla / data</option></select></label><button class="btn primary" id="repairPrepare"><span data-icon="wand"></span> Resolve + stage safe edits</button></div><div id="repairResolution"></div></article>
+            </div>
+
+            <article class="card repair-execution-card"><div class="repair-panel-head"><div><span class="eyebrow">CONTROLLED EXECUTION</span><h3>Build and verify the working copy</h3><p>Only the detected checked-in wrapper and fixed build/test/clean actions can run. Network access remains whatever the project wrapper requires; credentials are stripped from the process environment.</p></div><span id="repairExecutionState">Not running</span></div><label class="repair-ack"><input id="repairExecutionAck" type="checkbox"><span><strong>I understand the project’s wrapper and build scripts execute code.</strong><small>This unlocks one requested build/test/clean action; it is not a blanket trust decision.</small></span></label><div class="repair-command-row"><button class="btn success" id="repairRunBuild"><span data-icon="hammer"></span> Build</button><button class="btn" id="repairRunTest"><span data-icon="shield"></span> Test</button><button class="btn" id="repairRunClean"><span data-icon="trash"></span> Clean</button><button class="btn danger" id="repairCancel" disabled><span data-icon="pause"></span> Cancel</button><button class="btn" id="repairReset"><span data-icon="refresh"></span> Roll back working copy</button><button class="btn primary" id="repairExport"><span data-icon="download"></span> Export proof bundle</button></div><pre class="repair-log" id="repairLog">No build log yet.</pre></article>
+
+            <div class="repair-grid three">
+              <article class="card repair-detail-card"><div class="repair-panel-head"><div><span class="eyebrow">TRACEABLE EDITS</span><h3>Changes</h3></div><span id="repairChangeCount">0</span></div><div class="repair-detail-list" id="repairChanges"><div class="empty">No migration staged.</div></div></article>
+              <article class="card repair-detail-card"><div class="repair-panel-head"><div><span class="eyebrow">HASHED OUTPUTS</span><h3>Artifacts</h3></div><span id="repairArtifactCount">0</span></div><div class="repair-detail-list" id="repairArtifacts"><div class="empty">Build outputs appear here.</div></div></article>
+              <article class="card repair-detail-card"><div class="repair-panel-head"><div><span class="eyebrow">RECOVERY</span><h3>Exports</h3></div><span id="repairExportCount">0</span></div><div class="repair-detail-list" id="repairExports"><div class="empty">No proof bundle exported.</div></div></article>
+            </div>
+
+            <article class="card repair-warning-card" id="repairWarnings"><div class="empty">No active warnings.</div></article>
+          </div>
+        </section>
+      </div>
+
+      <div class="section-heading compact split"><div><span class="eyebrow">COMPATIBILITY BRAIN</span><h3>Search the integrated repair corpus</h3><p>Search current tool records, official migration references, mappings, decompilers, runtime bridges, prior fixes, and version-specific knowledge without leaving the repair session.</p></div><span id="repairBrainStatus">Brain loading…</span></div>
+      <div class="repair-brain-search card"><div class="search-field wide"><span data-icon="search"></span><input id="repairBrainQuery" placeholder="Search: 1.12.2 Forge, registry migration, mixin conflict, Tiny Remapper…"></div><select id="repairBrainKind"><option value="">All knowledge</option><option value="tool">Tools</option><option value="source">Sources</option><option value="repair">Prior repairs</option></select><button class="btn primary" id="repairBrainSearch"><span data-icon="search"></span> Search brain</button></div><div class="repair-brain-results" id="repairBrainResults"><div class="card empty">Search the durable knowledge base for an exact repair route.</div></div>
+    </section>
+
+
+    <section class="view" data-view="creators">
+      <div class="section-heading split"><div><span class="eyebrow">CREATOR ARCHIVE</span><h2>Every mod recommended by the creators you follow</h2><p>The Vault ships with an always-updated cross-platform creator watchlist spanning YouTube and TikTok, including AsianHalfSquat, EnderVerseMC, Kizamiringo, Katsumi, CurseForge, HendyVideos, Noxus, ChosenArchitect, direwolf20 and other high-signal Minecraft creators. Follow another creator once and the same archive pipeline keeps it current: full-history backfill first, incremental new-upload refresh afterward, captions + local Whisper speech-to-text, visual OCR for text-only Shorts/TikToks, Minecraft project resolution, dedupe, and evidence for every recommendation. Creator profiles are also link-aware: public Linktree/Lnk.Bio/Beacons/Carrd-style hubs are discovered, safely expanded, typed into modpacks/mods/packs/socials/support links, cached with provenance, and refreshed automatically.</p></div><div class="hero-actions"><button class="btn" id="reloadCreatorCatalogs"><span data-icon="database"></span> Reload catalogs</button><button class="btn primary" id="syncCreatorArchive"><span data-icon="refresh"></span> Sync all followed</button></div></div>
+      <div class="creator-follow-workbench card">
+        <div class="creator-follow-copy"><span class="eyebrow">FOLLOW YOUTUBE + TIKTOK</span><strong>Add a channel once. The Vault keeps watching it.</strong><p>Paste a YouTube or TikTok creator URL. YouTube also accepts <b>@handles</b>, legacy <b>/user/</b> or <b>/c/</b> URLs, and <b>UC…</b> channel IDs; TikTok also accepts <b>tiktok:@handle</b>. The first sync backfills history, then automatic refreshes fetch only new/recent posts while preserving the complete archive across restarts. Public link-in-bio hubs are detected automatically and creator modpacks/downloads/social links are kept alongside the archive with source provenance.</p></div>
+        <div class="creator-follow-controls"><div class="search-field wide"><span data-icon="video"></span><input id="creatorChannelInput" autocomplete="off" placeholder="YouTube/TikTok URL, @YouTubeHandle, or tiktok:@handle"></div><button class="btn primary" id="addCreatorChannel"><span data-icon="plus"></span> Follow + archive</button><button class="btn" id="addCreatorTopPicks" disabled><span data-icon="shield"></span> Top picks included</button></div>
+        <div class="creator-add-status" id="creatorAddStatus">Full backfill, Shorts/TikToks, speech + visual-text extraction, link-in-bio/modpack discovery, dedupe, and automatic incremental refresh are enabled by default.</div>
+      </div>
+      <div class="creator-suggestion-panel">
+        <div class="section-heading compact split"><div><span class="eyebrow">RECOMMENDED CREATORS</span><h3>Built-in high-signal creator set</h3><p>The highest-signal recommendations are pre-followed, and additional discoveries can be added in one click. The ranking explains why each source is valuable while the filters separate current showcases, deep modded playthroughs, historical archives, and utility channels.</p></div><select id="creatorSuggestionTier"><option value="all">All recommendations</option><option value="current">Current high-signal</option><option value="deep-modded">Deep modded playthroughs</option><option value="historical">Historical archive gold</option><option value="utility">Utility / tutorial</option></select></div>
+        <div class="creator-suggestion-grid" id="creatorSuggestionGrid"><div class="card loading">Loading creator recommendations…</div></div>
+      </div>
+      <div class="section-heading compact split"><div><span class="eyebrow">FOLLOWED CHANNELS</span><h3>Your active creator watchlist</h3></div><span class="creator-watch-hint">Pause any built-in archive without losing data. Creators you add yourself can also be unfollowed while preserving every indexed video, transcript, and recommendation.</span></div>
+      <div class="creator-channel-grid" id="creatorChannelGrid"><div class="card loading">Loading tracked channels…</div></div>
+      <div class="creator-archive-toolbar card">
+        <div class="search-field creator-archive-search"><span data-icon="search"></span><input id="creatorArchiveQuery" placeholder="Search mods, video titles, descriptions, authors, providers…"></div>
+        <select id="creatorArchiveChannel"><option value="">All followed channels</option></select>
+        <select id="creatorArchiveKind"><option value="all">Videos + Shorts + TikToks + streams</option><option value="video">Videos</option><option value="short">Shorts</option><option value="stream">Streams</option></select>
+        <select id="creatorArchiveSort"><option value="recommended-desc">Latest recommended first</option><option value="recommended-asc">Oldest recommended first</option><option value="name">Mod name A–Z</option><option value="channel">Channel</option><option value="confidence">Highest confidence</option><option value="video-desc">Newest videos first</option><option value="video-asc">Oldest videos first</option><option value="mods-desc">Videos with most mods</option></select>
+        <div class="segmented creator-view-switch"><button class="active" id="creatorModsView">Mods</button><button id="creatorVideosView">Videos</button></div>
+      </div>
+      <div class="creator-archive-stats" id="creatorArchiveStats"></div>
+      <div class="result-meta"><span id="creatorStatus">Loading creator archive…</span></div>
+      <div class="creator-recommendation-grid" id="creatorRecommendationGrid"></div>
+      <div class="creator-grid" id="creatorGrid"></div>
+      <div class="creator-legacy-tools card"><div><strong>Analyze one-off videos too</strong><p>Paste an individual YouTube or TikTok video without following its entire channel. Followed-channel archives above remain permanent and independently resumable.</p></div><div class="creator-analyze"><div class="search-field wide"><span data-icon="video"></span><input id="creatorURL" placeholder="Paste a YouTube or TikTok video URL…"></div><button class="btn" id="analyzeCreator"><span data-icon="sparkle"></span> Analyze video</button><button class="btn" id="discoverCreators"><span data-icon="refresh"></span> Discover other videos</button></div></div>
+      <div class="callout card transcription-callout"><div class="callout-icon"><span data-icon="video"></span></div><div class="transcription-copy"><strong>Archival transcript engine</strong><p>Fast path: creator descriptions + public/automatic captions. Recovery path: yt-dlp caption extraction. Accuracy path: verified local whisper.cpp with large-v3-turbo Q5 speech-to-text. Visual path: sampled video frames + local OCR, so text-only TikToks and Shorts still contribute mod names. All evidence is timed, merged, deduplicated, and persisted for search/review.</p><div class="transcription-state" id="transcriptionStatus">Checking local transcript engine…</div></div><button class="btn small" id="prepareTranscription"><span data-icon="download"></span> Prepare transcript engine</button></div>
+    </section>
+
+    <section class="view" data-view="cit">
+      <div class="section-heading split"><div><span class="eyebrow">CIT DECOR VAULT</span><h2>Beautiful CIT packs</h2><p>Cottagecore, kitchens, flowers, bakery clutter, fairy furniture, vintage interiors, plushies, and classic CIT ecosystems. Search the universal Mods browser for live additions.</p></div><div><button class="btn" data-category-jump="cit"><span data-icon="search"></span> Live CIT search</button> <button class="btn primary" id="installCitEngine"><span data-icon="download"></span> Install CIT engine</button></div></div>
+      <div class="callout card"><div class="callout-icon" id="citInfoIcon"></div><div><strong>Curated + live.</strong><p>The catalog below preserves hand-picked gems while the Mods tab searches current CIT ecosystems and provider indexes.</p></div></div>
+      <div class="toolbar card"><div class="search-field"><span data-icon="search"></span><input id="citQuery" placeholder="Search CIT packs: kitchen, pastel, flowers, fairy…"></div><select id="citMood"><option value="all">All styles</option><option value="cute">Cute</option><option value="cottagecore">Cottagecore</option><option value="furniture">Furniture</option><option value="kitchen">Kitchen / food</option><option value="garden">Garden / plants</option><option value="vintage">Vintage</option><option value="fairy">Fairy / coquette</option></select></div>
+      <div class="result-meta"><span id="citCount"></span></div><div class="card-grid" id="citGrid"></div>
+    </section>
+
+    <section class="view" data-view="furniture">
+      <div class="section-heading split"><div><span class="eyebrow">FURNITURE</span><h2>Cozy interiors & functional furniture</h2><p>Curated Java furniture plus a live universal category covering Modrinth, CurseForge, GitHub and community sources.</p></div><button class="btn primary" data-category-jump="furniture"><span data-icon="search"></span> Browse live furniture</button></div>
+      <div class="toolbar card"><div class="search-field"><span data-icon="search"></span><input id="furnitureQuery" placeholder="Search furniture, kitchen, storage, modern, cozy…"></div><select id="furnitureStyle"><option value="all">All styles</option><option value="cozy">Cozy</option><option value="vanilla">Vanilla style</option><option value="modern">Modern</option><option value="cute">Cute / pastel</option><option value="functional">Functional</option><option value="large">Huge libraries</option></select></div>
+      <div class="result-meta"><span id="furnitureCount"></span></div><div class="card-grid" id="furnitureGrid"></div>
+    </section>
+
+    <section class="view" data-view="bedrock">
+      <div class="section-heading split"><div><span class="eyebrow">BEDROCK</span><h2>Cozy Bedrock add-ons & packs</h2><p>Furniture, pets, food, maps, visual packs, roleplay content, MCPEDL discoveries, and Marketplace add-ons remain a dedicated lane.</p></div><button class="btn" id="openBedrockFolder"><span data-icon="folder"></span> Open Bedrock folder</button></div>
+      <div class="toolbar card"><div class="search-field"><span data-icon="search"></span><input id="bedrockQuery" placeholder="Search Bedrock packs…"></div><select id="bedrockStyle"><option value="all">All categories</option><option value="furniture">Furniture</option><option value="cute">Cute / cozy</option><option value="pets">Pets</option><option value="food">Food / cooking</option><option value="visuals">Visuals / UI</option><option value="map">Maps / worlds</option></select></div>
+      <div class="result-meta"><span id="bedrockCount"></span></div><div class="card-grid" id="bedrockGrid"></div>
+    </section>
+
+    <section class="view omni-manager-view" data-view="manager">
+      <article class="omni-hero card">
+        <div class="omni-hero-copy">
+          <span class="eyebrow">OMNIMANAGER · JAVA + BEDROCK + SERVER</span>
+          <h2>Every installed thing. Its real identity. Every source.</h2>
+          <p>Hash-first identification joins embedded metadata with Modrinth, CurseForge, GitHub, community hubs, Bedrock catalogs, and creator evidence—so an uploaded JAR never has to remain a gray cube with a filename again.</p>
+          <div class="omni-hero-actions">
+            <button class="btn primary" id="refreshManager"><span data-icon="refresh"></span> Scan this computer</button>
+            <button class="btn" id="resolveManager"><span data-icon="radar"></span> Resolve every source</button>
+            <button class="btn success" id="updateManagerSafe"><span data-icon="download"></span> Apply safe updates</button>
+            <button class="btn" id="installBedrockManager"><span data-icon="bedrock"></span> Install Bedrock package</button>
+            <button class="btn" id="managerHistory"><span data-icon="shield"></span> Recovery history</button>
+          </div>
+        </div>
+        <div class="omni-trust card" id="managerTrust">
+          <div class="omni-trust-ring"><strong id="managerTrustScore">—</strong><span>identified</span></div>
+          <p id="managerTrustText">Run a scan to build the cross-store identity graph.</p>
+        </div>
+      </article>
+
+      <div class="manager-summary omni-summary" id="managerSummary"></div>
+
+      <section class="card omni-toolbar" aria-label="OmniManager filters">
+        <div class="omni-search search-field"><span data-icon="search"></span><input id="managerQuery" placeholder="Search name, filename, author, mod ID, UUID, source, loader…"></div>
+        <select id="managerProfile" aria-label="Profile"><option value="all">Every profile</option></select>
+        <select id="managerEdition" aria-label="Edition"><option value="all">Java + Bedrock + Server</option><option value="java">Java Edition</option><option value="bedrock">Bedrock Edition</option><option value="server">Server</option></select>
+        <select id="managerKind" aria-label="Content type"><option value="all">Every content type</option></select>
+        <select id="managerStatus" aria-label="Update status"><option value="all">Every status</option><option value="update">Updates available</option><option value="current">Up to date</option><option value="modified">Patched / custom</option><option value="review">Needs review</option><option value="unknown">Unresolved</option><option value="disabled">Disabled</option></select>
+        <select id="managerSource" aria-label="Source"><option value="all">Every source</option></select>
+        <select id="managerSort" aria-label="Sort"><option value="name">Name</option><option value="updates">Updates first</option><option value="identity">Best identified</option><option value="recent">Recently changed</option><option value="size">Largest</option></select>
+        <div class="omni-view-switch" role="group" aria-label="View style"><button class="btn small active" id="managerGridView" title="Card view"><span data-icon="cards"></span></button><button class="btn small" id="managerListView" title="Detailed list"><span data-icon="manager"></span></button></div>
+      </section>
+
+      <div class="omni-scan-state" id="managerScanState" aria-live="polite"></div>
+      <div class="omni-bulk card" id="managerBulk" hidden>
+        <div><strong id="managerSelectedCount">0 selected</strong><span>Actions remain transactional and recoverable.</span></div>
+        <div class="omni-bulk-actions"><button class="btn small" id="managerBulkUpdate"><span data-icon="download"></span> Update safe</button><button class="btn small" id="managerBulkToggle"><span data-icon="power"></span> Toggle</button><button class="btn small danger" id="managerBulkTrash"><span data-icon="trash"></span> Vault trash</button><button class="btn small" id="managerClearSelection">Clear</button></div>
+      </div>
+      <div class="omni-result-meta"><label><input type="checkbox" id="managerSelectAll"> Select visible</label><span id="managerResultCount">Waiting for scan…</span></div>
+      <div class="manager-groups omni-library-grid" id="managerGroups"></div>
+    </section>
+
+    <section class="view" data-view="import"><div class="section-heading"><div><span class="eyebrow">LOCAL INSTALL</span><h2>Import Minecraft packages</h2><p>JARs, ZIPs, MRPACKs, MCPACKs, MCADDONs and worlds.</p></div></div><div class="import-layout"><article class="drop-zone card" id="dropZone"><div class="drop-icon" id="uploadIcon"></div><h3>Drop packages here</h3><p>.jar, .zip, .mrpack, .mcpack, .mcaddon, .mcworld</p><button class="btn primary" id="chooseFiles">Choose files</button><input id="fileInput" type="file" multiple hidden></article><aside class="card import-options"><label>Install target<select id="importTarget"><option value="auto">Auto detect</option><option value="mods">Java mods</option><option value="resourcepacks">Resource packs</option><option value="shaderpacks">Shader packs</option><option value="plugins">Server plugins</option><option value="datapacks">Active world datapacks</option><option value="downloads">Vault downloads</option></select></label><div class="mini-note">Duplicate names are preserved instead of silently overwritten.</div></aside></div><div id="importResults" class="import-results"></div></section>
+
+    <section class="view" data-view="sources"><div class="section-heading"><div><span class="eyebrow">PROVIDER HEALTH</span><h2>Integrated source lanes</h2><p>These sources now feed the Mods browser. Source cards show how each provider is integrated rather than acting as the primary browse UI.</p></div></div><div class="card-grid" id="sourceGrid"></div></section>
+
+    <section class="view" data-view="settings">
+      <div class="section-heading"><div><span class="eyebrow">CONFIGURATION</span><h2>Settings</h2><p>Instance, compatibility target, provider credentials, live-refresh behavior, and recommendation interests.</p></div></div>
+      <div class="settings-layout"><form class="card settings-form" id="settingsForm">
+        <label>Java .minecraft directory<input id="javaRoot" autocomplete="off"></label><label>Bedrock Stable com.mojang directory<input id="bedrockRoot" autocomplete="off"></label><label>Bedrock Preview / Beta com.mojang directory<input id="bedrockPreviewRoot" autocomplete="off"></label><label>Additional Bedrock com.mojang roots <small>One directory per line for launchers, custom channels, servers, or test installations.</small><textarea id="bedrockCustomRoots" rows="3" placeholder="C:\\...\\com.mojang"></textarea></label><label>Active world directory <small>Optional. Enables true datapack installation into this world's datapacks folder.</small><input id="worldRoot" autocomplete="off" placeholder=".../.minecraft/saves/My World"></label><div class="two-col"><label>Server root <small>Optional. Enables a dedicated plugins folder for Paper/Velocity/Waterfall integrations.</small><input id="serverRoot" autocomplete="off"></label><label>Server platform<select id="serverPlatform"><option value="PAPER">Paper</option><option value="VELOCITY">Velocity</option><option value="WATERFALL">Waterfall</option></select></label></div>
+        <div class="two-col"><label>Minecraft version<input id="gameVersion" placeholder="1.21.1"></label><label>Loader<select id="loader"><option value="fabric">Fabric</option><option value="neoforge">NeoForge</option><option value="forge">Forge</option><option value="quilt">Quilt</option><option value="vanilla">Vanilla</option></select></label></div>
+        <label>Profile name<input id="activeProfile" placeholder="Default"></label>
+        <div class="settings-divider">Provider integrations</div>
+        <label>CurseForge API key <small>Unlocks exact fingerprint updates and native CurseForge downloads.</small><input id="curseForgeAPIKey" type="password" autocomplete="off"></label>
+        <label>GitHub token <small>Optional, increases API rate limits for GitHub project/release discovery.</small><input id="githubToken" type="password" autocomplete="off"></label>
+        <label>BuiltByBit API token <small>Enables the official BuiltByBit Discovery API, creator metadata, versions and reviews.</small><input id="builtByBitAPIKey" type="password" autocomplete="off"></label><label>BuiltByBit OAuth access token <small>Optional. Enables licensed one-click download requests from the integrated BuiltByBit resource view.</small><input id="builtByBitOAuthToken" type="password" autocomplete="off"></label>
+        <label>Nexus Mods API key <small>Enables Nexus Mods Minecraft metadata and download API integration.</small><input id="nexusAPIKey" type="password" autocomplete="off"></label>
+        <label>YouTube Data API key <small>Recommended for authoritative full-channel uploads-playlist enumeration. The archive can fall back to yt-dlp when unavailable.</small><input id="youtubeAPIKey" type="password" autocomplete="off"></label>
+        <div class="two-col"><label>Recommendation refresh (minutes)<input id="autoRefreshMinutes" type="number" min="5"></label><label>Creator refresh (minutes)<input id="creatorRefreshMinutes" type="number" min="30"></label></div><div class="two-col"><label>Creator transcript model <small>Large v3 Turbo Q5 is the recommended balance for exhaustive archival transcription.</small><select id="creatorTranscriptModel"><option value="large-v3-turbo-q5_0">Large v3 Turbo Q5 (recommended)</option><option value="large-v3-turbo">Large v3 Turbo (maximum accuracy)</option><option value="base">Base (lightweight)</option></select></label><label>Archive analysis workers <small>Parallel video analysis. Keep lower on slower CPUs.</small><input id="creatorArchiveConcurrency" type="number" min="1" max="4"></label></div>
+        <label>Recommendation interests <small>Comma-separated. These drive continuous personalized discovery.</small><textarea id="preferredTags" rows="3"></textarea></label>
+        <div class="source-settings" id="sourceSettings"></div>
+        <div class="form-actions"><button class="btn primary" type="submit"><span data-icon="save"></span> Save settings</button><button class="btn" type="button" id="openJavaRoot"><span data-icon="folder"></span> Open Java root</button></div>
+      </form><aside class="card system-panel" id="systemPanel"></aside></div>
+    </section>
+  </main>
+</div>
+<div class="project-modal" id="projectModal" aria-hidden="true">
+  <div class="project-modal-backdrop" data-close-project-modal></div>
+  <section class="project-modal-panel" role="dialog" aria-modal="true" aria-label="Project details">
+    <button class="project-modal-close" id="projectModalClose" aria-label="Close project details">×</button>
+    <div id="projectModalContent"></div>
+  </section>
+</div>
+<div class="creator-transcript-modal" id="creatorTranscriptModal" aria-hidden="true">
+  <div class="creator-transcript-backdrop" data-close-transcript></div>
+  <section class="creator-transcript-panel" role="dialog" aria-modal="true" aria-label="Creator transcript">
+    <button class="project-modal-close" id="creatorTranscriptClose" aria-label="Close creator transcript">×</button>
+    <div id="creatorTranscriptBody"></div>
+  </section>
+</div>
+<div class="omni-drawer" id="managerDrawer" aria-hidden="true">
+  <div class="omni-drawer-backdrop" data-manager-close></div>
+  <aside class="omni-drawer-panel" role="dialog" aria-modal="true" aria-label="OmniManager details">
+    <div class="omni-drawer-head"><div><span class="eyebrow" id="managerDrawerEyebrow">OMNIMANAGER</span><h2 id="managerDrawerTitle">Details</h2></div><button class="project-modal-close" id="managerDrawerClose" aria-label="Close OmniManager details">×</button></div>
+    <div class="omni-drawer-body" id="managerDrawerBody"></div>
+  </aside>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="conversion.js"></script><script src="catalog.js"></script><script src="omnimanager.js"></script><script src="repair-lab.js"></script><script src="app.js"></script>
+  <script src="/omnimanager-polish.js"></script>
+</body></html>

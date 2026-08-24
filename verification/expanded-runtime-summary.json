@@ -1,0 +1,126 @@
+{
+  "verifiedAt": "2026-08-20T22:40:00Z",
+  "binarySha256": "b8f2d8c53d4c08e892a86aa7f7dc3de00da583588f285f68eecce4a0381db221",
+  "unauthorizedHTTP": 403,
+  "indexHTTP": 200,
+  "appJSHTTP": 200,
+  "sourceTotal": 154,
+  "sourceCategories": 63,
+  "toolTotal": 163,
+  "repairPatternTotal": 9,
+  "requiredToolIDs": [
+    "cleanroom",
+    "forgix",
+    "fugue",
+    "mod-publish-plugin",
+    "neoform",
+    "neoform-runtime",
+    "ornithe-feather",
+    "ornithe-ploceus",
+    "papermc-dataconverter",
+    "retrofuturagradle",
+    "retromcp-java"
+  ],
+  "modernScanSummary": {
+    "totalMods": 5,
+    "lowRisk": 0,
+    "moderateRisk": 0,
+    "highRisk": 0,
+    "criticalRisk": 5,
+    "sourceAvailable": 3,
+    "binaryOnly": 2,
+    "mixinMods": 1,
+    "coremods": 0,
+    "signedMods": 1,
+    "nativeMods": 0,
+    "maxRiskScore": 100,
+    "duplicateModIds": 1,
+    "exactDuplicateJars": 0,
+    "exactDuplicateClasses": 0,
+    "conflictingDuplicateClasses": 1,
+    "missingRequiredDependencies": 1,
+    "declaredConflicts": 0,
+    "dependencyCycles": 1,
+    "criticalFindings": 21,
+    "highFindings": 8,
+    "warningFindings": 5,
+    "infoFindings": 8
+  },
+  "modernTargetJava": 21,
+  "modernDependencyOrder": [
+    "core",
+    "addon",
+    "cycle-a",
+    "cycle-b"
+  ],
+  "modernDependencyCycles": [
+    [
+      "cycle-a",
+      "cycle-b"
+    ]
+  ],
+  "legacy1710GlobalFindingIDs": [
+    "binary-only-corpus",
+    "critical-mod-gate",
+    "duplicate-class-conflict",
+    "duplicate-mod-id",
+    "global-legacy-toolchain",
+    "global-loader-change",
+    "required-dependency-cycle"
+  ],
+  "legacy1710PlanStepIDs": [
+    "compatibility-sandbox",
+    "dependency-graph",
+    "legacy-reconstruction-program",
+    "ordered-port-program",
+    "resolve-identity",
+    "runtime-regression-matrix",
+    "snapshot-instance",
+    "transactional-deployment"
+  ],
+  "legacy1710RequiredRouteIDs": [
+    "hodgepodge",
+    "legacyfix",
+    "lwjgl3ify",
+    "retrofuturabootstrap",
+    "retrofuturagradle",
+    "retromcp-java",
+    "unimixins"
+  ],
+  "legacy1122GlobalFindingIDs": [
+    "binary-only-corpus",
+    "critical-mod-gate",
+    "duplicate-class-conflict",
+    "duplicate-mod-id",
+    "global-legacy-toolchain",
+    "global-loader-change",
+    "required-dependency-cycle"
+  ],
+  "legacy1122PlanStepIDs": [
+    "compatibility-sandbox",
+    "dependency-graph",
+    "legacy-reconstruction-program",
+    "ordered-port-program",
+    "resolve-identity",
+    "runtime-regression-matrix",
+    "snapshot-instance",
+    "transactional-deployment"
+  ],
+  "legacy1122RequiredRouteIDs": [
+    "cleanroom",
+    "fugue",
+    "legacyfix",
+    "mixinbooter",
+    "retromcp-java"
+  ],
+  "eraSeparation": {
+    "cleanroomExcludedFrom1710": true,
+    "retrofuturabootstrapExcludedFrom1122": true
+  },
+  "logRootCode": "method-linkage",
+  "logFindingCodes": [
+    "method-linkage",
+    "mixin-application"
+  ],
+  "result": "PASS"
+}

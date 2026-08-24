@@ -1,0 +1,158 @@
+Minecraft Mod Vault 0.9.0 - Build and Runtime Verification
+===========================================================
+
+Status: VERIFIED RELEASE BUILD
+Recorded: 2026-08-21 UTC
+Canonical project: Herbertofury/Minecraft-Mod-Vault
+Verified implementation commit: 4191fad (Complete unified v0.9.0 repair and porting release candidate)
+
+Toolchain
+---------
+- Go: 1.27.0 linux/amd64
+- Dependency mode: vendored
+- SQLite driver: modernc.org/sqlite 1.57.0
+- Observed SQLite runtime: 3.53.3
+- CGO: disabled for Linux and Windows release binaries
+- Java observed for controlled fixture build: OpenJDK 21.0.11
+- Browser verifier: system Chromium executing the exact shipped HTML, CSS, and JavaScript
+
+Final candidate binaries
+------------------------
+- Linux x64
+  - file: Minecraft-Mod-Vault-0.9.0-linux-x64
+  - size: 18,657,404 bytes
+  - SHA-256: 0e6720b4b1b9a6bb31f90fe2d498a7f4fbfac43df264d7e87bd23062d89ed2ee
+  - format: statically linked stripped ELF x86-64
+- Windows x64
+  - file: Minecraft-Mod-Vault-0.9.0-windows-x64.exe
+  - size: 19,001,344 bytes
+  - SHA-256: 6b5967461a34cb8658d93644f9d60196bb3bdbd162519f9dda1aff3ef4fa9598
+  - format: PE32+ Windows GUI x86-64
+
+Static and source verification
+------------------------------
+PASS - gofmt applied to all Go sources
+PASS - go test -mod=vendor -count=1 ./...
+PASS - go vet -mod=vendor ./...
+PASS - node --check web/app.js
+PASS - node --check web/catalog.js
+PASS - node --check web/repair-lab.js
+PASS - Python verifier compilation
+PASS - all project JSON and JSONL parsed successfully
+PASS - shell/package script syntax checks
+PASS - git diff --check
+PASS - Windows and Linux cgo-free builds
+
+Fresh Compatibility Brain initialization
+----------------------------------------
+The final binary was copied into a new isolated HOME/XDG_CONFIG_HOME and launched from a directory that did not contain the source tree.
+
+Observed:
+- ready: true
+- SQLite: 3.53.3
+- journal mode: WAL
+- seed digest: eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4
+- Minecraft versions: 919
+- loader/game relationships: 949
+- loader releases: 550
+- toolchain releases: 15,133
+- searchable knowledge documents: 342
+- durable Repair Brain records: 8
+- oldest Minecraft identifier: rd-132211
+- newest captured Minecraft identifier: 26.3-snapshot-9
+- latest stable in the reviewed seed: 26.2
+
+This proves the seed corpus and repair history are embedded in the executable and do not depend on the development working directory or a surviving database.
+
+Repair Lab production UI and backend
+------------------------------------
+Evidence: verification/repair-lab-ui-smoke-final.json
+Screenshot: verification/repair-lab-ui-smoke-final.png
+Evidence SHA-256: 5693ed022ffed1456f05f76f349b87868870e3c102dcb5dab7eab2da6fbde694
+
+PASS - 25 assertions
+PASS - 38 authenticated production API calls
+PASS - zero page exceptions
+PASS - zero Chromium console errors
+PASS - zero browser request failures
+PASS - distinct Repair Lab and Porting Lab top-level workspaces
+PASS - live SQLite Compatibility Brain status rendered
+PASS - real source ZIP imported through the production file control
+PASS - immutable source archive and source-tree identities exposed
+PASS - ten traceable 1.20.1 -> 1.21.1 Fabric migration edits staged
+PASS - build refused before explicit code-execution acknowledgement
+PASS - controlled detected-wrapper build succeeded after acknowledgement
+PASS - complete build log surfaced in the UI
+PASS - one output JAR discovered and SHA-256 recorded
+PASS - deterministic prepared-source and proof-bundle exports created
+PASS - exact authenticated artifact/proof links rendered by the production UI
+PASS - downloaded artifact: 1,167 bytes, SHA-256 f234fae1f2ca6eee11bbaea2fc89ae327b355a04ecb5218caacc09eec482708e
+PASS - downloaded proof bundle: 9,158 bytes, SHA-256 1e603e69ee7e9503fe58c68ffd3a6cdf2a1ef49e09307d0b0d948f5b38236617
+PASS - Compatibility Brain full-text search returned RetroFuturaGradle evidence
+PASS - no page-level horizontal overflow at 1440 pixels
+PASS - succeeded session loaded in a fresh production UI instance
+PASS - rollback restored the working copy to immutable source with zero staged changes and zero artifacts
+
+Managed Chromium on the verification host blocks direct loopback URL navigation by policy. The verifier therefore loaded the exact shipped frontend bundle in Chromium and bridged only authenticated transport to the real compiled loopback backend. File selection/FormData, controls, state transitions, rendering, polling, search, and rollback remained production code. The exact download URLs rendered by the UI were followed against the real backend and the returned bytes were hashed.
+
+Porting Lab production UI and backend
+-------------------------------------
+Evidence: verification/porting-ui-smoke-final.json
+Screenshot: verification/porting-ui-smoke-final.png
+Evidence SHA-256: 9ee814a08f918fb604a7badddce920c7a4ca5f3fc6cbe4a0e1d97452be923795
+
+PASS - 29 assertions
+PASS - 23 authenticated production API calls
+PASS - zero page exceptions
+PASS - zero meaningful Chromium console errors
+PASS - Manager deep-linked the exact selected managed JAR into Porting Lab
+PASS - binary starting evidence selected automatically
+PASS - Java 21 and local toolchain radar rendered
+PASS - all eight migration phases rendered
+PASS - live JAR forensics identified mod ID, loader, classes, Java level, Mixins, access transformer, Unsafe/reflection signals, dependencies, data, and assets
+PASS - current InterMed and modcrawl evidence selected as independent analysis candidates
+PASS - 1.20.1 Forge -> 1.21.1 NeoForge route classified critical risk rather than falsely automatic
+PASS - isolated persistent workspace generated only after a complete plan
+PASS - no page-level horizontal overflow at 1440 pixels
+PASS - Doctor exposed only proven exact-duplicate quarantine actions
+PASS - duplicate moved into Vault quarantine without deletion
+PASS - keeper hash remained unchanged
+PASS - receipt-driven restore returned the duplicate to its original path
+PASS - restored duplicate remained byte-identical
+
+Restart persistence
+-------------------
+The final binary was stopped and restarted with the same isolated config after the UI tests.
+
+PASS - Repair Lab session IDs and state survived exactly
+PASS - Compatibility Brain seed digest survived exactly
+PASS - SQLite remained in WAL mode
+PASS - all 8 Repair Brain records remained available
+
+Security and truthfulness boundaries
+------------------------------------
+- Originals are preserved and mutations occur in disposable working copies or recoverable quarantine transactions.
+- Source ZIP traversal, symbolic links, duplicate paths, entry-count/expanded-size abuse, suspicious compression, and extraction escapes are blocked.
+- Automatic source edits are limited to recognized version, loader, mapping, Java, metadata, and pack-format fields.
+- Build/test/clean execution is restricted to a detected project wrapper and fixed action set, with explicit acknowledgement, dedicated caches, sanitized environment, timeout/cancel, logs, and post-run immutable-source verification.
+- The release does not claim operating-system or virtual-machine isolation for arbitrary build scripts.
+- A metadata edit, remap, decompile, successful build, or startup is not described as a completed semantic port without target-runtime evidence.
+
+Archive verification
+--------------------
+PASS - Windows ZIP central-directory/compressed-data integrity
+PASS - Linux tar.gz listing and extraction
+PASS - source ZIP central-directory/compressed-data integrity
+PASS - 48 internal SHA-256 entries in the Windows package
+PASS - 48 internal SHA-256 entries in the Linux package
+PASS - 2,155 internal SHA-256 entries in the source package
+PASS - complete third-party license directory in both runtime packages
+PASS - freshly extracted source ran tests/vet/JavaScript checks and rebuilt both release binaries
+PASS - rebuilt Linux binary was byte-identical to the packaged Linux binary
+PASS - rebuilt Windows binary was byte-identical to the packaged Windows binary
+PASS - freshly extracted Linux package initialized the Compatibility Brain from a new config
+PASS - freshly extracted Linux package reran the 25-assertion Repair Lab UI flow
+PASS - freshly extracted Linux package reran the 29-assertion Porting Lab UI flow
+PASS - extracted-package Repair Lab and Compatibility Brain state survived process restart
+
+Detailed evidence is recorded in verification/final-package-verification.json. Final outer archive identities are recorded in the sibling CHECKSUMS-SHA256-0.9.0.txt and the external verified publication receipt, avoiding a circular attempt to place an archive's own final hash inside itself.

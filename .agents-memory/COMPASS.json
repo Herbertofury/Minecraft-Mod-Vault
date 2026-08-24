@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "projectId": "minecraft-mod-vault",
+  "version": "0.12.0-p0.5-creator-catalog-hotdrop-ingestion-checkpoint",
+  "northpoints": [
+    "Become the strongest practical Minecraft mod updater, diagnosis, correction, compatibility, upgrade, and downgrade system available.",
+    "Prefer exact evidence from artifacts, source, mappings, APIs, dependency graphs, and real runtime behavior over filenames or metadata guesses.",
+    "Preserve originals, stage every mutation, prove every repair, and retain rollback evidence.",
+    "Consume the strongest current stable and bleeding-edge tooling while hardening useful experimental technology instead of discarding it by default."
+  ],
+  "featurePillars": [
+    "Artifact identity and provenance",
+    "Dependency and classpath solving",
+    "Crash and build diagnosis",
+    "Source-aware version and loader porting",
+    "Narrow binary and data repair",
+    "Real client/server verification",
+    "Durable Repair Brain and research memory",
+    "Official Version Atlas and toolchain intelligence",
+    "Offline SQLite Compatibility Brain with full-text repair search",
+    "Immutable source intake and controlled wrapper execution",
+    "Isolated Porting Lab workspaces and cryptographic duplicate repair",
+    "Always-updated cross-platform Creator Vault with evidence-backed YouTube/TikTok recommendation extraction",
+    "Creator-controlled link-hub intelligence that discovers and refreshes modpacks, packs, socials, downloads and support links with provenance and safe fetch boundaries",
+    "Evidence-backed multi-pack Creator Modpack Library that enumerates all verified CurseForge/Modrinth releases and collaborations without fabricating ownership",
+    "Hot-droppable creator evidence catalogs that feed the real Creator Vault without creator-specific hardcoding or application rebuilds"
+  ],
+  "guardrails": [
+    "A metadata edit is not a port.",
+    "A successful remap, patch, build, or startup is not completion.",
+    "Runtime bridges require target-mod and workload verification.",
+    "Downgrades require explicit reverse transforms and loss analysis.",
+    "Never remove unrelated working behavior or weaken tests to make a result pass."
+  ],
+  "acceptanceSignals": [
+    "Exact JAR and source identity",
+    "Complete dependency/conflict graph",
+    "Deterministic dependency-first plan",
+    "Version-pinned reproducible build",
+    "Client and dedicated-server runtime evidence",
+    "Fresh log inspection",
+    "Hash-verified artifacts and rollback",
+    "A complete source migration receipt with file-level edits, logs, hashes, artifacts, rollback, and proof bundle",
+    "Fresh-package UI verification for both installed-JAR and source-project repair workflows",
+    "Followed creators survive restart, backfill once, refresh incrementally, and preserve speech/visual-text provenance for every resolved or unresolved mod mention",
+    "Followed creator profiles automatically discover public link hubs and creator modpack destinations, keep exact evidence/first-last-seen provenance, never crawl arbitrary outbound sites, retain last-known-good links on provider failure, and expose exact-destination UI controls",
+    "Followed creators expose every verifiable provider modpack with owner/member/direct/profile provenance, refresh the library over time, preserve last-known-good data on provider failure, and show an explicit no-verified-pack state when evidence is absent",
+    "Creator catalog bundles can be dropped or updated at runtime, merge into existing archive state without downgrading stronger live evidence, preserve truthful coverage/provenance, and survive malformed updates/restart."
+  ]
+}

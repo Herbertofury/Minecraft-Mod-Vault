@@ -1,0 +1,91 @@
+[
+  {
+    "id": "binary-owner-descriptor-drift",
+    "name": "Binary owner or descriptor API drift",
+    "failureClass": "NoClassDefFoundError, NoSuchMethodError, NoSuchFieldError or verifier failure after a dependency update",
+    "trigger": "A dependent mod references a class/member owner or descriptor that the installed dependency replaced while preserving equivalent behavior.",
+    "repair": "Prove old and new symbols from exact bytecode/source, then patch or recompile only the dependent references. Preserve all unrelated JAR entries and dependency semantics.",
+    "verification": [
+      "Hash original and repaired artifacts",
+      "ZIP integrity",
+      "Entry-level diff limited to intended classes",
+      "Old symbol absent and new symbol present",
+      "javap/ASM descriptor and inheritance validation",
+      "Exact runtime reproducer"
+    ],
+    "confidence": "high when both API sides and behavior are proven"
+  },
+  {
+    "id": "data-namespace-schema-defect",
+    "name": "Data namespace or schema defect",
+    "failureClass": "Registry bootstrap, codec, jigsaw, recipe, loot, tag, NBT or data-pack load failure",
+    "trigger": "Packaged data points to a missing namespace/key/schema while sibling resources and target registries prove the intended replacement.",
+    "repair": "Patch only the proven resource/NBT fields, preserve every other entry and produce a semantic diff in addition to a byte diff.",
+    "verification": [
+      "Archive integrity",
+      "Exact changed-entry count",
+      "Semantic NBT/JSON diff",
+      "All repaired identifiers exist",
+      "Clean world/test copy runtime validation"
+    ],
+    "confidence": "high when sibling data and registry evidence agree"
+  },
+  {
+    "id": "mixin-annotation-contract",
+    "name": "Mixin annotation and retention contract",
+    "failureClass": "InvalidMixinException claiming @Mixin or an injection annotation is absent or malformed",
+    "trigger": "A locally stubbed or shaded annotation has the wrong retention, target, descriptor, package or visible/invisible annotation table placement.",
+    "repair": "Compile against the real Mixin API where possible; otherwise reproduce every annotation contract exactly and rebuild affected mixin classes.",
+    "verification": [
+      "javap -verbose annotation table inspection",
+      "Compare against real Mixin annotation retention/targets",
+      "Mixin audit/export",
+      "Fresh loader PREPARE/APPLY runtime"
+    ],
+    "confidence": "high when classfile annotation placement is directly verified"
+  },
+  {
+    "id": "separate-compatibility-adapter",
+    "name": "Separate compatibility adapter",
+    "failureClass": "Two correct mods duplicate, conflict or omit a cross-mod integration path",
+    "trigger": "The smallest robust fix can observe both APIs and suppress/translate only the overlapping behavior without modifying either upstream JAR.",
+    "repair": "Build a separate version-gated compatibility mod with narrow hooks, explicit config, diagnostics and fail-closed behavior.",
+    "verification": [
+      "Exact target classes and descriptors",
+      "Success/failure path tests",
+      "Config persistence",
+      "Both upstream mods remain byte-identical",
+      "Full combined runtime test"
+    ],
+    "confidence": "medium to high depending on runtime coverage"
+  },
+  {
+    "id": "repair-supersession",
+    "name": "Repair supersession and failed-attempt memory",
+    "failureClass": "A statically plausible repair fails in the user's exact runtime or is replaced by a stronger repair",
+    "trigger": "Fresh evidence disproves an earlier completion claim or identifies a deeper root cause.",
+    "repair": "Mark the old record superseded, preserve its failure evidence, link the new artifact/record and retest the original reproducer plus regressions.",
+    "verification": [
+      "Old and new artifact hashes",
+      "Explicit supersedes links",
+      "Failure signature absent",
+      "No new task-related fatal error",
+      "User/runtime confirmation when available"
+    ],
+    "confidence": "process invariant"
+  },
+  {
+    "id": "loader-metadata-not-proof",
+    "name": "Declared compatibility is not binary compatibility",
+    "failureClass": "Mod metadata accepts a dependency/version range but runtime linkage or mixin application fails",
+    "trigger": "Actual class/member use, descriptors, injection targets or behavior changed inside a permissive declared range.",
+    "repair": "Trust exact bytecode/API usage and target runtime evidence over permissive metadata; update, patch or adapt the dependent mod.",
+    "verification": [
+      "Expected symbol proven in dependent bytecode",
+      "Actual target symbol/class shape proven",
+      "Compile/static link check",
+      "Runtime path exercised"
+    ],
+    "confidence": "high"
+  }
+]

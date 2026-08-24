@@ -1,0 +1,94 @@
+Minecraft Mod Vault 0.8.0 expanded Mod Doctor build verification
+Date: 2026-08-20 UTC
+
+CANONICAL RECOVERY BASELINE
+- Recovered full source artifact: Minecraft-Mod-Vault-0.7.1-progress-23-source.zip
+- Recovered source SHA-256: 9a2f54fdf60fc1160ee95f7bdbd9bc0badcb8e02e68f97e9ba8f15b9321ee68f
+- Product repository: Herbertofury/Minecraft-Mod-Vault
+- Recovered repository checkpoint: 16b561897ff6801aa607686c6aba24e546db4723
+
+CURRENT BUILD IDENTITY
+- Version: 0.8.0
+- Linux binary: Minecraft-Mod-Vault-0.8.0-linux-x64
+- Linux SHA-256: b8f2d8c53d4c08e892a86aa7f7dc3de00da583588f285f68eecce4a0381db221
+- Windows binary: Minecraft-Mod-Vault-0.8.0-windows-x64.exe
+- Windows SHA-256: 723acf20345634e294cae14d08608cf749287a2efe7d01494361c37690350d5e
+- Linux file identity: statically linked ELF 64-bit x86-64
+- Windows file identity: PE32+ GUI x86-64
+- Two independent clean builds produced byte-identical binaries.
+
+SOURCE, CATALOG, AND STATIC CHECKS
+PASS: gofmt applied to all Go source files
+PASS: go test -count=1 ./...
+PASS: go vet ./...
+PASS: node --check web/app.js
+PASS: node --check web/catalog.js
+PASS: JSON validation for project memory, source catalogs, repair patterns, runtime evidence, and Repair Brain JSONL
+PASS: 154 canonical research sources have unique IDs and HTTPS official/repository URLs
+PASS: 92 detailed execution records merge into 163 unique runtime tool cards
+PASS: 9 reusable repair patterns load successfully
+PASS: every generated planner and log-classifier source ID resolves to an embedded catalog entry across legacy and modern fixtures
+PASS: embedded Mod Doctor HTML, JavaScript, CSS, knowledge files, and repair patterns are present
+PASS: release source tree contains no recovery-only backup files
+
+REAL LOOPBACK RUNTIME
+PASS: launched the clean Linux 0.8.0 executable with isolated XDG configuration and a real five-JAR hostile fixture
+PASS: built binary reported version 0.8.0 and loaded the intended instance path
+PASS: unauthenticated API request returned HTTP 403
+PASS: embedded index.html and app.js returned HTTP 200
+PASS: authenticated /api/doctor/sources returned 154 sources across 63 categories
+PASS: authenticated /api/doctor/tools returned 163 unique execution records and 9 repair patterns
+PASS: /api/doctor/scan inspected all 5 JARs
+PASS: duplicate mod ID detected
+PASS: conflicting duplicate class detected
+PASS: missing Fabric API dependency detected
+PASS: required dependency cycle detected
+PASS: deterministic dependency-first transaction order generated
+PASS: Fabric 1.20.1 to NeoForge 1.21.1 selected Java 21
+PASS: Forge 1.7.10 to NeoForge 1.21.1 selected the 1.7.10 recovery/runtime stack and excluded Cleanroom
+PASS: Forge 1.12.2 to NeoForge 1.21.1 selected Cleanroom/Fugue/MixinBooter and excluded RetroFuturaBootstrap
+PASS: historical source reconstruction, semantic source/data porting, and runtime compatibility bridging remained separate plan tracks
+PASS: log analyzer classified NoSuchMethodError and Mixin application failure and linked repair/tool evidence
+
+REAL CHROMIUM USER FLOW
+PASS: opened the clean executable UI in a fresh headless Chromium profile
+PASS: navigated through the real top-level Mod Doctor control
+PASS: loaded all 163 runtime tool records
+PASS: submitted the five-JAR Forge 1.7.10 to NeoForge 1.21.1 scan through visible controls
+PASS: rendered 5 artifact reports, the legacy toolchain boundary, and the dedicated legacy reconstruction plan
+PASS: searched the visible tool catalog and rendered RetroFuturaGradle
+PASS: submitted a crash log through the visible log analyzer control
+PASS: rendered the causal NoSuchMethodError result
+PASS: zero page exceptions
+PASS: zero console errors or CSP violations
+PASS: zero network failures
+PASS: zero horizontal overflow at a 1600x1100 verification viewport
+- Runtime screenshot: verification/doctor-runtime.png
+- Runtime screenshot SHA-256: 1d8024b9ab6b1d2641b9316911bbe9afd9200b6b02e3e40d78e70d541e71ac1b
+- Structured UI receipt: verification/doctor-ui-smoke.json
+- Modern scan evidence: verification/doctor-scan-summary.json
+- 1.7.10 route evidence: verification/doctor-legacy-1710-scan.json
+- 1.12.2 route evidence: verification/doctor-legacy-1122-scan.json
+- Expanded runtime receipt: verification/expanded-runtime-summary.json
+- Log evidence: verification/doctor-log-analysis.json
+
+DURABLE REPAIR MEMORY
+PASS: preserved all pre-existing Repair Brain records
+PASS: retained the original Mod Doctor 0.8.0 checkpoint record as history
+PASS: appended and JSON-validated minecraft-mod-vault-0.8.0-legacy-research-expansion
+PASS: Repair Brain now contains 7 unique validated JSONL records
+
+RELEASE PACKAGE GATE
+PASS: pre-final Windows ZIP, Linux tar.gz, and source ZIP archive integrity validated
+PASS: every pre-final packaged file matched its internal PACKAGE-CONTENTS-SHA256.txt manifest
+PASS: freshly extracted Windows and Linux executables were byte-identical to the verified clean builds
+PASS: freshly extracted source passed Go tests, vet, JavaScript syntax checks, and a full Windows/Linux rebuild
+PASS: binaries rebuilt from freshly extracted source were byte-identical to the verified clean builds
+PASS: freshly extracted Linux package launched and returned 154 sources, 163 tools, 9 repair patterns, and the correct 1.7.10/1.12.2 routes
+- The final archives are generated from this unchanged verified binary/source state.
+- An external FINAL-PACKAGE-ROUNDTRIP.txt receipt records final archive hashes, manifests, extraction, source rebuild, and runtime proof without creating a self-referential archive hash.
+
+PUBLICATION STATE
+- Google Drive target: folder 1nkX40V3f0psEQldm0WjAZH9o-gnAO-Ln (Minecraft Mod Vault)
+- GitHub target: Herbertofury/Minecraft-Mod-Vault
+- Remote publication is not claimed until provider metadata and remote bytes/digests are re-read and match the local release.

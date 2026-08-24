@@ -1,0 +1,48 @@
+{
+  "report": {
+    "title": "Minecraft Mod Vault",
+    "activeView": "doctor",
+    "pageTitle": "Mod Doctor",
+    "toolStatus": "2 of 163 curated records · 163 execution tools · reviewed 2026-08-20",
+    "visibleToolNames": [
+      "RetroFuturaGradle",
+      "FPGradle"
+    ],
+    "scanStatus": "Diagnosis 70a09da832002c65e940c2ab: 5 artifacts, 16 critical findings, 0 unreadable artifacts.",
+    "artifactCount": 5,
+    "artifactNames": [
+      "addon-1.0.0.jar",
+      "core-1.0.0.jar",
+      "cycle-a.jar",
+      "cycle-b.jar",
+      "core-duplicate.jar"
+    ],
+    "globalFindingTitles": [
+      "Critical-risk mods block unattended conversion",
+      "Different class implementations share one classpath name",
+      "Duplicate mod ID is provided by multiple JARs",
+      "Required dependencies form a cycle",
+      "The instance changes loader ecosystems",
+      "The migration includes a legacy Minecraft toolchain boundary",
+      "Some installed mods do not declare source provenance"
+    ],
+    "migrationStepTitles": [
+      "Snapshot the complete instance",
+      "Resolve every mod to canonical project and source identity",
+      "Build the complete dependency and incompatibility graph",
+      "Run a dedicated legacy reconstruction and compatibility program",
+      "Execute the ordered conversion program",
+      "Validate bridge-based compatibility separately",
+      "Run clean client, server, world, and feature regression matrices",
+      "Deploy transactionally with rollback"
+    ],
+    "logStatus": "medium confidence · 2 matched findings",
+    "logRoot": "A linked method descriptor changed or disappeared",
+    "bodyOverflowX": false,
+    "viewportWidth": 1600,
+    "doctorWidth": 1294
+  },
+  "exceptions": [],
+  "consoleErrors": [],
+  "networkFailures": []
+}

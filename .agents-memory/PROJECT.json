@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "projectId": "minecraft-mod-vault",
+  "name": "Minecraft Mod Vault",
+  "aliases": [
+    "Minecraft-Mod-Vault",
+    "MMV",
+    "Minecraft mod vault"
+  ],
+  "purpose": "Local-first Minecraft content discovery, updating, repair, compatibility diagnosis, and evidence-backed mod version porting.",
+  "canonicalRepository": "https://github.com/Herbertofury/Minecraft-Mod-Vault",
+  "canonicalSourceLineage": {
+    "recoveredDriveArtifact": "Minecraft-Mod-Vault-0.7.1-progress-23-source.zip",
+    "recoveredDriveFileId": "1599Auy_ifT14gmrpKyY7u7tgdyz01bkr",
+    "recoveredSha256": "9a2f54fdf60fc1160ee95f7bdbd9bc0badcb8e02e68f97e9ba8f15b9321ee68f"
+  },
+  "currentVersion": "0.9.0",
+  "currentVerifiedArtifacts": {
+    "linuxBinarySha256": "0e6720b4b1b9a6bb31f90fe2d498a7f4fbfac43df264d7e87bd23062d89ed2ee",
+    "windowsBinarySha256": "6b5967461a34cb8658d93644f9d60196bb3bdbd162519f9dda1aff3ef4fa9598",
+    "sourceCatalogSha256": "6e22adeb7fa965191650c287a3b56982b267ece229561d5745f710904bc2663d",
+    "toolCatalogSha256": "b5f489372cdba9567bd71e9424855b1f71c4200a5b5b92c25f8950e4acce8847",
+    "repairBrainSha256": "c91be601a68a036acb5d64d0173832721b90f6157bf4f59d9ff4c35877e93214",
+    "doctorScreenshotSha256": "1d8024b9ab6b1d2641b9316911bbe9afd9200b6b02e3e40d78e70d541e71ac1b",
+    "repairLabUIEvidenceSha256": "5693ed022ffed1456f05f76f349b87868870e3c102dcb5dab7eab2da6fbde694",
+    "portingLabUIEvidenceSha256": "9ee814a08f918fb604a7badddce920c7a4ca5f3fc6cbe4a0e1d97452be923795",
+    "compatibilityBrainSeedDigest": "eae01d1588056a1b7a680240752f3bd45add28b956cf115c3c1179a64f18d2d4"
+  },
+  "currentState": "verified-release-ready-for-publication",
+  "currentImplementationCommit": "4191fad",
+  "v090Lineage": {
+    "base": "Verified Porting Lab v0.9.0 source recovered from durable local/Drive artifacts",
+    "merged": "SQLite Compatibility Brain and secure source Repair Lab",
+    "toolchain": "Go 1.27.0 with vendored modernc.org/sqlite v1.57.0",
+    "seedRecoveryDocId": "1JmQwsUiA7T_rGPzFlsAkLaMjuLIze462fmP2q3Fu70o"
+  },
+  "v090Verification": {
+    "goTests": true,
+    "goVet": true,
+    "javascriptSyntax": true,
+    "jsonJsonlIntegrity": true,
+    "repairLabUI": {
+      "assertions": 25,
+      "apiCalls": 38,
+      "passed": true
+    },
+    "portingLabUI": {
+      "assertions": 29,
+      "apiCalls": 23,
+      "passed": true
+    },
+    "freshPackageSourceRebuildByteIdentical": true,
+    "freshPackageRuntime": true,
+    "restartPersistence": true,
+    "brain": {
+      "sqlite": "3.53.3",
+      "journalMode": "wal",
+      "minecraftVersions": 919,
+      "toolchainReleases": 15133,
+      "knowledgeDocuments": 342,
+      "repairRecords": 8
+    }
+  }
+}

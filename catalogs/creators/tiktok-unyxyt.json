@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "tiktok-unyxyt",
+  "title": "UnyxYT TikTok follow",
+  "updatedAt": "2026-08-24T16:30:00Z",
+  "source": "User-requested Creator Vault follow",
+  "sourceUrl": "https://www.tiktok.com/@unyxyt",
+  "creator": {
+    "platform": "tiktok",
+    "handle": "@unyxyt",
+    "url": "https://www.tiktok.com/@unyxyt",
+    "title": "UnyxYT",
+    "required": true,
+    "source": "curated-catalog"
+  },
+  "coverage": {
+    "expectedVideos": 0,
+    "complete": false,
+    "notes": "The Creator Vault performs full-history first sync and incremental refresh after provider access is available."
+  },
+  "videos": []
+}

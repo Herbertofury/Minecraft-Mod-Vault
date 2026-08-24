@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-20T00:00:00Z",
+  "schemaVersion": 1,
+  "sources": {
+    "architectury-loom-maven-metadata.xml": {
+      "bytes": 13346,
+      "latest": "1.10.449",
+      "records": 378
+    },
+    "auto-renaming-tool-maven-metadata.xml": {
+      "bytes": 1033,
+      "latest": "2.0.18",
+      "records": 23
+    },
+    "fabric-api-maven-metadata.xml": {
+      "bytes": 46276,
+      "latest": "0.158.0+26.3",
+      "records": 1135
+    },
+    "intermediary-maven-metadata.xml": {
+      "bytes": 16235,
+      "latest": "1.21.11",
+      "records": 461
+    },
+    "mcpconfig-maven-metadata.xml": {
+      "bytes": 10553,
+      "latest": "26.2-20260616.103818",
+      "records": 231
+    },
+    "mixin-maven-metadata.xml": {
+      "bytes": 3702,
+      "latest": "0.8.7",
+      "records": 87
+    },
+    "mixinextras-maven-metadata.xml": {
+      "bytes": 1584,
+      "latest": "0.5.4",
+      "records": 37
+    },
+    "quilt-mappings-maven-metadata.xml": {
+      "bytes": 29759,
+      "latest": "1.21.11+build.2",
+      "records": 712
+    },
+    "srgutils-maven-metadata.xml": {
+      "bytes": 1708,
+      "latest": "0.6.8",
+      "records": 45
+    },
+    "yarn-maven-metadata.xml": {
+      "bytes": 140430,
+      "latest": "1.21.11+build.6",
+      "records": 3412
+    }
+  }
+}

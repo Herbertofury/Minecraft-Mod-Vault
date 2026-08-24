@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "projectId": "minecraft-mod-vault",
+  "version": "0.12.0-p0.5-creator-catalog-hotdrop-ingestion-checkpoint",
+  "state": "verification-and-publication",
+  "goal": "Make Creator Vault consume hot-droppable evidence catalogs, seed the first real AsianHalfSquat catalog, and add user-requested TikTok creators without creator-specific hardcoding.",
+  "implementationCommit": "b7ee57a4698ea3068505d3a974bdb4d4059c4e0c",
+  "verified": [
+    "TikTok creator URLs and tiktok:@handle normalize into platform-scoped persistent subscriptions without YouTube handle collisions",
+    "Kizamiringo, Katsumi (@its_katsumi), SpeedyChunks (@speedychunks), CurseForge and HendyVideos are built-in TikTok follows; additional TikTok discovery sources are seeded as recommendations",
+    "First sync requests full history; later automatic refreshes are incremental and preserve prior archive state",
+    "Automatic sync failures use bounded exponential backoff while manual sync remains immediate",
+    "TikTok analysis merges captions or local speech-to-text with visual OCR for text-only overlays and resolves candidate mods through normal providers",
+    "Full Go tests and go vet pass under the documented host-Go compatibility metadata test; canonical source metadata remains Go 1.27.0",
+    "Real local Tesseract OCR fixture reads Minecraft mod names",
+    "Fresh Linux and Windows checkpoint binaries build; packaged Linux runtime loads 18 seeded creators and reports the OCR backend",
+    "Packaged Linux runtime persisted a custom TikTok follow and paused state across restart",
+    "Fresh packaged runtime exposes Katsumi as a required, active, curated-core TikTok follow in the 18-creator watchlist and the UI mentions Katsumi",
+    "Katsumi has two evidence-backed built-in creator hub seeds: https://lnk.bio/itskatsumii and https://linktr.ee/Itskatsumii; no unverified exact modpack child URL is hardcoded",
+    "Creator profile intelligence discovers known link hubs from profile pages, provider bio metadata, and up to 24 recent archived upload descriptions",
+    "The bounded crawler fetches only YouTube/TikTok profiles and recognized public link hubs while recording outbound destinations without recursively fetching arbitrary external sites",
+    "Link labels and destinations classify modpacks, mods, mod lists, resource packs, shaders, datapacks, socials, downloads, support, wishlists, hubs and websites with provenance and first/last-seen timestamps",
+    "YouTube/platform redirect wrappers and link-hub outbound redirects resolve target metadata without issuing the outbound request",
+    "Successful profile refresh removes stale auto-discovered links; blocked refreshes keep last-known-good links with truthful cached status",
+    "Creator cards include a functional premium Creator Links panel and a lightweight Refresh links API/action independent of video rescans",
+    "P0.2 full Go tests and go vet pass under the documented host-Go compatibility procedure; JavaScript syntax and git diff whitespace checks pass; source remains Go 1.27.0",
+    "Fresh P0.2 Linux and Windows compatibility binaries built; Linux SHA-256 79639b03f32347cc4aeed8868ff6ea65c68734b41f8635aa3a935e0c658b39f2 and Windows SHA-256 000d05b469f65ccc2fe5eefd9b304cb8bf394f96a3bb8ef12c4e55450725a07c",
+    "Fresh packaged Linux runtime loaded 18 creators and Katsumi with both verified seeded hubs",
+    "Real Katsumi profile-link refresh in the blocked-network runtime returned truthful 502 while retaining last-known-good hubs as cached state",
+    "Katsumi cached link state and provider error survived a full process restart",
+    "Creator Vault models zero/one/many creator modpacks with provider, project, relationship, evidence and first/last-seen provenance rather than a single guessed pack URL",
+    "Verified CurseForge creator profiles enumerate member and owner modpacks separately when API evidence is configured, with a public profile fallback when it is not",
+    "Verified Modrinth creator profiles enumerate all user projects filtered to modpacks and use project-team data to distinguish owner from member relationships",
+    "Creator-controlled direct My Modpack links can promote differently named provider identities only when provider evidence resolves exactly one owner/author; ambiguous ownership is not promoted",
+    "AsianHalfSquat and EnderVerse built-ins seed their verified CurseForge creator profiles so current project libraries are provider-discovered rather than hardcoded",
+    "Full Go tests, go vet, JavaScript syntax checks and git diff whitespace checks pass under the documented host-Go compatibility procedure with source restored to Go 1.27.0",
+    "Fresh Linux and Windows P0.3 compatibility binaries built; Linux SHA-256 2b350313cf18961b82c4da8ef8a6a1489388c4669edc75ace0f6fe607ed6620a and Windows SHA-256 98e43a542e2b388ed25123dffba32f7a527752f8f6f1decce1068b2bdb31ecec",
+    "Linux executable freshly extracted from the deliverable tarball (byte-identical to raw build) returned all 4 AsianHalfSquat and all 3 EnderVerse provider-profile fixture packs, then restored both exact libraries after restart while retaining 17 built-in creators",
+    "SpeedyChunks (@speedychunks) is a required curated-core TikTok follow; the supplied ?lang=en profile URL normalizes to the canonical profile and no unverified external creator/profile/modpack link is hardcoded",
+    "SpeedyChunks (@speedychunks) is a required curated-core TikTok follow and the supplied https://www.tiktok.com/@speedychunks?lang=en normalizes to the canonical profile URL",
+    "Fresh Linux runtime loaded 18 creators with exactly one SpeedyChunks entry; required=true, source=curated-core, paused=false",
+    "A full process restart with the same clean config restored exactly 18 creators and exactly one required SpeedyChunks entry without duplication",
+    "Public web search did not expose a trustworthy SpeedyChunks Linktree/CurseForge/Modrinth identity, so no external profile or modpack destination is hardcoded; the existing link-hub/modpack discovery pipeline remains responsible for verified discovery",
+    "Creator Vault consumes embedded and runtime hot-drop schema-v1 JSON creator catalogs into the existing channels/videos/recommendations database; no parallel toy database exists",
+    "Runtime catalog reload is digest-gated, supports nested folders and disabled files, rejects malformed/oversized data truthfully, and preserves last-known-good data",
+    "AsianHalfSquat catalog records expectedVideos=349, 11 exact seeded videos and 93 evidence-backed recommendations while explicitly remaining incomplete",
+    "SpeedyChunks, NoxusMinecraft and UnyxYT are protected TikTok follows; NoxusMinecraft and UnyxYT are added via data catalogs instead of creator-specific Go code",
+    "Fresh runtime exposed 20 protected creators, exactly one each of @speedychunks/@noxusminecraft/@unyxyt, AsianHalfSquat 349 total / 11 indexed / 93 recommendations, and catalog state 4 bundles / 11 videos / 93 recommendations",
+    "Runtime hot-drop proof added a fifth catalog with a new creator/video/recommendation without restart; malformed replacement returned HTTP 207 while retaining last-known-good data; restart preserved the ingested record",
+    "Full Go test suite passed against final P0.5 source under the documented host-toolchain metadata shim; prior current-run go vet passed; JS syntax and all catalog JSON parsing passed",
+    "Fresh Linux and Windows P0.5 binaries were produced from the final source"
+  ],
+  "next": [
+    "FIRST: port the P0.5 data-loader/catalog delta into the newest concurrent Minecraft Mod Vault source without wholesale file replacement",
+    "On a network-enabled runtime finish AsianHalfSquat full-history enumeration and provider resolution across the remaining channel videos while preserving catalog provenance",
+    "Continue creator-by-creator catalog drops using the same schema; no creator-specific code is required for ordinary additions"
+  ],
+  "publication": {
+    "googleDrive": {
+      "folderId": "1nkX40V3f0psEQldm0WjAZH9o-gnAO-Ln",
+      "status": "p0.4-speedychunks-versioned-artifacts-publication-pending"
+    },
+    "github": {
+      "repository": "Herbertofury/Minecraft-Mod-Vault",
+      "status": "P0-issue-5-p0.4-handoff-pending"
+    },
+    "proofRule": "Preserve the active concurrent release and publish this work as a mergeable checkpoint until live TikTok and Windows OCR gates pass."
+  },
+  "updatedAt": "2026-08-24T16:40:00Z"
+}

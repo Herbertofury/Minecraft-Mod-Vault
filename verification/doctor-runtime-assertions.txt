@@ -1,0 +1,21 @@
+PASS: unauthorized API request returned HTTP 403
+PASS: authenticated /api/system reported Minecraft Mod Vault 0.8.0 and the isolated five-JAR fixture
+PASS: embedded index.html and app.js returned HTTP 200
+PASS: /api/doctor/sources returned 154 curated primary-source records
+PASS: /api/doctor/tools returned 163 unique merged execution records and 9 repair patterns
+PASS: current reconstruction, legacy toolchain, runtime compatibility, packaging, and publishing tool IDs were present
+PASS: modern /api/doctor/scan inspected 5 hostile fixture JARs
+PASS: duplicate mod ID detected
+PASS: conflicting duplicate class detected
+PASS: missing Fabric API dependency detected
+PASS: required dependency cycle detected
+PASS: dependency-first order generated
+PASS: Fabric 1.20.1 to NeoForge 1.21.1 selected Java 21
+PASS: Forge 1.7.10 to NeoForge 1.21.1 emitted global-legacy-toolchain and legacy-reconstruction-program
+PASS: the 1.7.10 route selected RetroMCP-Java, RetroFuturaGradle, RetroFuturaBootstrap, UniMixins, LWJGL3ify, Hodgepodge, and LegacyFix
+PASS: Cleanroom was correctly excluded from the 1.7.10-specific route
+PASS: Forge 1.12.2 to NeoForge 1.21.1 emitted global-legacy-toolchain and legacy-reconstruction-program
+PASS: the 1.12.2 route selected RetroMCP-Java, Cleanroom, Fugue, MixinBooter, and LegacyFix
+PASS: RetroFuturaBootstrap was correctly excluded from the 1.12.2-specific route
+PASS: runtime compatibility layers remained separate from semantic source/data porting
+PASS: log analyzer classified NoSuchMethodError and Mixin application failure

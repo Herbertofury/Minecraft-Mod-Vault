@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "tiktok-speedychunks",
+  "title": "SpeedyChunks TikTok follow",
+  "updatedAt": "2026-08-24T16:30:00Z",
+  "source": "User-requested Creator Vault follow",
+  "sourceUrl": "https://www.tiktok.com/@speedychunks",
+  "creator": {
+    "platform": "tiktok",
+    "handle": "@speedychunks",
+    "url": "https://www.tiktok.com/@speedychunks",
+    "title": "SpeedyChunks",
+    "required": true,
+    "source": "curated-catalog"
+  },
+  "coverage": {
+    "expectedVideos": 0,
+    "complete": false,
+    "notes": "The Creator Vault performs full-history first sync and incremental refresh after provider access is available."
+  },
+  "videos": []
+}

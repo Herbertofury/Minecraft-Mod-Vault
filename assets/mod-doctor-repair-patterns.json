@@ -1,0 +1,83 @@
+[
+  {
+    "id": "binary-owner-descriptor-drift",
+    "name": "Binary owner, member, and descriptor drift",
+    "failureClass": "NoSuchMethodError, NoSuchFieldError, AbstractMethodError, IncompatibleClassChangeError, or a dependency-owned class moved while behavior remained equivalent",
+    "trigger": "The dependent bytecode references an owner/name/descriptor that the installed dependency no longer exports.",
+    "repair": "Compare the exact dependent constant-pool reference with old and new provider bytecode. Prefer a source rebuild; otherwise patch only the proven owner/name/descriptor or add a tightly version-gated adapter while preserving the original artifact.",
+    "verification": ["Disassemble dependent call sites", "Inspect old and new provider descriptors", "Validate rebuilt class files", "Run the exact original reproducer", "Record hashes and applicability"],
+    "confidence": "high"
+  },
+  {
+    "id": "data-namespace-schema-defect",
+    "name": "Data namespace, registry, codec, or NBT schema defect",
+    "failureClass": "Unknown registry key, malformed datapack, jigsaw/template-pool failure, codec error, or invalid NBT/resource namespace",
+    "trigger": "A packaged or persisted identifier points to the wrong namespace or no longer matches the target schema.",
+    "repair": "Correct only the proven resource identifier, codec payload, registry remap, or NBT path on an immutable copy. Preserve unrelated world and mod data.",
+    "verification": ["Parse every changed resource", "Load a copied world", "Exercise the affected registry or structure", "Restart and compare persisted data"],
+    "confidence": "high"
+  },
+  {
+    "id": "mixin-annotation-contract",
+    "name": "Mixin annotation, target, and injection contract",
+    "failureClass": "Mixin PREPARE/APPLY failure, invalid injection, missing target, wrong annotation retention, accessor/invoker mismatch, or competing transformer",
+    "trigger": "Mixin metadata or bytecode no longer describes the exact target class and member contract.",
+    "repair": "Inspect RuntimeVisibleAnnotations and RuntimeInvisibleAnnotations plus the exact target bytecode. Retarget classes, descriptors, injection points, slices, ordinals, plugin predicates, and priorities without blanket-disabling the feature.",
+    "verification": ["javap -verbose annotation check", "Mixin diagnostic launch", "Target bytecode comparison", "Feature-level behavior test", "Clean restart"],
+    "confidence": "high"
+  },
+  {
+    "id": "loader-metadata-not-proof",
+    "name": "Loader metadata is not binary compatibility proof",
+    "failureClass": "A JAR declares an acceptable loader or dependency range but fails linkage or bootstrap",
+    "trigger": "Metadata permits the combination while class, method, field, transformer, or lifecycle contracts differ.",
+    "repair": "Treat metadata as a candidate filter only. Verify actual bytecode, dependency graph, loader services, access rules, mixins, and runtime behavior against the exact versions.",
+    "verification": ["Dependency graph scan", "Binary API diff", "Client and dedicated-server launch", "Original feature reproducer"],
+    "confidence": "high"
+  },
+  {
+    "id": "separate-compatibility-adapter",
+    "name": "Separate compatibility adapter",
+    "failureClass": "Two valid upstream mods expose incompatible public APIs or data contracts",
+    "trigger": "Each upstream artifact works alone, but their integration layer no longer aligns.",
+    "repair": "Build a separately versioned adapter that translates only the proven boundary. Keep both upstream JARs byte-identical and make supported version tuples explicit.",
+    "verification": ["Both upstream hashes unchanged", "Adapter-only archive diff", "Exact integration workflow exercised", "Adapter removal restores baseline"],
+    "confidence": "medium-high"
+  },
+  {
+    "id": "dependency-graph-resolution",
+    "name": "Dependency graph and classpath collision resolution",
+    "failureClass": "Duplicate mod IDs, missing required dependencies, declared conflicts, duplicate classes, or dependency cycles",
+    "trigger": "The installed artifact graph cannot be topologically or uniquely resolved.",
+    "repair": "Resolve every artifact to canonical identity, preserve dependency relationship types, reconcile required versions, remove exact duplicates, relocate conflicting shaded classes, and migrate cyclic components as one unit.",
+    "verification": ["Rescan all metadata", "Hash every JAR", "Recompute duplicate classes", "Launch in a clean profile", "Restart after successful validation"],
+    "confidence": "high"
+  },
+  {
+    "id": "source-recovery-dual-decompiler",
+    "name": "Controlled source recovery with independent decompilers",
+    "failureClass": "The installed binary has no reproducible source repository or matching tag",
+    "trigger": "Provider metadata and release history cannot reproduce the exact artifact.",
+    "repair": "Preserve the original, decompile with at least two independent engines, remap with known mappings, compare control flow and resources, record ambiguity, and rebuild before changing semantics.",
+    "verification": ["Dual-decompiler comparison", "Recompiled archive validation", "Behavioral baseline comparison", "Provenance and uncertainty ledger"],
+    "confidence": "medium"
+  },
+  {
+    "id": "transactional-batch-repair",
+    "name": "Transactional batch migration and rollback",
+    "failureClass": "A modpack update or loader/version migration can leave a partially applied instance",
+    "trigger": "Multiple interdependent artifacts, configs, scripts, datapacks, or worlds change together.",
+    "repair": "Stage the complete batch, verify hashes and metadata, snapshot mutable state, apply in dependency order, run the runtime matrix, and restore the whole snapshot on failure.",
+    "verification": ["Pre/post inventory hashes", "Atomic replacement receipt", "Client/server/world matrix", "Rollback drill"],
+    "confidence": "high"
+  },
+  {
+    "id": "repair-supersession-memory",
+    "name": "Repair supersession and failed-attempt memory",
+    "failureClass": "A previous patch failed, partially worked, or was superseded",
+    "trigger": "The same version tuple or failure signature reappears.",
+    "repair": "Retain the earlier attempt and outcome, link the replacement, record exact versions/hashes, and require new evidence before reuse on another tuple.",
+    "verification": ["History record preserved", "Replacement linked", "Exact versions and hashes recorded", "Observed user result captured"],
+    "confidence": "high"
+  }
+]

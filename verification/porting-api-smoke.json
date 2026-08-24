@@ -1,0 +1,701 @@
+{
+  "system": {
+    "arch": "amd64",
+    "bedrockExists": false,
+    "configDir": "/mnt/data/mmv-runtime-090/config/MinecraftModVault",
+    "javaExists": true,
+    "name": "Minecraft Mod Vault",
+    "os": "linux",
+    "serverExists": true,
+    "settings": {
+      "javaRoot": "/mnt/data/mmv-runtime-090/home/.minecraft",
+      "bedrockRoot": "",
+      "worldRoot": "",
+      "serverRoot": "/mnt/data/mmv-runtime-090/server",
+      "serverPlatform": "PAPER",
+      "gameVersion": "1.20.1",
+      "loader": "forge",
+      "activeProfile": "Runtime Verification",
+      "curseForgeApiKey": "",
+      "githubToken": "",
+      "youtubeApiKey": "",
+      "builtByBitApiKey": "",
+      "builtByBitOAuthToken": "",
+      "nexusApiKey": "",
+      "autoRefreshMinutes": 60,
+      "creatorRefreshMinutes": 1440,
+      "creatorTranscriptModel": "large-v3-turbo-q5_0",
+      "creatorArchiveConcurrency": 1,
+      "preferredTags": [
+        "performance",
+        "compatibility"
+      ],
+      "enabledSources": [
+        "modrinth",
+        "github"
+      ],
+      "providerSchemaVersion": 7
+    },
+    "version": "0.9.0",
+    "worldExists": false
+  },
+  "atlas": {
+    "schemaVersion": 1,
+    "totalMatches": 1,
+    "versionCount": 1,
+    "sourceEvidenceCount": 30,
+    "firstVersion": {
+      "id": "1.20.1",
+      "type": "release",
+      "releaseTime": "2023-06-12T13:25:51+00:00",
+      "time": "2023-06-12T13:25:51+00:00",
+      "javaMajor": 17,
+      "javaComponent": "java-runtime-gamma",
+      "client": true,
+      "server": true,
+      "clientMappings": true,
+      "serverMappings": true,
+      "assetIndex": "5",
+      "libraryCount": 88,
+      "complianceLevel": 1,
+      "dataVersion": 3465,
+      "protocolVersion": 763,
+      "dataPackVersion": 15,
+      "resourcePackVersion": 15,
+      "releaseTarget": "",
+      "stable": true,
+      "fabric": true,
+      "quilt": true,
+      "modrinth": true
+    }
+  },
+  "environment": {
+    "createdAt": "2026-08-21T03:55:08Z",
+    "os": "linux",
+    "arch": "amd64",
+    "targetGameVersion": "1.21.1",
+    "requiredJava": 21,
+    "commands": [
+      {
+        "id": "java",
+        "installed": true,
+        "path": "/usr/bin/java",
+        "version": "openjdk version \"21.0.11\" 2026-04-21",
+        "required": true,
+        "purpose": "Minecraft runtime and Gradle toolchain"
+      },
+      {
+        "id": "javac",
+        "installed": true,
+        "path": "/usr/bin/javac",
+        "version": "javac 21.0.11",
+        "required": true,
+        "purpose": "Source compilation"
+      },
+      {
+        "id": "git",
+        "installed": true,
+        "path": "/usr/bin/git",
+        "version": "git version 2.47.3",
+        "required": true,
+        "purpose": "Source provenance and reversible patches"
+      },
+      {
+        "id": "gradle",
+        "installed": false,
+        "required": false,
+        "purpose": "Fallback when a generated workspace does not yet contain a wrapper"
+      },
+      {
+        "id": "node",
+        "installed": true,
+        "path": "/opt/nvm/versions/node/v22.16.0/bin/node",
+        "version": "v22.16.0",
+        "required": false,
+        "purpose": "Optional asset and web tooling"
+      },
+      {
+        "id": "python",
+        "installed": true,
+        "path": "/opt/pyvenv/bin/python3",
+        "version": "Python 3.13.5",
+        "required": false,
+        "purpose": "Atlas/build helper scripts"
+      },
+      {
+        "id": "unzip",
+        "installed": true,
+        "path": "/usr/bin/unzip",
+        "version": "UnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.",
+        "required": false,
+        "purpose": "Archive verification"
+      },
+      {
+        "id": "tar",
+        "installed": true,
+        "path": "/usr/bin/tar",
+        "version": "tar (GNU tar) 1.35",
+        "required": false,
+        "purpose": "Source and evidence packaging"
+      }
+    ],
+    "readyForPlanning": true,
+    "readyForLocalBuild": true,
+    "warnings": null
+  },
+  "toolCatalog": {
+    "reviewedAt": "2026-08-20",
+    "total": 167,
+    "categories": 83,
+    "repairPatterns": 9
+  },
+  "plan": {
+    "id": "416bcc5861d0c9067dcffbb0",
+    "createdAt": "2026-08-21T03:55:08Z",
+    "evidenceSnapshotAt": "2026-08-20T00:00:00Z",
+    "projectName": "Vault Fixture Port",
+    "sourceMode": "binary",
+    "direction": "upgrade",
+    "risk": "critical",
+    "source": {
+      "id": "1.20.1",
+      "type": "release",
+      "releaseTime": "2023-06-12T13:25:51+00:00",
+      "time": "2023-06-12T13:25:51+00:00",
+      "javaMajor": 17,
+      "javaComponent": "java-runtime-gamma",
+      "client": true,
+      "server": true,
+      "clientMappings": true,
+      "serverMappings": true,
+      "assetIndex": "5",
+      "libraryCount": 88,
+      "complianceLevel": 1,
+      "dataVersion": 3465,
+      "protocolVersion": 763,
+      "dataPackVersion": 15,
+      "resourcePackVersion": 15,
+      "releaseTarget": "",
+      "stable": true,
+      "fabric": true,
+      "quilt": true,
+      "modrinth": true
+    },
+    "target": {
+      "id": "1.21.1",
+      "type": "release",
+      "releaseTime": "2024-08-08T12:24:45+00:00",
+      "time": "2024-08-08T12:24:45+00:00",
+      "javaMajor": 21,
+      "javaComponent": "java-runtime-delta",
+      "client": true,
+      "server": true,
+      "clientMappings": true,
+      "serverMappings": true,
+      "assetIndex": "17",
+      "libraryCount": 97,
+      "complianceLevel": 1,
+      "dataVersion": 3955,
+      "protocolVersion": 767,
+      "dataPackVersion": 48,
+      "resourcePackVersion": 34,
+      "releaseTarget": "",
+      "stable": true,
+      "fabric": true,
+      "quilt": true,
+      "modrinth": true
+    },
+    "sourceLoader": "forge",
+    "targetLoader": "neoforge",
+    "inputJar": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar",
+    "inputAnalysis": {
+      "path": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar",
+      "filename": "vault-fixture.jar",
+      "size": 1504,
+      "sha256": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e",
+      "sha512": "8426c924dc6e4d8c7a2d5366aa08ea0823dbfcc211b59b18eb2dd4666347a672401d42e4c468d4165970d79c23737886482c4b47717da08b5fdab6f7c79835f2",
+      "curseFingerprint": 1919638402,
+      "metadata": {
+        "modId": "vault_fixture",
+        "name": "Vault Fixture",
+        "version": "1.0.0",
+        "loaders": [
+          "forge"
+        ],
+        "metadataBy": "mods.toml"
+      },
+      "detectedLoaders": [
+        "forge"
+      ],
+      "modIds": [
+        "vault_fixture"
+      ],
+      "dependencies": [
+        {
+          "owner": "vault_fixture",
+          "modId": "forge",
+          "version": "[47,)",
+          "relationship": "required",
+          "side": "BOTH",
+          "source": "mods.toml"
+        },
+        {
+          "owner": "vault_fixture",
+          "modId": "minecraft",
+          "version": "[1.20.1]",
+          "relationship": "required",
+          "side": "BOTH",
+          "source": "mods.toml"
+        }
+      ],
+      "classCount": 1,
+      "maxJava": 17,
+      "mixinConfigs": [
+        "vault_fixture.mixins.json"
+      ],
+      "accessTransformers": [
+        "META-INF/accesstransformer.cfg"
+      ],
+      "dataFileCount": 1,
+      "assetFileCount": 1,
+      "usesReflection": true,
+      "usesUnsafe": true,
+      "hasClientReferences": true,
+      "riskSignals": [
+        "No source repository is declared in the JAR metadata.",
+        "1 mixin configuration(s) require target/refmap revalidation.",
+        "Access widening/transformation rules must be translated and reverified for the target namespace.",
+        "Reflection, Unsafe, or MethodHandles usage raises Java/module/runtime compatibility risk."
+      ]
+    },
+    "pins": {
+      "java": "21",
+      "mappings": "official",
+      "minecraft": "1.21.1",
+      "mixin": "0.8.7",
+      "mixinExtras": "0.5.4",
+      "modDevGradle": "2.0.144",
+      "neoForge": "21.1.248",
+      "neoForm": "26.2-2",
+      "srgUtils": "0.6.8",
+      "tinyRemapper": "2.0.18"
+    },
+    "boundaries": [
+      "Input artifact: vault-fixture.jar [vault_fixture] · 1 classes · SHA-256 bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e",
+      "Minecraft runtime: 1.20.1 -> 1.21.1",
+      "Loader/API surface: forge -> neoforge",
+      "Java bytecode/runtime: Java 17 -> Java 21",
+      "Data pack schema: 15 -> 48",
+      "Resource pack schema: 15 -> 34",
+      "Network protocol: 763 -> 767"
+    ],
+    "warnings": [
+      "A generated plan or successful compile is evidence, not proof of a completed port.",
+      "The workspace never mutates the installed mod; changes happen in an isolated copy with hashes and rollback instructions.",
+      "Binary-only reconstruction is lower confidence than an upstream source build. Resolve official source and exact dependencies before editing decompiler output whenever possible.",
+      "Cross-loader ports require semantic API replacement and side/runtime testing; metadata translation or a compatibility bridge alone is not completion.",
+      "No source repository is declared in the JAR metadata.",
+      "1 mixin configuration(s) require target/refmap revalidation.",
+      "Access widening/transformation rules must be translated and reverified for the target namespace.",
+      "Reflection, Unsafe, or MethodHandles usage raises Java/module/runtime compatibility risk."
+    ],
+    "tools": [
+      {
+        "id": "intermed",
+        "name": "InterMed",
+        "category": "static-analysis",
+        "maturity": "alpha",
+        "officialUrl": "https://github.com/jarettr/intermed",
+        "required": true,
+        "reason": "Preflight bytecode, metadata, data/resource, mixin, security, SBOM, log, and performance signals before changing the artifact.",
+        "guardrail": "Treat findings as evidence to verify, not automatic rewrites."
+      },
+      {
+        "id": "modcrawl",
+        "name": "modcrawl",
+        "category": "artifact-analysis",
+        "maturity": "active",
+        "officialUrl": "https://github.com/SirCesarium/modcrawl",
+        "required": false,
+        "reason": "Independent fast JAR metadata, dependency, class, mixin, and duplicate inspection for cross-checking the Vault."
+      },
+      {
+        "id": "vineflower",
+        "name": "Vineflower",
+        "category": "decompiler",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/Vineflower/vineflower",
+        "required": true,
+        "reason": "Primary modern Java decompiler for source reconstruction; compare its output against a second decompiler and bytecode."
+      },
+      {
+        "id": "cfr",
+        "name": "CFR",
+        "category": "decompiler",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/leibnitz27/cfr",
+        "required": true,
+        "reason": "Independent decompiler cross-check to detect control-flow or synthetic-code reconstruction errors."
+      },
+      {
+        "id": "tiny-remapper",
+        "name": "Tiny Remapper",
+        "category": "mapping",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/FabricMC/tiny-remapper",
+        "pinnedVersion": "2.0.18",
+        "required": true,
+        "reason": "Controlled namespace remapping for compatible mapping graphs.",
+        "guardrail": "Remapping does not replace semantic API migration."
+      },
+      {
+        "id": "retromod",
+        "name": "Retromod",
+        "category": "binary-compatibility",
+        "maturity": "experimental",
+        "officialUrl": "https://github.com/Bownlux/Retromod",
+        "required": false,
+        "reason": "Candidate bytecode transforms and compatibility shims for narrow, measured binary gaps.",
+        "guardrail": "Never call a Retromod-transformed JAR ported until source-equivalent behavior passes the full runtime matrix."
+      },
+      {
+        "id": "moddevgradle",
+        "name": "ModDevGradle",
+        "category": "build",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/neoforged/ModDevGradle",
+        "pinnedVersion": "2.0.144",
+        "required": true,
+        "reason": "Official NeoForge development plugin with target-version run and test configuration."
+      },
+      {
+        "id": "modstitch",
+        "name": "Modstitch",
+        "category": "loader-migration",
+        "maturity": "experimental",
+        "officialUrl": "https://github.com/isXander/Modstitch",
+        "required": false,
+        "reason": "Can reduce duplicated source while translating selected loader declarations and access mechanisms.",
+        "guardrail": "Generated translation must be compared against a native target-loader implementation."
+      },
+      {
+        "id": "japicmp",
+        "name": "japicmp",
+        "category": "api-diff",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/siom79/japicmp",
+        "required": true,
+        "reason": "Binary API diffing across dependency and loader versions to turn compile failures into an ordered migration map."
+      },
+      {
+        "id": "packwiz",
+        "name": "packwiz",
+        "category": "test-pack",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/packwiz/packwiz",
+        "required": false,
+        "reason": "Reproducible disposable client/server integration packs for matrix testing."
+      },
+      {
+        "id": "ferium",
+        "name": "Ferium",
+        "category": "dependency-acquisition",
+        "maturity": "stable",
+        "officialUrl": "https://github.com/gorilla-devs/ferium",
+        "required": false,
+        "reason": "Independent Modrinth/CurseForge/GitHub acquisition path for test fixtures and comparison against provider resolution."
+      }
+    ],
+    "phases": [
+      {
+        "order": 1,
+        "id": "preserve-identify",
+        "title": "Preserve and identify",
+        "goal": "Freeze exact inputs before any mutation.",
+        "actions": [
+          "Hash every input and dependency",
+          "Extract loader metadata, mappings, mixins, access rules, services, native libraries, and source provenance",
+          "Record source and target toolchain coordinates"
+        ],
+        "gates": [
+          "Original bytes are unchanged and independently recoverable",
+          "Every input has SHA-256 and SHA-512 identity"
+        ],
+        "toolIds": [
+          "intermed",
+          "modcrawl"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 2,
+        "id": "reconstruct",
+        "title": "Reconstruct the exact source environment",
+        "goal": "Make the original artifact reproducible before changing versions.",
+        "actions": [
+          "Resolve upstream source and commit",
+          "Restore exact Java, Gradle, loader, mappings, libraries, processors, and generated sources",
+          "For binary-only inputs, decompile twice and reconcile against bytecode"
+        ],
+        "gates": [
+          "A clean source build reproduces equivalent metadata and behavior",
+          "Unresolved/generated/decompiler artifacts are listed explicitly"
+        ],
+        "toolIds": [
+          "vineflower",
+          "cfr",
+          "retrofuturagradle",
+          "unimined"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 3,
+        "id": "mapping-namespace",
+        "title": "Migrate mappings and namespaces",
+        "goal": "Translate names without hiding semantic API changes.",
+        "actions": [
+          "Select one canonical mapping graph",
+          "Remap source or bytecode in an isolated branch",
+          "Diff APIs before replacing calls"
+        ],
+        "gates": [
+          "No unmapped owners/descriptors remain",
+          "Mixin targets, refmaps, access wideners/transformers, and invokedynamic descriptors resolve"
+        ],
+        "toolIds": [
+          "tiny-remapper",
+          "japicmp"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 4,
+        "id": "loader-api",
+        "title": "Port loader and game APIs",
+        "goal": "Replace lifecycle, registry, networking, rendering, config, data, and side APIs deliberately.",
+        "actions": [
+          "Port dependency declarations and entrypoints",
+          "Replace removed or behaviorally changed APIs",
+          "Separate common logic from loader adapters when appropriate"
+        ],
+        "gates": [
+          "Compile and static linkage pass on the native target loader",
+          "No compatibility bridge is the sole proof of correctness"
+        ],
+        "toolIds": [
+          "fabric-loom",
+          "forgegradle",
+          "moddevgradle",
+          "modstitch",
+          "architectury-loom",
+          "stonecutter"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 5,
+        "id": "data-assets",
+        "title": "Transform data and assets",
+        "goal": "Preserve registries, tags, recipes, loot, models, shaders, translations, configs, and saved data.",
+        "actions": [
+          "Diff pack/schema versions",
+          "Write explicit forward and reverse transforms",
+          "Measure downgrade loss on disposable copies"
+        ],
+        "gates": [
+          "Generated resources validate",
+          "World/data migration and rollback behavior are documented"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 6,
+        "id": "compile-audit",
+        "title": "Compile and audit",
+        "goal": "Turn every build warning and static finding into an owned result.",
+        "actions": [
+          "Run clean build with pinned Java",
+          "Run dependency convergence, duplicate-class, API diff, mixin, security, and SBOM checks",
+          "Reject undeclared or floating dependencies"
+        ],
+        "gates": [
+          "Build is clean and repeatable",
+          "No unresolved critical/high finding is silently waived"
+        ],
+        "toolIds": [
+          "intermed",
+          "modcrawl",
+          "japicmp"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 7,
+        "id": "runtime-matrix",
+        "title": "Exercise real client and server matrices",
+        "goal": "Prove behavior, not merely startup.",
+        "actions": [
+          "Launch disposable client and dedicated server",
+          "Exercise networking, configs, registries, world creation/load, rendering, integrations, and highest-risk features",
+          "Inspect fresh logs and crash reports"
+        ],
+        "gates": [
+          "Both supported sides pass",
+          "Feature-level acceptance checks pass with no new severe log evidence"
+        ],
+        "toolIds": [
+          "packwiz",
+          "ferium"
+        ],
+        "destructive": false
+      },
+      {
+        "order": 8,
+        "id": "package-rollback",
+        "title": "Package, compare, and retain rollback",
+        "goal": "Produce a reproducible artifact with complete lineage.",
+        "actions": [
+          "Build twice from clean state",
+          "Compare archive contents and hashes",
+          "Write release, migration, loss, and restore receipts"
+        ],
+        "gates": [
+          "Rebuilds are byte-identical or differences are explained",
+          "Original and last-known-good artifacts remain restorable"
+        ],
+        "destructive": false
+      }
+    ],
+    "verificationMatrix": [
+      "Re-hash the selected input immediately before reconstruction and match SHA-256 bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e.",
+      "Reconcile detected mod IDs, loader evidence, dependencies, mixins/access rules, nested JARs, signatures, and native libraries against the recovered source tree.",
+      "Compile from a clean dependency cache with the pinned Java and build toolchain.",
+      "Run static linkage, mixin/refmap, access widener/transformer, resource, and data schema checks.",
+      "Launch a disposable client and create/load a disposable world with fresh logs.",
+      "Launch a disposable dedicated server, join once, exercise networking/config sync, then stop cleanly.",
+      "Exercise the mod's highest-risk features, integrations, saved data, recipes, registries, and world generation.",
+      "Rebuild twice and compare package contents, hashes, embedded dependencies, signatures, and metadata."
+    ],
+    "completionDefinition": [
+      "Source provenance is resolved independently, or binary-only reconstruction limitations are documented with dual-decompiler evidence.",
+      "No source, mapping, compile, linkage, mixin, resource, registry, data-fixer, network, or side-only failures remain.",
+      "Client and dedicated-server tests cover the mod's actual behavior rather than startup alone.",
+      "Upgrade and downgrade paths preserve documented data or explicitly report irreversible loss.",
+      "The original artifact and every mutation remain recoverable through hashes, receipts, backups, and rollback instructions."
+    ]
+  },
+  "workspace": {
+    "schemaVersion": 1,
+    "id": "20260821T035508Z-7d411560",
+    "createdAt": "2026-08-21T03:55:08Z",
+    "path": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/porting-workspaces/20260821T035508Z-7d411560-vault-fixture-port",
+    "planId": "416bcc5861d0c9067dcffbb0",
+    "projectName": "vault-fixture-port",
+    "source": "1.20.1",
+    "target": "1.21.1",
+    "sourceLoader": "forge",
+    "targetLoader": "neoforge",
+    "input": {
+      "originalPath": "/mnt/data/mmv-runtime-090/home/.minecraft/mods/vault-fixture.jar",
+      "workspacePath": "/mnt/data/mmv-runtime-090/config/MinecraftModVault/porting-workspaces/20260821T035508Z-7d411560-vault-fixture-port/inputs/vault-fixture.jar",
+      "filename": "vault-fixture.jar",
+      "size": 1504,
+      "sha256": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e"
+    },
+    "files": [
+      {
+        "path": ".gitignore",
+        "size": 53,
+        "sha256": "8c44391a3d74c2f6f46c26488dfe52986c8c105a8e5e51b869bb6d35919ec816"
+      },
+      {
+        "path": "PORTING-PLAN.json",
+        "size": 16008,
+        "sha256": "0ed51796e2128a83e8420f7f2f7ab648a1794cb21bc0682995c42dffea164d55"
+      },
+      {
+        "path": "PORTING-PLAN.md",
+        "size": 6575,
+        "sha256": "a871517519cc725f206138dd2d9c1c0443cc22f4c626319cc59bd58807a1acd9"
+      },
+      {
+        "path": "README.md",
+        "size": 918,
+        "sha256": "a9048d0d8c975cd51a4435b82108d6dfd1341171a219ac46030dff56fbc963bd"
+      },
+      {
+        "path": "build.gradle.kts",
+        "size": 670,
+        "sha256": "bb2c5f057fb3bef60158682d58d5be4c7f193b10b48d78b8e50255cb788beaff"
+      },
+      {
+        "path": "evidence/logs/.gitkeep",
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "evidence/reports/.gitkeep",
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "gradle.properties",
+        "size": 206,
+        "sha256": "3b930fb5597f9d9b331af00717d085ff1b1978b33e1c1bd634be666e9bd5fc79"
+      },
+      {
+        "path": "inputs/vault-fixture.jar",
+        "size": 1504,
+        "sha256": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e"
+      },
+      {
+        "path": "patches/.gitkeep",
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scripts/verify.ps1",
+        "size": 965,
+        "sha256": "2a5db1e941d99be3f9e3cf3f0b2eb93382227a8f09c631ef0184ff646521353b"
+      },
+      {
+        "path": "scripts/verify.sh",
+        "size": 770,
+        "sha256": "7b97ff1463894e2ddc19a3fb6be1881b0c31802e83ffa643a4fc5729e7cf88d5"
+      },
+      {
+        "path": "settings.gradle.kts",
+        "size": 746,
+        "sha256": "078765019e0f13bf6d1e356eef97dbe8ba547d9201176b271490168fbc5f0ae6"
+      },
+      {
+        "path": "src/main/java/.gitkeep",
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "src/main/resources/.gitkeep",
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "src/test/java/.gitkeep",
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "status": "generated-awaiting-source-and-runtime-verification",
+    "nextCommand": "./scripts/verify.sh",
+    "rollback": "Delete this isolated workspace; the installed mod was not changed.",
+    "evidence": {
+      "inputDetectedLoaders": "forge",
+      "inputModIDs": "vault_fixture",
+      "inputSHA256": "bb7784ac47d400166dc3515e8f17b376c7baef4edb30b21b54b90ff78925606e",
+      "inputSHA512": "8426c924dc6e4d8c7a2d5366aa08ea0823dbfcc211b59b18eb2dd4666347a672401d42e4c468d4165970d79c23737886482c4b47717da08b5fdab6f7c79835f2",
+      "planRisk": "critical",
+      "versionAtlasSnapshot": "2026-08-20T00:00:00Z"
+    }
+  },
+  "workspaceListCount": 1
+}
