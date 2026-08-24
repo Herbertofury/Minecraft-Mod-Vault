@@ -1,6 +1,8 @@
 name: Ragdoll Port Inspect
 
 on:
+  push:
+    branches: [ ragdoll-forge-1.20.1-port ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
