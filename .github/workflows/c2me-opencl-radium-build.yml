@@ -3,12 +3,16 @@ name: C2ME OpenCL Radium Compatibility Build
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'rpg-series-port/**'
+      - '.github/workflows/rpg-series-active-port.yml'
 
 permissions:
   contents: write
 
 jobs:
   build-and-smoke-test:
+    if: ${{ !startsWith(github.head_ref, 'workbench/rpg-series-forge-1.20.1') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
