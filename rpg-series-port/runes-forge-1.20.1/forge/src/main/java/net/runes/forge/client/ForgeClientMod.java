@@ -21,7 +21,7 @@ public final class ForgeClientMod {
     @SubscribeEvent
     public static void setup(FMLClientSetupEvent event){
         event.enqueueWork(()->{
-            HandledScreens.register(RuneCraftingScreenHandler.HANDLER_TYPE,RuneCraftingScreen::new);
+            HandledScreens.register(RuneCraftingScreenHandler.handlerType(),RuneCraftingScreen::new);
             RenderLayers.setRenderLayer(RuneCraftingBlock.INSTANCE,RenderLayer.getCutout());
             for(var entry:RunePouches.all()){
                 ModelPredicateProviderRegistry.register(entry.item(),new Identifier("filled"),(stack,world,entity,seed)-> RunePouchItem.hasContents(stack)?1.0F:0.0F);

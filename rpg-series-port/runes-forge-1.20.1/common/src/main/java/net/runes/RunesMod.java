@@ -6,7 +6,6 @@ import net.runes.api.RuneItems;
 import net.runes.crafting.RuneCrafting;
 import net.runes.crafting.RuneCraftingBlock;
 import net.runes.crafting.RuneCraftingRecipe;
-import net.runes.crafting.RuneCraftingScreenHandler;
 import net.runes.crafting.RunePouches;
 
 public final class RunesMod {
@@ -17,11 +16,10 @@ public final class RunesMod {
     public static final SoundEvent CRAFTING_SOUND = SoundEvent.of(CRAFTING_ID);
 
     public static void bootstrapCommon() {
-        // Deliberately loader-agnostic. Forge owns registration timing.
+        // Deliberately loader-agnostic. Forge owns registration timing and loader-specific factories.
         RuneItems.bootstrap();
         RunePouches.bootstrap();
         RuneCraftingBlock.bootstrap();
         RuneCrafting.bootstrap();
-        RuneCraftingScreenHandler.bootstrap();
     }
 }

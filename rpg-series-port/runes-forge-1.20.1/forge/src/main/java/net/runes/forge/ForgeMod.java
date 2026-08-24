@@ -3,11 +3,12 @@ package net.runes.forge;
 import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.RegisterEvent;
 import net.runes.RunesMod;
 import net.runes.api.RuneItems;
@@ -17,6 +18,7 @@ import net.runes.crafting.*;
 public final class ForgeMod {
     public ForgeMod(){
         RunesMod.bootstrapCommon();
+        RuneCraftingScreenHandler.bindHandlerType(IForgeMenuType.create(RuneCraftingScreenHandler::new));
         Criteria.register(RuneCraftingCriteria.INSTANCE);
         IEventBus bus=FMLJavaModLoadingContext.get().getModEventBus();
         bus.addListener(ForgeMod::register);
@@ -28,7 +30,7 @@ public final class ForgeMod {
         event.register(RegistryKeys.RECIPE_TYPE,helper->helper.register(RunesMod.CRAFTING_ID,RuneCrafting.RECIPE_TYPE));
         event.register(RegistryKeys.RECIPE_SERIALIZER,helper->helper.register(RunesMod.CRAFTING_ID,RuneCrafting.RECIPE_SERIALIZER));
         event.register(RegistryKeys.BLOCK,helper->helper.register(new net.minecraft.util.Identifier(RunesMod.ID,RuneCraftingBlock.NAME),RuneCraftingBlock.INSTANCE));
-        event.register(RegistryKeys.SCREEN_HANDLER,helper->helper.register(RunesMod.CRAFTING_ID,RuneCraftingScreenHandler.HANDLER_TYPE));
+        event.register(RegistryKeys.SCREEN_HANDLER,helper->helper.register(RunesMod.CRAFTING_ID,RuneCraftingScreenHandler.handlerType()));
         event.register(RegistryKeys.ITEM,helper->{
             helper.register(new net.minecraft.util.Identifier(RunesMod.ID,RuneCraftingBlock.NAME),RuneCraftingBlock.ITEM);
             for(var entry:RuneItems.all()) helper.register(entry.id(),entry.item());
