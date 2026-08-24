@@ -38,3 +38,5 @@ jobs:
           path: tools/visual_metadata/build/
           if-no-files-found: error
           compression-level: 6
+
+# Project Constellation visual-refresh trigger: 2026-08-24
