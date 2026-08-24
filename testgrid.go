@@ -466,7 +466,7 @@ func (g *TestGrid) executeStep(ctx context.Context, step TestGridStep, workDir s
 	case "file-exists":
 		path := resolveTestGridPath(workDir, step.Path)
 		var info os.FileInfo
-		info, err = os.Stat(path)
+		info, err = waitForTestGridFile(stepCtx, path, step.IntervalMilliseconds)
 		if err == nil {
 			evidence = map[string]any{"path": path, "size": info.Size(), "directory": info.IsDir()}
 		}
@@ -766,6 +766,29 @@ func resolveTestGridPath(workDir, path string) string {
 		path = filepath.Join(workDir, path)
 	}
 	return filepath.Clean(path)
+}
+
+func waitForTestGridFile(ctx context.Context, path string, intervalMS int) (os.FileInfo, error) {
+	interval := time.Duration(intervalMS) * time.Millisecond
+	if interval <= 0 {
+		interval = 100 * time.Millisecond
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		info, err := os.Stat(path)
+		if err == nil {
+			return info, nil
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("file %s did not appear: %w", path, ctx.Err())
+		case <-ticker.C:
+		}
+	}
 }
 
 func waitForLog(ctx context.Context, logBuffer *synchronizedLog, pattern string, intervalMS int, processDone <-chan struct{}) error {

@@ -74,6 +74,23 @@ func TestTestGridRunsProcessAssertionsAndArtifacts(t *testing.T) {
 	}
 }
 
+func TestWaitForTestGridFileHandlesProducerRace(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "delayed-evidence.txt")
+	go func() {
+		time.Sleep(75 * time.Millisecond)
+		_ = os.WriteFile(path, []byte("ready\n"), 0o644)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	info, err := waitForTestGridFile(ctx, path, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.IsDir() || info.Size() == 0 {
+		t.Fatalf("unexpected delayed file info: %+v", info)
+	}
+}
+
 func TestTestGridRejectsUnknownStepAndRedactsSecrets(t *testing.T) {
 	manifest := normalizeTestGridManifest(TestGridManifest{
 		Name:    "bad step",
