@@ -24,6 +24,7 @@ python tools/prepare_upstream_source.py "$UP/rwa120" "$UP/rwa234" common
 
 test ! -f common/src/generatedUpstream/java/net/fabric_extras/ranged_weapon/api/CrossbowMechanics.java
 test ! -f common/src/generatedUpstream/java/net/fabric_extras/ranged_weapon/RangedWeaponMod.java
+test ! -f common/src/generatedUpstream/java/net/fabric_extras/ranged_weapon/mixin/PersistentProjectileEntityMixin.java
 test ! -f common/src/generatedUpstream/resources/fabric.mod.json
 test "$(find common/src/generatedUpstream/resources/assets/ranged_weapon/lang -name '*.json' | wc -l)" -ge 20
 if grep -R 'net.fabricmc' common/src/main/java common/src/generatedUpstream/java; then
@@ -44,6 +45,9 @@ unzip -p "$JAR" META-INF/mods.toml | grep -F 'versionRange="[1.20.1,1.20.2)"'
 unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/forge/ForgeMod.class'
 unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/api/RangedConfig.class'
 unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/api/AttributeModifierIDs.class'
+unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/mixin/PersistentProjectileEntityMixin.class'
+unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/mixin/item/ProjectileUtilMixin.class'
+unzip -l "$JAR" | grep -F 'net/fabric_extras/ranged_weapon/compat/emi/RangedWeaponEmiPlugin.class'
 unzip -l "$JAR" | grep -F 'assets/ranged_weapon/lang/en_us.json'
 if unzip -l "$JAR" | grep -q 'fabric.mod.json\|META-INF/neoforge.mods.toml'; then
   echo 'Non-Forge metadata leaked into final JAR' >&2

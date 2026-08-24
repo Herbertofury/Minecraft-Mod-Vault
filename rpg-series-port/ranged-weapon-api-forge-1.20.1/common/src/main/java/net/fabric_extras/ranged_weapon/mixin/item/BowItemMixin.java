@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.fabric_extras.ranged_weapon.api.CustomRangedWeapon;
 import net.fabric_extras.ranged_weapon.api.EntityAttributes_RangedWeapon;
+import net.fabric_extras.ranged_weapon.internal.ArrowExtension;
 import net.fabric_extras.ranged_weapon.internal.ScalingUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -30,7 +31,10 @@ public class BowItemMixin {
             double velocityMultiplier=ScalingUtil.arrowVelocityMultiplier(item,user.getAttributeValue(EntityAttributes_RangedWeapon.VELOCITY.attribute));
             if (velocityMultiplier!=1) projectile.setVelocity(projectile.getVelocity().multiply(velocityMultiplier));
             double damage=user.getAttributeValue(EntityAttributes_RangedWeapon.DAMAGE.attribute);
-            if (damage>0 && (Object)this instanceof CustomRangedWeapon weapon) projectile.setDamage(projectile.getDamage()*ScalingUtil.arrowDamageMultiplier(weapon.getTypeBaseline().damage(),damage,velocityMultiplier));
+            if (damage>0 && (Object)this instanceof CustomRangedWeapon weapon) {
+                projectile.setDamage(projectile.getDamage()*ScalingUtil.arrowDamageMultiplier(weapon.getTypeBaseline().damage(),damage,velocityMultiplier));
+                ((ArrowExtension)(Object)projectile).rwa_markModified(true);
+            }
         }
         return original.call(instance,entity);
     }

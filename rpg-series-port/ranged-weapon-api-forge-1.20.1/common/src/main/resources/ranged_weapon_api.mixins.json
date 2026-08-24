@@ -4,10 +4,12 @@
   "package": "net.fabric_extras.ranged_weapon.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "PersistentProjectileEntityMixin",
     "attribute.LivingEntityMixin",
     "item.ItemSettingsMixin",
     "item.BowItemMixin",
     "item.CrossbowItemMixin",
+    "item.ProjectileUtilMixin",
     "item.RangedWeaponItemMixin"
   ],
   "client": [

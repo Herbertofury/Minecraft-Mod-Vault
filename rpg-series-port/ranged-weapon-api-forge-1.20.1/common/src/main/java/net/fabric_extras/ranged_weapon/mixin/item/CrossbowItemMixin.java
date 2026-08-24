@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.fabric_extras.ranged_weapon.api.CrossbowMechanics;
 import net.fabric_extras.ranged_weapon.api.CustomRangedWeapon;
 import net.fabric_extras.ranged_weapon.api.EntityAttributes_RangedWeapon;
+import net.fabric_extras.ranged_weapon.internal.ArrowExtension;
 import net.fabric_extras.ranged_weapon.internal.ScalingUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -37,7 +38,10 @@ public class CrossbowItemMixin {
         if (entity instanceof PersistentProjectileEntity projectile && crossbow.getItem() instanceof CustomRangedWeapon weapon) {
             double velocityMultiplier=ScalingUtil.arrowVelocityMultiplier(crossbow.getItem(),shooter.getAttributeValue(EntityAttributes_RangedWeapon.VELOCITY.attribute));
             double damage=shooter.getAttributeValue(EntityAttributes_RangedWeapon.DAMAGE.attribute);
-            if (damage>0) projectile.setDamage(projectile.getDamage()*ScalingUtil.arrowDamageMultiplier(weapon.getTypeBaseline().damage(),damage,velocityMultiplier));
+            if (damage>0) {
+                projectile.setDamage(projectile.getDamage()*ScalingUtil.arrowDamageMultiplier(weapon.getTypeBaseline().damage(),damage,velocityMultiplier));
+                ((ArrowExtension)(Object)projectile).rwa_markModified(true);
+            }
         }
         return original.call(instance,entity);
     }

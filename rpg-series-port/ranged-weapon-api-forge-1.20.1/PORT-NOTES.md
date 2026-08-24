@@ -8,11 +8,14 @@
 - 2.x damage, pull-time, haste and velocity attributes are Forge-registered and attached to all living entities. Vanilla bow/crossbow baselines and custom `RangedConfig` attributes apply in either hand.
 - The modern public `RangedConfig` record and modifier list are retained, plus legacy 1.20.1 `CustomRangedWeapon` configuration methods for downstream compatibility.
 - 2.3.x `CrossbowMechanics.PullTime.Provider` and `RangedHasteEntity` shapes are retained with 1.20.1-safe implementation semantics.
+- 2.0.6 critical projectile scaling uses the modern 10%-60% multiplicative critical range on the proven 1.20.1 projectile target.
+- 2.3.3 bow-using-mob damage scaling is backported through `ProjectileUtil#createArrowProjectile`, covering Skeleton-family/Illusioner-style shots that bypass `BowItem#onStoppedUsing`.
+- 2.3.2 EMI anvil-repair recipes are restored as optional compile-only integration for registered `CustomBow` and `CustomCrossbow` items; EMI remains non-required at runtime.
 - Status effects use 1.6/2.x-equivalent base-multiplier operations. Potion helper requests are fulfilled during Forge's potion registry phase.
 - Custom repair suppliers, model predicates, FOV and crossbow rendering behavior remain supported.
 - 2.3.4 translations/assets are reproduced from the exact modern commit during CI; Fabric metadata and loader initializers are excluded.
-- Active verification is routed through the already-recognized project PR workflow, with C2ME and RPG jobs mutually exclusive by branch. This avoids new-workflow bootstrap gaps and duplicate runner usage.
+- Active verification is selected by `rpg-series-port/ci/ACTIVE_RUNNER` and executed by the permanent base-branch RPG workflow, so future ports do not need new workflow bootstrap commits.
 
 ## Verification contract
 
-Build/package checks, no Fabric/NeoForge metadata leakage, server runtime invariants for vanilla/custom bows and stacked optional attributes, client resource/model bootstrap, and a final fresh standalone Forge install using the packaged JAR before release.
+Build/package checks, no Fabric/NeoForge metadata leakage, server runtime invariants for vanilla/custom bows including the 2.3.3 mob-projectile path and stacked optional attributes, client resource/model bootstrap, and a final fresh standalone Forge install using the packaged JAR before release.

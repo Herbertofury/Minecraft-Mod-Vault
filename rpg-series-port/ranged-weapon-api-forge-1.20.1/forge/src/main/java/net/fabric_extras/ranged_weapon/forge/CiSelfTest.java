@@ -6,6 +6,7 @@ import net.fabric_extras.ranged_weapon.internal.ScalingUtil;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.projectile.ProjectileUtil;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -27,6 +28,9 @@ public final class CiSelfTest {
         skeleton.equipStack(EquipmentSlot.MAINHAND,new ItemStack(Items.BOW));
         require(close(skeleton.getAttributeValue(EntityAttributes_RangedWeapon.DAMAGE.attribute),6),"vanilla bow baseline damage");
         require(close(skeleton.getAttributeValue(EntityAttributes_RangedWeapon.PULL_TIME.attribute),1),"vanilla bow pull baseline");
+        var vanillaMobArrow=ProjectileUtil.createArrowProjectile(skeleton,new ItemStack(Items.ARROW),1F);
+        double vanillaMobDamage=vanillaMobArrow.getDamage();
+
         var config=new RangedConfig(10,0.5F,0.2F).withAttribute(EntityAttributes_RangedWeapon.HASTE.id,EntityAttributeModifier.Operation.ADDITION,20);
         var custom=new CustomBow(new Item.Settings(),config,()->Ingredient.EMPTY);
         skeleton.equipStack(EquipmentSlot.MAINHAND,new ItemStack(custom));
@@ -34,10 +38,13 @@ public final class CiSelfTest {
         require(close(skeleton.getAttributeValue(EntityAttributes_RangedWeapon.PULL_TIME.attribute),1.5),"custom bow pull-time");
         require(close(skeleton.getAttributeValue(EntityAttributes_RangedWeapon.VELOCITY.attribute),0.2),"custom bow velocity bonus");
         require(close(skeleton.getAttributeValue(EntityAttributes_RangedWeapon.HASTE.attribute),120),"stacked optional config attribute");
+        var customMobArrow=ProjectileUtil.createArrowProjectile(skeleton,new ItemStack(Items.ARROW),1F);
+        require(vanillaMobDamage>0 && close(customMobArrow.getDamage()/vanillaMobDamage,10D/6D),"2.3.3 bow-using mob damage scaling");
+
         double vm=ScalingUtil.arrowVelocityMultiplier(custom,0.2); require(vm>1,"velocity scaling");
         require(ScalingUtil.arrowDamageMultiplier(6,10,vm)>1,"damage scaling");
         require(((CustomRangedWeapon)(Object)custom).getTypeBaseline()==RangedConfig.BOW,"custom bow type baseline");
-        System.out.println("[Ranged Weapon API CI] Runtime self-test passed: registries + 2.3.4 config/attributes + bow scaling");
+        System.out.println("[Ranged Weapon API CI] Runtime self-test passed: registries + 2.3.4 config/attributes + mob bow damage + scaling");
     }
     private static boolean close(double a,double b) { return Math.abs(a-b)<0.0001; }
     private static void require(boolean ok,String label) { if (!ok) throw new IllegalStateException("[Ranged Weapon API CI] Failed: "+label); }
