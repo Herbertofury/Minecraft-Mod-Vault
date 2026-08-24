@@ -1,7 +1,6 @@
 package net.spell_power.forge;
 
 import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
@@ -52,8 +51,7 @@ public final class ForgeMod {
         }
     }
     private static void add(EntityAttributeModificationEvent event,net.minecraft.entity.EntityType<? extends net.minecraft.entity.LivingEntity> type,EntityAttribute attribute){
-        var entry=Registries.ATTRIBUTE.getEntry(attribute);
-        if(!event.has(type,entry)) event.add(type,entry);
+        if(!event.has(type,attribute)) event.add(type,attribute);
     }
     private static void commonSetup(FMLCommonSetupEvent event){ event.enqueueWork(SpellPowerMod::applyEnchantments); }
     private static void playerLogin(PlayerEvent.PlayerLoggedInEvent event){ }
