@@ -17,6 +17,8 @@ TestGrid provides a version-independent, headless control and evidence surface f
 
 Schemas, examples, security boundaries, and CLI usage are documented in [`testgrid/README.md`](testgrid/README.md).
 
+Release details: [`RELEASE-NOTES-0.13.0.md`](RELEASE-NOTES-0.13.0.md)
+
 ## Minecraft Mod Vault 0.10.0 — OmniManager
 
 OmniManager fixes the failure shown by competing launchers when a perfectly valid local mod came from another storefront and is reduced to an anonymous filename, generic cube, or “Uploaded” label. Minecraft Mod Vault now treats the **local artifact as the primary object** and every storefront as evidence attached to it.
