@@ -5,6 +5,10 @@ on:
     paths:
       - 'tools/visual_metadata/fetch_visuals.py'
       - '.github/workflows/mob-visual-metadata.yml'
+  pull_request:
+    paths:
+      - 'tools/visual_metadata/fetch_visuals.py'
+      - '.github/workflows/mob-visual-metadata.yml'
   workflow_dispatch:
 
 permissions:
