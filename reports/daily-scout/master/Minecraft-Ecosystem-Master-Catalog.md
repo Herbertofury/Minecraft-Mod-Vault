@@ -2,12 +2,20 @@
 
 **Last audited:** 2026-08-25  
 **Permanent categories:** 34  
-**Tracked serious projects/finds in canonical Google Sheet:** 118  
+**Tracked serious projects/finds in canonical Google Sheet:** 119  
 **Female-mob companion vault:** 97 curated entries / 48 explicit 1.20.1 routes / 19 maid-ecosystem entries / 12 source hubs / 2 Bedrock routes
 
 This GitHub mirror is the durable change/ranking index for the recurring Minecraft ecosystem scouting service. The canonical sortable database and complete 34-category board live in the paired Google Sheet; the curated Drive guide is the readable long-form layer. Historical detail remains preserved in dated checkpoints and Git history rather than being silently deleted.
 
-## Latest material delta — 2026-08-25 second late-cycle sweep
+## Latest material delta — 2026-08-25 third late-cycle sweep
+
+- **#8 / #6 new Forge 1.20.1 livestock runner:** [DragN's Livestock Overhaul 3.9.4](https://www.curseforge.com/minecraft/mc-mods/dragns-livestock-overhaul/files/8728287) is an established livestock/genetics/farming overhaul with a same-day Forge 1.20.1 release. Version 3.9.4 fixes a sheep-spawning crash and removes inappropriate Wool Ready/Milk Ready baby displays. It registers persistent custom livestock, items and genetics/farming state, so use a copied world first in creature-heavy packs. **TEST BRANCH.**
+- **#7 / #8 exploration runner update:** [Aquamirae 7.2.3](https://www.curseforge.com/minecraft/mc-mods/aquamirae/files/8728350) advances the NeoForge 1.21.1 line. It fixes Dreadwake triggering on unrelated weapons and limits Shipbreaker griefing to `#aquamirae:shipbreaker_breakables`. Forge 1.20.1 remains on the separate 7.1.13 beta route; conservative stable 1.20.1 remains 6.4.0.
+- **#8 mob runner update:** [Sons Of Sins 2.2.1b](https://www.curseforge.com/minecraft/mc-mods/sons-of-sins/files/8728502) is the current NeoForge 1.21.1 branch, while Forge 1.20.1 remains 2.2.1. The update adds 1.21.1 support and fixes Flesh Creature spawning, Puppet of Strife damage cancellation, localization and related mob issues.
+- **#34 companion release update:** [NFF: Girls 0.2.33.1](https://www.curseforge.com/minecraft/mc-mods/nff-girls/files/8726332) promoted the Forge 1.20.1 HMaG friendship/companion layer from 0.2.33 beta to release. It fixes HP truncation after save/load, environmental-resistance handling, and Jack o' Frost / powder-snow behavior. Persistent relationship/custom save data remains **CAUTION**; back up before major updates or removal.
+- Bedrock, Marketplace, animated, CIT, 3D, Planet Minecraft artistic/map, Afdian/BOOTH creator hubs and the PitonixRex portfolio were rechecked and produced **NO MATERIAL LEADER CHANGE** this cycle.
+
+## Previous 2026-08-25 second late-cycle sweep
 
 - **#9 hybrid-combat specialist:** [Better Combat × Epic Fight Compat 1.0.2](https://www.curseforge.com/minecraft/mc-mods/better-combat-epic-fight-compat) is a direct Forge 1.20.1 bridge for [Epic Fight](https://www.curseforge.com/minecraft/mc-mods/epic-fight-mod) + [Better Combat](https://www.curseforge.com/minecraft/mc-mods/better-combat-by-daedelus). Battle mode uses the former combat system and mining mode uses the latter; the existing #9 baseline leader is unchanged. **TEST BRANCH.**
 - **#9 / #26 / #27 / #29 client-safe firearm bridge:** [Epic Fight × TacZ First-Person Compat 0.5.2](https://www.curseforge.com/minecraft/mc-mods/epic-fight-tacz-first-person-compat) has direct Forge 1.20.1 and NeoForge 1.21.1 builds. It restores local-player TacZ first-/third-person gun animation behavior under Epic Fight, requires no server component, and writes no save-critical data. **CLIENT-SAFE / TEST.**
@@ -35,16 +43,19 @@ This GitHub mirror is the durable change/ranking index for the recurring Minecra
 
 ## Category-board change ledger
 
-- **#9 Combat / Animation Compatibility:** [Epic Fight Guard Fix 1.0.9](https://www.curseforge.com/minecraft/mc-mods/epic-fight-guard-fix) remains baseline leader. New qualified specialists are [Better Combat × Epic Fight Compat 1.0.2](https://www.curseforge.com/minecraft/mc-mods/better-combat-epic-fight-compat) and [Epic Fight × TacZ First-Person Compat 0.5.2](https://www.curseforge.com/minecraft/mc-mods/epic-fight-tacz-first-person-compat).
-- **#11 Create / Technology:** [Create: Storage 1.2.7](https://www.curseforge.com/minecraft/mc-mods/create-storage-neo-forge) remains leader; [MaidUseHandCrank](https://www.curseforge.com/minecraft/mc-mods/maidusehandcrank) joins as a maid-factory specialist.
-- **#13 Resource Pack:** [Optimum Realism](https://www.curseforge.com/minecraft/texture-packs/optimum-realism) remains leader; [Glowing Emissive Ores 1.110.0](https://www.curseforge.com/minecraft/texture-packs/glowing-emissive-ores) and [Stay True Compats Reforged](https://www.curseforge.com/minecraft/texture-packs/stay-true-compats) are new qualified compatibility/visual runners.
-- **#16 Bedrock Add-On:** [Canopy](https://www.curseforge.com/minecraft-bedrock/addons/canopy) remains leader; [Bedrock Energistics 0.15.0](https://www.curseforge.com/minecraft-bedrock/addons/bedrock-energistics) and [Biomes O' Discovery 4.6](https://www.curseforge.com/minecraft-bedrock/addons/bod) are same-day technical/worldgen runners.
+- **#6 Gameplay / QoL:** [TargetsIndicate 1.2.0](https://www.curseforge.com/minecraft/mc-mods/targetsindicate) remains leader; [DragN's Livestock Overhaul 3.9.4](https://www.curseforge.com/minecraft/mc-mods/dragns-livestock-overhaul/files/8728287) joins as a farming/livestock systems runner.
+- **#7 Exploration / Worldgen / Dimension:** [Jaden's Nether Expansion 2.4.1](https://modrinth.com/mod/jadens-nether-expansion) remains leader; [Aquamirae 7.2.3](https://www.curseforge.com/minecraft/mc-mods/aquamirae/files/8728350) is the refreshed modern ocean-adventure runner.
+- **#8 Mob / Creature:** [Psychopath 1.4.0](https://www.curseforge.com/minecraft/mc-mods/psychopath) remains leader; [DragN's Livestock Overhaul 3.9.4](https://www.curseforge.com/minecraft/mc-mods/dragns-livestock-overhaul/files/8728287) is the new Forge 1.20.1 livestock/genetics runner, while [Sons Of Sins 2.2.1b](https://www.curseforge.com/minecraft/mc-mods/sons-of-sins/files/8728502) is the current modern horror-mob branch.
+- **#9 Combat / Animation Compatibility:** [Epic Fight Guard Fix 1.0.9](https://www.curseforge.com/minecraft/mc-mods/epic-fight-guard-fix) remains baseline leader. Qualified specialists remain [Better Combat × Epic Fight Compat 1.0.2](https://www.curseforge.com/minecraft/mc-mods/better-combat-epic-fight-compat) and [Epic Fight × TacZ First-Person Compat 0.5.2](https://www.curseforge.com/minecraft/mc-mods/epic-fight-tacz-first-person-compat).
+- **#11 Create / Technology:** [Create: Storage 1.2.7](https://www.curseforge.com/minecraft/mc-mods/create-storage-neo-forge) remains leader; [MaidUseHandCrank](https://www.curseforge.com/minecraft/mc-mods/maidusehandcrank) remains a maid-factory specialist.
+- **#13 Resource Pack:** [Optimum Realism](https://www.curseforge.com/minecraft/texture-packs/optimum-realism) remains leader; [Glowing Emissive Ores 1.110.0](https://www.curseforge.com/minecraft/texture-packs/glowing-emissive-ores) and [Stay True Compats Reforged](https://www.curseforge.com/minecraft/texture-packs/stay-true-compats) remain qualified compatibility/visual runners.
+- **#16 Bedrock Add-On:** [Canopy](https://www.curseforge.com/minecraft-bedrock/addons/canopy) remains leader; [Bedrock Energistics 0.15.0](https://www.curseforge.com/minecraft-bedrock/addons/bedrock-energistics) and [Biomes O' Discovery 4.6](https://www.curseforge.com/minecraft-bedrock/addons/bod) remain same-day technical/worldgen runners.
 - **#26 / #27 / #29 client-safe tracks:** [Epic Fight × TacZ First-Person Compat 0.5.2](https://www.curseforge.com/minecraft/mc-mods/epic-fight-tacz-first-person-compat), [Glowing Emissive Ores 1.110.0](https://www.curseforge.com/minecraft/texture-packs/glowing-emissive-ores), [Glowing Emissive Ores Definitive Edition 0.3.5](https://www.curseforge.com/minecraft/mc-mods/glowing-emissive-ores-definitive-edition), and [Stay True Compats Reforged](https://www.curseforge.com/minecraft/texture-packs/stay-true-compats) add qualified save-safe depth without displacing the broad leaders.
 - **#31 Animated:** [Actions & Stuff 1.11](https://www.minecraft.net/en-us/marketplace/pdp?id=53c7af69-2425-490e-8e9a-8ad2c2e7cbfe) overall / [Fresh Animations](https://modrinth.com/resourcepack/fresh-animations) Java — **NO MATERIAL LEADER CHANGE**.
 - **#32 CIT:** [Kaydicraft CIT 1.45](https://modrinth.com/resourcepack/kaydicraft) / [FAYE](https://www.planetminecraft.com/texture-pack/the-faye-wallpaper-amp-flooring-set-cit/) — **NO MATERIAL LEADER CHANGE**.
 - **#33 3D:** [3D Default 1.15.0](https://modrinth.com/resourcepack/3d-default/version/1.15.0) — **NO MATERIAL LEADER CHANGE**.
-- **#34 Monster Girl / Female-Coded Mob:** [Monster Girl 2.7.0](https://www.curseforge.com/minecraft/mc-mods/monster-girl) remains leader. The maid ecosystem gained distinct automation, cooking, movement/combat, spellcasting and transformation/backend tracks rather than being flattened into fake standalone-mob entries.
-- **#1–#8, #10, #12, #14–#15, #17–#25, #28, #30:** independently rechecked; **NO MATERIAL LEADER CHANGE** this sweep.
+- **#34 Monster Girl / Female-Coded Mob:** [Monster Girl 2.7.0](https://www.curseforge.com/minecraft/mc-mods/monster-girl) remains leader. [NFF: Girls 0.2.33.1](https://www.curseforge.com/minecraft/mc-mods/nff-girls/files/8726332) is the refreshed HMaG friendship/companion-layer runner.
+- **#1–#5, #10, #12, #14–#15, #17–#25, #28, #30:** independently rechecked; **NO MATERIAL LEADER CHANGE** this sweep.
 
 ## Afdian / BOOTH / Asian creator-source status
 
@@ -57,18 +68,18 @@ This GitHub mirror is the durable change/ranking index for the recurring Minecra
 
 | Project | Client only? | Server required? | Save/world impact | Removal | Update friendliness |
 |---|---|---|---|---|---|
-| [Better Combat × Epic Fight Compat](https://www.curseforge.com/minecraft/mc-mods/better-combat-epic-fight-compat) | No | Yes for matched multiplayer behavior | Config/runtime combat behavior; no new world content surfaced | High after dependency-match test | Good |
+| [DragN's Livestock Overhaul](https://www.curseforge.com/minecraft/mc-mods/dragns-livestock-overhaul/files/8728287) | No | Yes in multiplayer | Persistent custom livestock/entities/items/genetics/farming state | Low-medium; backup first | Caution |
+| [Aquamirae](https://www.curseforge.com/minecraft/mc-mods/aquamirae/files/8728350) | No | Yes | Worldgen/structures/mobs/items | Low | Caution |
+| [Sons Of Sins](https://www.curseforge.com/minecraft/mc-mods/sons-of-sins/files/8728502) | No | Yes | Persistent entities/items/blocks/content | Low | Caution |
+| [NFF: Girls](https://www.curseforge.com/minecraft/mc-mods/nff-girls/files/8726332) | No | Yes | Persistent relationship/custom save data | Medium-low | Caution |
 | [Epic Fight × TacZ First-Person Compat](https://www.curseforge.com/minecraft/mc-mods/epic-fight-tacz-first-person-compat) | Yes | No | None | Very high | Excellent |
 | [Glowing Emissive Ores](https://www.curseforge.com/minecraft/texture-packs/glowing-emissive-ores) | Yes | No | None; resource layer | Very high | Excellent |
-| [Glowing Emissive Ores Definitive Edition](https://www.curseforge.com/minecraft/mc-mods/glowing-emissive-ores-definitive-edition) | Yes | No | Client config only | High | Excellent |
-| [Stay True Compats Reforged](https://www.curseforge.com/minecraft/texture-packs/stay-true-compats) | Yes | No | None; resource layer | Very high | Excellent |
 | [Bedrock Energistics](https://www.curseforge.com/minecraft-bedrock/addons/bedrock-energistics) | No | World behavior content | Persistent machines/storage/custom UI | Low | Caution / beta |
-| [Biomes O' Discovery](https://www.curseforge.com/minecraft-bedrock/addons/bod) | No | World behavior content | Persistent worldgen | Low once generated | Caution |
 | [Maid Form Shift](https://www.curseforge.com/minecraft/mc-mods/maid-form-shift-lmrb-tlm-backend-showcase) | No | Yes in multiplayer | Persistent per-mob form/backend state | Low-medium; follow author rollback steps | Caution |
 
 ## Persistence state
 
-- Canonical Google Sheet: **118 retained serious projects/finds / 34 categories**.
+- Canonical Google Sheet: **119 retained serious projects/finds / 34 categories**.
 - Separate female-mob companion set: **97 curated projects/source hubs / 48 explicit 1.20.1 routes / 19 maid-ecosystem entries / 12 source hubs / 2 Bedrock routes**.
 - Every specifically named project/creator newly written in this revision is directly linked to its official/source page.
 - Full current checkpoint: [`reports/daily-scout/2026-08-25-category-leaderboard.md`](../2026-08-25-category-leaderboard.md).
