@@ -7,30 +7,26 @@ if len(sys.argv) != 3:
 root = Path(sys.argv[1]).resolve()
 common = root / 'common'
 aw = common / 'src/main/resources/spell_engine.accesswidener'
-s = aw.read_text()
+raw = aw.read_text()
+lines = raw.splitlines()
 
-poison = 'accessible    class    net/minecraft/entity/effect/PoisonStatusEffect\n'
+poison = 'accessible    class    net/minecraft/entity/effect/PoisonStatusEffect'
 tracker_entries = (
-    'accessible    field    net/minecraft/server/world/ServerChunkLoadingManager    entityTrackers    Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;\n',
-    'accessible    class    net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker\n',
-    'accessible    field    net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker    listeners    Ljava/util/Set;\n',
+    'accessible    field    net/minecraft/server/world/ServerChunkLoadingManager    entityTrackers    Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;',
+    'accessible    class    net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker',
+    'accessible    field    net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker    listeners    Ljava/util/Set;',
 )
 loot_entries = (
-    'accessible    field    net/minecraft/loot/LootTable    type    Lnet/minecraft/loot/context/LootContextType;\n',
-    'accessible    field    net/minecraft/loot/LootTable    randomSequenceId    Ljava/util/Optional;\n',
-    'accessible    field    net/minecraft/loot/LootTable    pools    Ljava/util/List;\n',
-    'accessible    field    net/minecraft/loot/LootTable    functions    Ljava/util/List;\n',
-    'accessible    method    net/minecraft/loot/LootTable    <init>    (Lnet/minecraft/loot/context/LootContextType;Ljava/util/Optional;Ljava/util/List;Ljava/util/List;)V\n',
+    'accessible    field    net/minecraft/loot/LootTable    type    Lnet/minecraft/loot/context/LootContextType;',
+    'accessible    field    net/minecraft/loot/LootTable    randomSequenceId    Ljava/util/Optional;',
+    'accessible    field    net/minecraft/loot/LootTable    pools    Ljava/util/List;',
+    'accessible    field    net/minecraft/loot/LootTable    functions    Ljava/util/List;',
+    'accessible    method    net/minecraft/loot/LootTable    <init>    (Lnet/minecraft/loot/context/LootContextType;Ljava/util/Optional;Ljava/util/List;Ljava/util/List;)V',
 )
-
-if poison not in s:
-    raise SystemExit('expected obsolete PoisonStatusEffect access-widener entry missing')
-for entry in tracker_entries:
-    if entry not in s:
-        raise SystemExit(f'expected obsolete tracker access-widener entry missing: {entry.strip()}')
-for entry in loot_entries:
-    if entry not in s:
-        raise SystemExit(f'expected NeoForge loot access-widener entry missing: {entry.strip()}')
+remove = {poison, *tracker_entries, *loot_entries}
+missing = [entry for entry in remove if entry not in lines]
+if missing:
+    raise SystemExit(f'expected access-widener entries missing: {missing}')
 
 # PoisonStatusEffect is no longer referenced/subclassed by the 1.10.2 common source.
 # The old vanilla entity-tracker widening is no longer live after pass 5c moved tracking behind
@@ -52,13 +48,10 @@ for p in (common / 'src/main/java').rglob('*.java'):
 if source_hits:
     raise SystemExit(f'refusing to remove live access widenings; source hits: {source_hits[:20]}')
 
-s = s.replace(poison, '')
-for entry in tracker_entries + loot_entries:
-    s = s.replace(entry, '')
-aw.write_text(s)
-
-final = aw.read_text()
-for needle in ('PoisonStatusEffect', 'ServerChunkLoadingManager', 'entityTrackers', 'randomSequenceId'):
-    if needle in final:
-        raise SystemExit(f'access-widener cleanup incomplete: {needle}')
+kept = [line for line in lines if line not in remove]
+aw.write_text('\n'.join(kept) + '\n')
+final_lines = aw.read_text().splitlines()
+remaining = [entry for entry in remove if entry in final_lines]
+if remaining:
+    raise SystemExit(f'access-widener cleanup incomplete: {remaining}')
 print('Spell Engine compatibility pass 6c applied: removed stale poison/tracker + NeoForge-only loot widenings')
