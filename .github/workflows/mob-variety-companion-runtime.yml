@@ -6,7 +6,7 @@ on:
     branches: [mob-variety-companion-runtime]
     paths:
       - '.github/workflows/mob-variety-companion-runtime.yml'
-      - 'research/mob-variety/explorer/companion/runtime-template.tar.gz.b64'
+      - 'research/mob-variety/explorer/companion/runtime-current.part-*'
 
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d research/mob-variety/explorer/companion/runtime-template.tar.gz.b64 > runtime-template.tar.gz
+          cat research/mob-variety/explorer/companion/runtime-current.part-* | base64 -d > runtime-template.tar.gz
           echo '7f4b5678f999fa5254edda894c9666b64b4b169a187bcadef196c093609e0ca0  runtime-template.tar.gz' | sha256sum -c -
           mkdir runtime
           tar -xzf runtime-template.tar.gz -C runtime
