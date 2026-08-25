@@ -37,6 +37,7 @@
 - [🧰 UMT Parity](WorldForge-UMT-Parity)
 
 ### 🛠️ Reference
+- [🚀 Launchers & Mod Managers](Launchers-and-Managers)
 - [🧰 Tool Catalogue](Tool-Catalogue)
 - [🏗️ Architecture](Architecture)
 - [🧩 Plugin & Adapter SDK](Plugin-and-Adapter-SDK)
