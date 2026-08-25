@@ -1,0 +1,33 @@
+name: Mob Visual Fourth Scour
+
+on:
+  push:
+    paths:
+      - 'tools/visual_metadata/fourth_scour_2026-08-24.json'
+      - 'tools/visual_metadata/fetch_fourth_scour_visuals.py'
+      - '.github/workflows/mob-visual-fourth-scour.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-visual-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install visual tooling
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4 pillow
+      - name: Fetch real fourth-scour visual assets
+        run: python tools/visual_metadata/fetch_fourth_scour_visuals.py
+      - name: Upload compact fourth-scour visual bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mob-visual-assets-fourth-scour-40
+          path: tools/visual_metadata/build-fourth-scour/
+          if-no-files-found: error
+          compression-level: 6
