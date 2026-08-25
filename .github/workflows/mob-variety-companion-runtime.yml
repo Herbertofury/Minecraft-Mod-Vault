@@ -33,10 +33,17 @@ jobs:
           old = """  await first.view.webContents.loadURL('https://github.com/');
             await waitForMainLoad(first.view.webContents, 'github.com');
             check('https-github', first.view.webContents.getURL().startsWith('https://github.com'));
+            check('history-back-available', first.view.webContents.navigationHistory.canGoBack());
+            first.view.webContents.navigationHistory.goBack();
+            await waitForMainLoad(first.view.webContents, 'history-back');
+            check('history-back-worked', first.view.webContents.getURL().startsWith('https://example.com'));
           """
           new = """  await first.view.webContents.loadURL('https://example.com/?second=1');
-            await waitForMainLoad(first.view.webContents, 'example.com second');
             check('https-second-navigation', first.view.webContents.getURL().includes('?second=1'));
+            check('history-back-available', first.view.webContents.navigationHistory.canGoBack());
+            first.view.webContents.navigationHistory.goBack();
+            for (let i = 0; i < 50 && first.view.webContents.getURL().includes('?second=1'); i += 1) await new Promise((r) => setTimeout(r, 100));
+            check('history-back-worked', first.view.webContents.getURL().startsWith('https://example.com') && !first.view.webContents.getURL().includes('?second=1'));
           """
           if old not in s:
               raise SystemExit('Expected smoke block not found')
