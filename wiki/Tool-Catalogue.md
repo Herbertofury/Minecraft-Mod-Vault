@@ -10,6 +10,19 @@ These are **research/integration targets**, not automatic dependencies or permis
 | Amulet | multi-version world abstraction/editing | world model, Anvil + LevelDB workflows | https://github.com/Amulet-Team/Amulet-Core |
 | Universal Minecraft Tool | converter/pruner/NBT benchmark | parity + known-gap benchmark | https://www.universalminecrafttool.com/ |
 | je2be | Java/Bedrock/legacy conversion | conversion architecture/reference | https://github.com/kbinani/je2be-core |
+| Mojang DataFixerUpper | canonical Java forward data migration | versioned Java schema transformations; target WorldUpgrader reference | https://github.com/Mojang/DataFixerUpper |
+| PaperMC DataConverter | high-performance Java data conversion | fast data-converter architecture; do not use standalone as a generic modded fixer when other mods' datafixers matter | https://github.com/PaperMC/DataConverter |
+| LegacyEditor | Legacy Console save editing/conversion | platform/title-update-aware Xbox 360/PS3/Wii U/Vita/Switch/PS4 research and conversion | https://github.com/zugebot/LegacyEditor |
+| bedrock-world | Bedrock semantic/storage façade | level.dat, chunks, entities, players, biomes, maps, villages, `.mcstructure`, old storage-era detection | https://github.com/BE-Community-Dev/bedrock-world |
+| bedrock-leveldb | Bedrock-specific LevelDB | comparator/Snappy/table correctness, streaming/snapshots, unknown-key preservation | https://github.com/BE-Community-Dev/bedrock-leveldb |
+| PrismarineJS minecraft-data | Java/Bedrock version mapping data | blocks/items/biomes/entities/recipes/protocol/legacy mapping evidence for Version Atlas | https://github.com/PrismarineJS/minecraft-data |
+| PrismarineJS prismarine-chunk | neutral chunk abstraction | Java/Bedrock adapter tests and chunk-model comparison | https://github.com/PrismarineJS/prismarine-chunk |
+| NBT Studio | NBT/region forensic editing | Java MCA/MCR + big/little-endian NBT and `.mcstructure` exceptional repair/inspection | https://github.com/tryashtar/nbt-studio |
+| Server-to-Singleplayer World Converter | player identity migration | selected Java UUID or Bedrock XUID/player record → intended local singleplayer state | https://github.com/imSirr/world-converter |
+| Bloxelizer Converter | structure/build format translation | `.schematic`, `.schem`, `.litematic`, Java NBT, `.mcstructure` and target-version block mapping | https://bloxelizer.com/converter |
+| Litematica Viewer | common structure IR | `.litematic`, Java structure NBT and `.mcstructure` read/write, transforms and unmapped-block reporting | https://github.com/albertchen857/Litematica-viewer |
+| Structure2Schematic | structure → WorldEdit schematic | block/block-entity/entity/palette conversion reference | https://github.com/Chaoscaot/Structure2Schematic |
+| JE2BE Resource Pack Converter | Java RP → Bedrock RTX | texture/material mappings, LabPBR → Bedrock MER/texture_set translation | https://github.com/Seraphic-Studio/JE2BE-Resource-Pack-Converter |
 | Axiom | polished in-game editing | UX, selection, sculpting, preview benchmark | https://axiom.moulberry.com/ |
 | WorldEdit | mature edit semantics | selections, masks, patterns, schematics | https://worldedit.enginehub.org/ |
 | FAWE | huge async edits | bounded resource use, history, large operations | https://github.com/IntellectualSites/FastAsyncWorldEdit |
@@ -39,6 +52,14 @@ These are **research/integration targets**, not automatic dependencies or permis
 | Azalea | Rust Minecraft client/bot | fast non-rendering TestGrid worker | https://github.com/azalea-rs/azalea |
 | Mineflayer | Java protocol/player bot | broad interaction test worker | https://github.com/PrismarineJS/mineflayer |
 | Baritone | pathfinding/navigation | real-client agent navigation option | https://github.com/cabaletta/baritone |
+
+## Conversion-stack research notes
+
+- The dedicated **[WorldForge — World & Version Conversion Matrix](WorldForge-Conversion-Matrix)** separates Java → Bedrock, Bedrock → Java, Java/Bedrock upgrades, true downgrades, Legacy Console, modded repair, server-player migration and structure conversion into independent lanes.
+- Java forward upgrades use the real target Minecraft DataFixerUpper/WorldUpgrader before semantic repair. A true downgrade is target-aware translation; changing `DataVersion` is not conversion.
+- Bedrock conversion adapters must detect storage eras, including older `StorageVersion <= 4` terrain and pre-LevelDB Pocket `chunks.dat` where present.
+- The canonical structure direction is a common IR rather than pairwise format translators.
+- Full conversion research ledger: https://github.com/Herbertofury/Minecraft-Mod-Vault/blob/main/research/minecraft-world-conversion-landscape-2026.md
 
 ## World-tooling research notes
 
