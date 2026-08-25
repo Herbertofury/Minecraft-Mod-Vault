@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://minecraft-mod-vault.local/omniporter/port-manifest.schema.json",
+  "title": "OmniPorter Port Manifest",
+  "type": "object",
+  "required": ["source", "target", "fidelity"],
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": ["artifactSha256", "minecraft", "loader"],
+      "properties": {
+        "artifactSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "minecraft": {"type": "string"},
+        "loader": {"type": "string"},
+        "loaderVersion": {"type": ["string", "null"]},
+        "mappingNamespace": {"type": ["string", "null"]},
+        "java": {"type": ["integer", "null"]}
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["minecraft", "loader"],
+      "properties": {
+        "minecraft": {"type": "string"},
+        "loader": {"type": "string"},
+        "loaderVersion": {"type": ["string", "null"]},
+        "mappingNamespace": {"type": ["string", "null"]},
+        "java": {"type": ["integer", "null"]}
+      }
+    },
+    "fidelity": {
+      "type": "object",
+      "required": ["preserveRegistryIds", "preserveGameplaySemantics", "preserveAssets", "preservePersistence"],
+      "properties": {
+        "preserveRegistryIds": {"type": "boolean"},
+        "preserveGameplaySemantics": {"type": "boolean"},
+        "preserveAssets": {"type": "boolean"},
+        "preservePersistence": {"type": "boolean"}
+      }
+    },
+    "dependencies": {"type": "array", "items": {"type": "object"}},
+    "mappings": {"type": "array", "items": {"type": "object"}},
+    "mixins": {"type": "array", "items": {"type": "object"}},
+    "access": {"type": "array", "items": {"type": "object"}},
+    "transforms": {"type": "array", "items": {"type": "object"}},
+    "verification": {"type": "array", "items": {"type": "object"}}
+  }
+}
