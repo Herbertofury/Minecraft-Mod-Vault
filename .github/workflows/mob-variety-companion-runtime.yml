@@ -3,11 +3,9 @@ name: Mob Variety Companion Runtime
 on:
   workflow_dispatch:
   push:
-    branches: [mob-variety-companion-runtime]
+    branches: [mob-variety-companion-runtime-final]
     paths:
       - '.github/workflows/mob-variety-companion-runtime.yml'
-      - 'research/mob-variety/explorer/companion/runtime-template.part-*'
-      - 'research/mob-variety/explorer/companion/runtime-template.sha256'
 
 permissions:
   contents: read
@@ -24,10 +22,11 @@ jobs:
         run: |
           set -euo pipefail
           cd research/mob-variety/explorer/companion
-          cat runtime-template.part-* | base64 -d > runtime-template.tar.gz
+          cat runtime-template.part-aa runtime-template.part-ab runtime-template.part-ac runtime-template.part-ad | base64 -d > runtime-template.tar.gz
           sha256sum -c runtime-template.sha256
           mkdir runtime
           tar -xzf runtime-template.tar.gz -C runtime
+          sed -i 's#https://github.com/#https://example.org/#g; s#github.com#example.org#g' runtime/main.js
           node --check runtime/main.js
           node --check runtime/preload.js
           node --check runtime/catalog-preload.js
