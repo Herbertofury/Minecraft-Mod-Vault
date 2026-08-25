@@ -34,7 +34,6 @@ import net.spell_engine.network.ServerNetwork;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /** Native Forge 47 play-channel transport for the 1.10.2 packet model. */
 final class ForgeNetwork {
@@ -49,7 +48,6 @@ final class ForgeNetwork {
     private ForgeNetwork() { }
 
     static void init() {
-        // C2S casting/melee protocol.
         registerC2S(Packets.CastRequest.class, Packets.CastRequest::write, Packets.CastRequest::read,
                 (packet, player) -> ServerNetwork.handleCastRequest(packet, player.server, player));
         registerC2S(Packets.TargetStream.class, Packets.TargetStream::write, Packets.TargetStream::read,
@@ -61,8 +59,8 @@ final class ForgeNetwork {
         registerC2S(Packets.AttackFxBroadcast.class, Packets.AttackFxBroadcast::write, Packets.AttackFxBroadcast::read,
                 (packet, player) -> ServerNetwork.handleAttackFxBroadcast(packet, player.server, player));
 
-        // S2C play protocol. Config + registry sync are intentionally carried on the play channel on
-        // Forge 1.20.1; ForgeEventBridge sends both immediately on login before normal gameplay sync.
+        // Forge 1.20.1 has no NeoForge-style custom configuration-task API. Config/registry sync
+        // therefore travel over this version-locked play channel immediately after login.
         registerS2C(Packets.ConfigSync.class, Packets.ConfigSync::write, Packets.ConfigSync::read);
         registerS2C(Packets.SpellRegistrySync.class, Packets.SpellRegistrySync::write, Packets.SpellRegistrySync::read);
         registerS2C(Packets.SpellCooldown.class, Packets.SpellCooldown::write, Packets.SpellCooldown::read);
@@ -100,8 +98,9 @@ final class ForgeNetwork {
     }
 
     static boolean isReady(ServerPlayerEntity player) {
-        // Protocol equality is mandatory in both directions, so any player that reached play has this channel.
-        return CHANNEL.isRemotePresent(player.networkHandler.getConnection());
+        // ServerPlayNetworkHandler.connection is the target-native 1.20.1 Yarn mapping of Forge's
+        // ServerGamePacketListenerImpl.connection field expected by SimpleChannel#isRemotePresent.
+        return CHANNEL.isRemotePresent(player.networkHandler.connection);
     }
 
     static void sendToPlayer(ServerPlayerEntity player, Object payload) {
@@ -139,9 +138,9 @@ final class ForgeClientNetwork {
 ''')
 
 network = forge_java.joinpath('ForgeNetwork.java').read_text()
-for forbidden in ('transport has not been initialized', 'static void init() { }'):
+for forbidden in ('transport has not been initialized', 'static void init() { }', '.getConnection()'):
     if forbidden in network:
-        raise SystemExit(f'Forge network scaffold survived pass 6e: {forbidden}')
+        raise SystemExit(f'Forge network scaffold/mapping survived pass 6e: {forbidden}')
 for packet in ('CastRequest', 'TargetStream', 'CastInput', 'AttackPerform', 'AttackFxBroadcast',
                'ConfigSync', 'SpellRegistrySync', 'SpellCooldown', 'SpellCooldownSync', 'SpellMessage',
                'ParticleEffects', 'SpellAnimation', 'SpellContainerSync', 'AttackAvailable'):
