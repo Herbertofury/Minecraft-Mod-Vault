@@ -15,13 +15,10 @@ rm -rf "$UP" "$WORK"
 mkdir -p "$UP"
 clone_exact() {
   local repo="$1" sha="$2" dest="$3"
-  git init -q "$dest"
-  git -C "$dest" remote add origin "https://github.com/${repo}.git"
-  git -C "$dest" fetch -q --depth=1 origin "$sha"
-  git -C "$dest" checkout -q --detach FETCH_HEAD
+  git init -q "$dest"; git -C "$dest" remote add origin "https://github.com/${repo}.git"
+  git -C "$dest" fetch -q --depth=1 origin "$sha"; git -C "$dest" checkout -q --detach FETCH_HEAD
   test "$(git -C "$dest" rev-parse HEAD)" = "$sha"
 }
-
 clone_exact ZsoltMolnarrr/SpellEngine "$BASE_SHA" "$UP/spell-engine-1201" & P1=$!
 clone_exact ZsoltMolnarrr/SpellEngine "$TARGET_SHA" "$UP/spell-engine-1102" & P2=$!
 clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_BASE" "$UP/spell-power-1201" & P3=$!
@@ -32,31 +29,22 @@ wait "$P1" "$P2" "$P3" "$P4" "$P5" "$P6"
 
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 python "$SPELL_POWER/tools/prepare_upstream_source.py" "$UP/spell-power-1201" "$UP/spell-power-160" "$SPELL_POWER/common"
-gradle --no-daemon -p "$SPELL_POWER" :common:jar
-SPJAR=$(find "$SPELL_POWER/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | head -1)
-test -n "$SPJAR"
-SPJAR=$(realpath "$SPJAR")
-jar tf "$SPJAR" | grep -F 'net/spell_power/api/SpellSchool.class'
+test -f "$SPELL_POWER/common/src/generatedUpstream/java/net/spell_power/api/SpellSchool.java"
+SP_SOURCES="$SPELL_POWER/common/src/main/java:$SPELL_POWER/common/src/generatedUpstream/java"
 
 RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
 python "$RANGED/tools/prepare_upstream_source.py" "$UP/ranged-1201" "$UP/ranged-234" "$RANGED/common"
-gradle --no-daemon -p "$RANGED" :common:jar
-RWJAR=$(find "$RANGED/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | head -1)
-test -n "$RWJAR"
-RWJAR=$(realpath "$RWJAR")
-jar tf "$RWJAR" | grep -F 'net/fabric_extras/ranged_weapon/api/RangedConfig.class'
+test -f "$RANGED/common/src/main/java/net/fabric_extras/ranged_weapon/api/RangedConfig.java"
+RW_SOURCES="$RANGED/common/src/main/java:$RANGED/common/src/generatedUpstream/java"
 
 python "$PORT/tools/prepare_spell_engine.py" "$UP/spell-engine-1201" "$UP/spell-engine-1102" "$WORK"
 python "$PORT/tools/compat_pass_1.py" "$WORK"
 
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
-(
-  cd "$WORK"
-  zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*'
-)
+(cd "$WORK" && zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
 unzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null
 
-SPELL_POWER_COMMON_JAR="$SPJAR" RANGED_COMMON_JAR="$RWJAR" \
+SPELL_POWER_SOURCE_DIRS="$SP_SOURCES" RANGED_SOURCE_DIRS="$RW_SOURCES" \
   gradle --no-daemon --stacktrace -p "$WORK" :common:compileJava
 
 echo '[Spell Engine CI] 1.10.2 common source compiles against Minecraft/Forge 1.20.1 foundations.'
