@@ -17,6 +17,7 @@
 - [🌉 OmniBridge](OmniBridge)
 - [📦 Supported Formats](Supported-Formats)
 - [🔄 Conversion Workflows](Conversion-Workflows)
+- [🔁 Mod Conversion Stack](Mod-Conversion-Stack)
 - [☕ ↔ 🧱 Java ↔ Bedrock](Java-Bedrock)
 - [🧬 Loaders & Versions](Loaders-and-Versions)
 - [🪑 CIT & Resource Packs](CIT-and-Resource-Packs)
