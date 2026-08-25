@@ -35,11 +35,22 @@ SP_SOURCES="$SPELL_POWER/common/src/main/java:$SPELL_POWER/common/src/generatedU
 RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
 python "$RANGED/tools/prepare_upstream_source.py" "$UP/ranged-1201" "$UP/ranged-234" "$RANGED/common"
 test -f "$RANGED/common/src/main/java/net/fabric_extras/ranged_weapon/api/RangedConfig.java"
-RW_SOURCES="$RANGED/common/src/main/java:$RANGED/common/src/generatedUpstream/java"
+# Spell Engine consumes Ranged's API source in named mappings. Do not pull Ranged's optional EMI
+# plugin into this compile: it is separately verified in the Ranged release and would require EMI here.
+RW_COMPILE="$UP/ranged-compile"
+mkdir -p "$RW_COMPILE/main" "$RW_COMPILE/generated"
+cp -a "$RANGED/common/src/main/java/." "$RW_COMPILE/main/"
+cp -a "$RANGED/common/src/generatedUpstream/java/." "$RW_COMPILE/generated/"
+rm -rf "$RW_COMPILE/main/net/fabric_extras/ranged_weapon/compat/emi"
+RW_SOURCES="$RW_COMPILE/main:$RW_COMPILE/generated"
 
 python "$PORT/tools/prepare_spell_engine.py" "$UP/spell-engine-1201" "$UP/spell-engine-1102" "$WORK"
 python "$PORT/tools/compat_pass_1.py" "$WORK"
+for part in a1 a2 b1 b2 c d; do
+  python "$PORT/tools/compat_pass_2${part}.py" "$WORK" "$UP/spell-engine-1201"
+done
 
+test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 342
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 (cd "$WORK" && zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
 unzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null
