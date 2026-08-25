@@ -8,4 +8,5 @@ This page exists primarily as a source-controlled index. Use the persistent side
 - [Launchers & Mod Managers](Launchers-and-Managers)
 - [OmniBridge](OmniBridge)
 - [WorldForge](WorldForge)
+- [WorldForge — Repair & Forensics](WorldForge-Repair-and-Forensics)
 - [Roadmap](Roadmap)
