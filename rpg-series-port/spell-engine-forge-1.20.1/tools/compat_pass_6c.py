@@ -7,20 +7,41 @@ if len(sys.argv) != 3:
 root = Path(sys.argv[1]).resolve()
 common = root / 'common'
 aw = common / 'src/main/resources/spell_engine.accesswidener'
-needle = 'accessible    class    net/minecraft/entity/effect/PoisonStatusEffect\n'
 s = aw.read_text()
-if needle not in s:
+
+poison = 'accessible    class    net/minecraft/entity/effect/PoisonStatusEffect\n'
+tracker_entries = (
+    'accessible    field    net/minecraft/server/world/ServerChunkLoadingManager    entityTrackers    Lit/unimi/dsi/fastutil/ints/Int2ObjectMap;\n',
+    'accessible    class    net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker\n',
+    'accessible    field    net/minecraft/server/world/ServerChunkLoadingManager$EntityTracker    listeners    Ljava/util/Set;\n',
+)
+
+if poison not in s:
     raise SystemExit('expected obsolete PoisonStatusEffect access-widener entry missing')
+for entry in tracker_entries:
+    if entry not in s:
+        raise SystemExit(f'expected obsolete tracker access-widener entry missing: {entry.strip()}')
 
-# The 1.10.2 source no longer references/subclasses PoisonStatusEffect. This target-only widening is a
-# stale carry-over from older Spell Engine code and Forge 47 cannot validate that Yarn class owner.
-hits = []
+# PoisonStatusEffect is no longer referenced/subclassed by the 1.10.2 common source.
+# The old vanilla entity-tracker widening is also no longer live after pass 5c moved tracking behind
+# Platform.Util.tracking(Entity), where Forge can provide exact recipient semantics without private
+# ServerChunkLoadingManager fields. Remove only these proven-dead widenings; keep every other AW entry.
+source_hits = []
 for p in (common / 'src/main/java').rglob('*.java'):
-    if 'PoisonStatusEffect' in p.read_text():
-        hits.append(str(p.relative_to(common)))
-if hits:
-    raise SystemExit(f'refusing to remove live PoisonStatusEffect widening; source hits: {hits}')
+    text = p.read_text()
+    for needle in ('PoisonStatusEffect', 'ServerChunkLoadingManager', 'entityTrackers', 'tracker.listeners'):
+        if needle in text:
+            source_hits.append((str(p.relative_to(common)), needle))
+if source_hits:
+    raise SystemExit(f'refusing to remove live access widenings; source hits: {source_hits[:20]}')
 
-aw.write_text(s.replace(needle, ''))
-assert 'PoisonStatusEffect' not in aw.read_text()
-print('Spell Engine compatibility pass 6c applied: removed proven-unused PoisonStatusEffect widening')
+s = s.replace(poison, '')
+for entry in tracker_entries:
+    s = s.replace(entry, '')
+aw.write_text(s)
+
+final = aw.read_text()
+for needle in ('PoisonStatusEffect', 'ServerChunkLoadingManager', 'entityTrackers'):
+    if needle in final:
+        raise SystemExit(f'access-widener cleanup incomplete: {needle}')
+print('Spell Engine compatibility pass 6c applied: removed proven-unused poison + vanilla tracker widenings')
