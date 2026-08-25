@@ -55,6 +55,7 @@ python "$PORT/tools/compat_pass_5b.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_5c.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_5d.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_5e.py" "$WORK" "$UP/spell-engine-1201"
+python "$PORT/tools/compat_pass_5f.py" "$WORK" "$UP/spell-engine-1201"
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 342
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
@@ -64,4 +65,4 @@ unzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null
 SPELL_POWER_SOURCE_DIRS="$SP_SOURCES" RANGED_SOURCE_DIRS="$RW_SOURCES" \
   gradle --no-daemon --stacktrace -p "$WORK" :common:compileJava
 
-echo '[Spell Engine CI] 1.10.2 common source compiles against Minecraft/Forge 1.20.1 foundations.'
+echo '[Spell Engine CI] 1.10.2 common source compiles against Minecraft/Forge 1.20.1 foundations with pass 5f.'
