@@ -32,6 +32,7 @@
 
 ### 🌍 WorldForge
 - [🌍 WorldForge](WorldForge)
+- [🔄 World & Version Conversion](WorldForge-Conversion-Matrix)
 - [🩺 Repair & Forensics](WorldForge-Repair-and-Forensics)
 - [🌱 Pruning & Retrogen](WorldForge-Pruning-and-Retrogen)
 - [🧱 Bedrock Editor Parity](WorldForge-Bedrock-Editor)
