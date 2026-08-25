@@ -4,7 +4,8 @@ $ProgressPreference = 'SilentlyContinue'
 $MinecraftVersion = '1.20.1'
 $ForgeVersion = '47.4.23'
 $GradleVersion = '8.8'
-$Root = Join-Path $PSScriptRoot 'OmniPorter-Forge1201-Prewarm'
+$ScriptRoot = if ([string]::IsNullOrWhiteSpace($PSScriptRoot)) { (Get-Location).Path } else { $PSScriptRoot }
+$Root = Join-Path $ScriptRoot 'OmniPorter-Forge1201-Prewarm'
 $GradleHome = Join-Path $Root 'gradle-home'
 $Work = Join-Path $Root 'mdk'
 $Downloads = Join-Path $Root 'downloads'
@@ -12,7 +13,7 @@ $GradleZip = Join-Path $Downloads "gradle-$GradleVersion-bin.zip"
 $MdkZip = Join-Path $Downloads "forge-$MinecraftVersion-$ForgeVersion-mdk.zip"
 $GradleDir = Join-Path $Root "gradle-$GradleVersion"
 $GradleExe = Join-Path $GradleDir 'bin\gradle.bat'
-$OutZip = Join-Path $PSScriptRoot "omniporter-forge-$MinecraftVersion-$ForgeVersion-gradle-cache.zip"
+$OutZip = Join-Path $ScriptRoot "omniporter-forge-$MinecraftVersion-$ForgeVersion-gradle-cache.zip"
 
 New-Item -ItemType Directory -Force -Path $Root,$GradleHome,$Work,$Downloads | Out-Null
 
@@ -42,6 +43,7 @@ try {
     # reobfuscation tooling, and the normal Java compile/runtime graph needed by OmniPorter.
     & $GradleExe --no-daemon --refresh-dependencies build
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed with exit code $LASTEXITCODE" }
+}
 finally {
     Pop-Location
 }
