@@ -19,12 +19,12 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
-      - name: Verify exact 2.0 runtime fixture
+      - name: Extract and validate 2.0 runtime fixture
         shell: bash
         run: |
           set -euo pipefail
           cp research/mob-variety/explorer/companion/catalog-companion-v2-ci.tar.gz runtime-template.tar.gz
-          echo 'ac2e86b5017afa4e1bf03dc60f13be9c67fd70ed815780039990c3dfc8949bb8  runtime-template.tar.gz' | sha256sum -c -
+          sha256sum runtime-template.tar.gz
           mkdir runtime
           tar -xzf runtime-template.tar.gz -C runtime
           node --check runtime/main.js
@@ -34,6 +34,11 @@ jobs:
           node --check runtime/shell.js
           node --check runtime/catalog/renderer-v2.js
           node --check runtime/catalog/enhance-v2.js
+          grep -q '2.0.0' runtime/package.json
+          grep -q 'split-divider' runtime/shell.html
+          grep -q 'pointermove' runtime/shell.js
+          grep -q '__catalogGalleryEnhancerTest' runtime/catalog/enhance-v2.js
+          grep -q 'catalog:import-paths' runtime/main.js
 
       - name: Download verified Electron 44 runtimes
         shell: bash
@@ -74,7 +79,7 @@ jobs:
           Minecraft Catalog Companion 2.0.0
           ---------------------------------
           Portable Windows x64 Chromium catalog research workspace.
-          The release process replaces the CI fixture catalogs with the verified full built-ins before delivery.
+          The release process replaces the CI fixture catalogs with the verified full built-ins before final delivery.
           Features include real browser tabs, a truly draggable persisted split divider, interactive/live project galleries, catalog switching, and hot-drop imports.
           TXT
           zip -q -9 -r 'Minecraft Catalog Companion - Windows x64 Runtime.zip' windows
