@@ -15,6 +15,7 @@
 | Understand the project in 3 minutes | **[Feature Overview](Feature-Overview)** |
 | See what is verified vs planned | **[Release & Capability Status](Release-Status)** |
 | Manage a mixed Java/Bedrock library | **[OmniManager](OmniManager)** |
+| Compare Minecraft launchers and mod managers | **[Launchers & Mod Managers](Launchers-and-Managers)** |
 | Diagnose or repair a broken mod | **[Repair Lab](Repair-Lab)** |
 | Plan or execute a version/loader port | **[Porting Lab](Porting-Lab)** |
 | Understand the 0.11.0 conversion vision | **[OmniBridge](OmniBridge)** |
@@ -83,6 +84,7 @@ flowchart LR
 - **Canonical project Drive folder:** https://drive.google.com/drive/folders/1nkX40V3f0psEQldm0WjAZH9o-gnAO-Ln
 - **Roadmap:** [Roadmap](Roadmap)
 - **Tool catalogue:** [Tool Catalogue](Tool-Catalogue)
+- **Launcher reference:** [Launchers & Mod Managers](Launchers-and-Managers)
 
 ---
 
