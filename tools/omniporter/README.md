@@ -8,7 +8,8 @@ Upgrade, downgrade, backport, cross-loader port, and eventually Java ↔ Bedrock
 
 ## Architecture
 
-- **Rust control plane (planned):** fast hashing, archive indexing, dependency graph, mapping graph, rule scheduling, parallel analysis, cache/CAS, report generation and deterministic orchestration.
+- **Rust control plane:** fast hashing, archive indexing, provider/source identity, dependency graph, mapping graph, rule scheduling, cache/CAS, report generation and deterministic orchestration.
+- **Ferium provider worker:** directory-scale scanning and compatible update discovery across Modrinth, CurseForge and GitHub Releases. Results are candidates until OmniPorter's provenance gate confirms identity.
 - **JVM workers:** ASM, Mapping-IO, Tiny Remapper, Mixin-aware analysis, Java source transforms, Gradle/Minecraft build integration.
 - **Target adapters:** Forge, NeoForge, Fabric, Quilt/legacy; Bedrock BP/RP/Script API later through Behavior IR.
 - **Knowledge base:** version/API transforms with provenance, confidence, source/target constraints and regression fixtures.
@@ -16,11 +17,24 @@ Upgrade, downgrade, backport, cross-loader port, and eventually Java ↔ Bedrock
 
 ## Pipeline
 
-`intake → fingerprint → source/target environment model → mapping graph → semantic port plan → source/bytecode transforms → dependency substitution → build-error feedback loop → package → differential verification → learned recipe`
+`intake → hashes/JAR metadata → cross-provider identity graph → canonical source/tag/commit → source/target environment model → mapping graph → semantic port plan → source/bytecode transforms → dependency substitution → build-error feedback loop → package → differential verification → learned recipe`
 
-## v0 foundation
+## v0.2
 
-`workers/jvm-inspector` is the first verified worker. It reads a mod JAR without executing it and reports SHA-256, loader metadata signals, class-file versions, Mixin configs, access-transform formats, nested JARs and signing metadata. The output becomes evidence for the Port Manifest.
+`core-rust` is now a verified Rust CLI. It provides:
+
+- Dev Kit diagnostics including Ferium detection.
+- SHA-1/SHA-256/SHA-512 artifact fingerprints.
+- Exact Modrinth SHA-512 identity lookup.
+- Modrinth/GitHub/CurseForge provider resolution.
+- An isolated Ferium 4.7.1 scan/update worker that does not pollute a user's normal Ferium config.
+- A strict rule that provider matches are evidence, not proof: automatic replacement/porting is blocked until source identity/provenance agrees.
+
+`workers/jvm-inspector` reads a mod JAR without executing it and reports SHA-256, loader metadata signals, class-file versions, Mixin configs, access-transform formats, nested JARs and signing metadata. Its output becomes evidence for the Port Manifest.
+
+## Current verification
+
+Rust v0.2 passes rustfmt, Clippy with warnings denied, and an optimized release build on the Dev Kit nightly toolchain. Ferium 4.7.1 launches and reports its full CLI correctly. The current execution runner blocks Ferium's outbound Modrinth request, so network-provider execution is classified separately from worker/runtime correctness and can fall back to connected web/API routes in chat.
 
 ## First torture-test family
 
