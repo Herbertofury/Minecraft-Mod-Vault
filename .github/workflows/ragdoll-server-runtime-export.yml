@@ -1,0 +1,43 @@
+name: Ragdoll Forge 1.20.1 Server Runtime Export
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ragdoll-port/**'
+      - '.github/workflows/ragdoll-server-runtime-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'ragdoll-forge-1.20.1-port') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install clean Forge 47.4.23 server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/forge-server
+          curl -fL --retry 4 --retry-delay 2 -o /tmp/forge-installer.jar 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
+          cd /tmp/forge-server
+          java -jar /tmp/forge-installer.jar --installServer
+          printf 'eula=true\n' > eula.txt
+          printf -- '-Xms512M\n-Xmx1536M\n' > user_jvm_args.txt
+          test -f run.sh
+          test -d libraries
+          sha256sum /tmp/forge-installer.jar > FORGE-INSTALLER-SHA256.txt
+          find . -type f -print0 | sort -z | xargs -0 sha256sum > SERVER-FILES-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-clean-server
+          path: /tmp/forge-server
+          if-no-files-found: error
+          retention-days: 2
