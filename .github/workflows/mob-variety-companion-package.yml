@@ -50,7 +50,10 @@ jobs:
           chmod +x work/linux-runtime/electron
           sudo chown root:root work/linux-runtime/chrome-sandbox
           sudo chmod 4755 work/linux-runtime/chrome-sandbox
-          CHROME_DEVEL_SANDBOX="$GITHUB_WORKSPACE/work/linux-runtime/chrome-sandbox" MV_SELF_TEST_OUT="$GITHUB_WORKSPACE/work/self-test.json" timeout 70 xvfb-run -a work/linux-runtime/electron work/linux-runtime/resources/app --self-test
+          ls -l work/linux-runtime/chrome-sandbox
+          unset CHROME_DEVEL_SANDBOX || true
+          test -z "${CHROME_DEVEL_SANDBOX:-}"
+          MV_SELF_TEST_OUT="$GITHUB_WORKSPACE/work/self-test.json" timeout 70 xvfb-run -a work/linux-runtime/electron work/linux-runtime/resources/app --self-test
           cat work/self-test.json
           python3 - <<'PY'
           import json
