@@ -62,8 +62,9 @@ python "$PORT/tools/compat_pass_6b.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6c.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6d.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6e.py" "$WORK" "$UP/spell-engine-1201"
+python "$PORT/tools/compat_pass_6f.py" "$WORK" "$UP/spell-engine-1201"
 
-test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 344
+test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 (cd "$WORK" && zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
