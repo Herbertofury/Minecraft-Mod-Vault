@@ -22,9 +22,6 @@ clone_exact() {
   test "$(git -C "$dest" rev-parse HEAD)" = "$sha"
 }
 
-# Fan in all immutable sources in parallel-sized groups, then assemble the two already-verified
-# API foundations exactly as their release gates did. This produces the real API jars Spell Engine
-# compiles against without publishing or rebuilding unrelated ports.
 clone_exact ZsoltMolnarrr/SpellEngine "$BASE_SHA" "$UP/spell-engine-1201" & P1=$!
 clone_exact ZsoltMolnarrr/SpellEngine "$TARGET_SHA" "$UP/spell-engine-1102" & P2=$!
 clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_BASE" "$UP/spell-power-1201" & P3=$!
@@ -36,13 +33,21 @@ wait "$P1" "$P2" "$P3" "$P4" "$P5" "$P6"
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 python "$SPELL_POWER/tools/prepare_upstream_source.py" "$UP/spell-power-1201" "$UP/spell-power-160" "$SPELL_POWER/common"
 gradle --no-daemon -p "$SPELL_POWER" :common:jar
+SPJAR=$(find "$SPELL_POWER/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | head -1)
+test -n "$SPJAR"
+SPJAR=$(realpath "$SPJAR")
+jar tf "$SPJAR" | grep -F 'net/spell_power/api/SpellSchool.class'
 
-test -f "$SPELL_POWER/common/src/generatedUpstream/java/net/spell_power/api/SpellSchool.java"
 RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
 python "$RANGED/tools/prepare_upstream_source.py" "$UP/ranged-1201" "$UP/ranged-234" "$RANGED/common"
 gradle --no-daemon -p "$RANGED" :common:jar
+RWJAR=$(find "$RANGED/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | head -1)
+test -n "$RWJAR"
+RWJAR=$(realpath "$RWJAR")
+jar tf "$RWJAR" | grep -F 'net/fabric_extras/ranged_weapon/api/RangedConfig.class'
 
 python "$PORT/tools/prepare_spell_engine.py" "$UP/spell-engine-1201" "$UP/spell-engine-1102" "$WORK"
+python "$PORT/tools/compat_pass_1.py" "$WORK"
 
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 (
@@ -51,8 +56,7 @@ rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 )
 unzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null
 
-# Full 1.10.2 common surface. The high javac error cap is intentional: one failure corpus should
-# expose whole API families so fixes can be batched instead of one-at-a-time CI whack-a-mole.
-gradle --no-daemon --stacktrace -p "$WORK" :common:compileJava
+SPELL_POWER_COMMON_JAR="$SPJAR" RANGED_COMMON_JAR="$RWJAR" \
+  gradle --no-daemon --stacktrace -p "$WORK" :common:compileJava
 
 echo '[Spell Engine CI] 1.10.2 common source compiles against Minecraft/Forge 1.20.1 foundations.'
