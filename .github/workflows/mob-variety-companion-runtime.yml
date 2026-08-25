@@ -1,0 +1,88 @@
+name: Mob Variety Companion Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mob-variety-companion-runtime]
+    paths:
+      - '.github/workflows/mob-variety-companion-runtime.yml'
+      - 'research/mob-variety/explorer/companion/runtime-template.part-*'
+      - 'research/mob-variety/explorer/companion/runtime-template.sha256'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore runtime template
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd research/mob-variety/explorer/companion
+          cat runtime-template.part-* | base64 -d > runtime-template.tar.gz
+          sha256sum -c runtime-template.sha256
+          mkdir runtime
+          tar -xzf runtime-template.tar.gz -C runtime
+          node --check runtime/main.js
+          node --check runtime/preload.js
+          node --check runtime/catalog-preload.js
+          node --check runtime/shell.js
+
+      - name: Download verified Electron 44 runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir electron-dist
+          cd electron-dist
+          curl -L --fail --retry 3 -o electron-linux.zip https://github.com/electron/electron/releases/download/v44.0.0/electron-v44.0.0-linux-x64.zip
+          curl -L --fail --retry 3 -o electron-win.zip https://github.com/electron/electron/releases/download/v44.0.0/electron-v44.0.0-win32-x64.zip
+          echo 'd65286d812719f2b4c1a1b806a80f288a1058c89c7b058dae1e03ab25e499446  electron-linux.zip' | sha256sum -c -
+          echo 'e61aa3bcea8152bc0730abd015e47c032d778a0ef10e2a1c78ba3c4ea47942f9  electron-win.zip' | sha256sum -c -
+
+      - name: Real Chromium shell smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir electron-linux
+          unzip -q electron-dist/electron-linux.zip -d electron-linux
+          rm -f electron-linux/resources/default_app.asar
+          mkdir -p electron-linux/resources/app
+          cp -a research/mob-variety/explorer/companion/runtime/. electron-linux/resources/app/
+          chmod +x electron-linux/electron electron-linux/chrome-sandbox
+          set +e
+          xvfb-run -a env MOB_COMPANION_TEST_MODE=1 electron-linux/electron electron-linux/resources/app > smoke.log 2>&1
+          status=$?
+          set -e
+          cat smoke.log
+          test "$status" -eq 0
+          grep -q 'MOB_COMPANION_SMOKE_PASS' smoke.log
+
+      - name: Package Windows x64 portable runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          out='Minecraft Mob Variety - Companion Windows x64'
+          mkdir "$out"
+          unzip -q electron-dist/electron-win.zip -d "$out"
+          rm -f "$out/resources/default_app.asar"
+          mkdir -p "$out/resources/app"
+          cp -a research/mob-variety/explorer/companion/runtime/. "$out/resources/app/"
+          mv "$out/electron.exe" "$out/Minecraft Mob Variety Companion.exe"
+          printf '%s\n' 'This runtime contains the CI fixture catalog. The final private-source-safe 293-project catalog is injected after artifact download.' > "$out/FINAL-CATALOG-INJECTION.txt"
+          zip -qr 'Minecraft Mob Variety - Companion Windows x64 Runtime.zip' "$out"
+          sha256sum 'Minecraft Mob Variety - Companion Windows x64 Runtime.zip' > runtime-sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mob-variety-companion-runtime-windows-x64
+          path: |
+            Minecraft Mob Variety - Companion Windows x64 Runtime.zip
+            runtime-sha256.txt
+            smoke.log
+          if-no-files-found: error
+          retention-days: 7
