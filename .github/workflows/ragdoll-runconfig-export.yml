@@ -29,37 +29,36 @@ jobs:
           echo 'b046c49aaa7aef022b9cbe1c2aceb441c7ea43c3  /tmp/ragdoll-run/forge-mdk.zip' | sha1sum -c -
           unzip -q /tmp/ragdoll-run/forge-mdk.zip -d /tmp/ragdoll-run/mdk
           chmod +x /tmp/ragdoll-run/mdk/gradlew
-      - name: Add Ragdollified and dump task
+      - name: Add exact Ragdollified dependency
         shell: bash
         run: |
           cat >> /tmp/ragdoll-run/mdk/build.gradle <<'GRADLE'
 
           repositories { maven { url = 'https://www.cursemaven.com' } }
           dependencies { compileOnly fg.deobf('curse.maven:ragdollified-1417732:8704143') }
-
-          tasks.register('dumpRunServerConfig') {
-              doLast {
-                  def rt = tasks.named('runServer').get()
-                  def out = layout.buildDirectory.file('run-export/run-server.txt').get().asFile
-                  out.parentFile.mkdirs()
-                  out.withWriter('UTF-8') { w ->
-                      w.println("taskClass=${rt.class.name}")
-                      ['main','mainClass','args','jvmArgs','systemProperties','environment','workingDir'].each { k ->
-                          try { w.println("${k}=${rt.properties[k]}") } catch (Throwable t) { w.println("${k}=<${t.class.simpleName}>") }
-                      }
-                      try { w.println("classpath=${rt.classpath.files.collect { it.absolutePath }.sort().join(File.pathSeparator)}") } catch (Throwable t) { w.println("classpath=<${t.class.simpleName}>") }
-                  }
-              }
-          }
           GRADLE
-      - name: Export exact runServer configuration
+      - name: Execute ForgeGradle runServer and capture real launch
         working-directory: /tmp/ragdoll-run/mdk
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon --stacktrace dumpRunServerConfig
-          ./gradlew --no-daemon tasks --all > build/run-export/tasks.txt
-          find build -maxdepth 4 -type f \( -name '*args*' -o -name '*classpath*' -o -name '*run*' \) -print > build/run-export/run-files.txt || true
+          mkdir -p build/run-export
+          set +e
+          timeout 150s ./gradlew --no-daemon --info --stacktrace runServer > build/run-export/runserver-console.txt 2>&1
+          code=$?
+          set -e
+          printf '%s\n' "$code" > build/run-export/runserver-exit-code.txt
+          grep -nE 'Starting process .*java|Command: .*java|Process .* started|net\.minecraftforge|cpw\.mods\.bootstraplauncher|--module-path|--class-path|legacyClassPath|MOD_CLASSES' build/run-export/runserver-console.txt > build/run-export/launch-lines.txt || true
+          find build run -type f \( -name '*args*' -o -name '*.log' -o -name '*classpath*' -o -name '*run*.txt' \) -print 2>/dev/null | sort > build/run-export/run-files.txt || true
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.log|*.txt|*args*|*classpath*)
+                mkdir -p "build/run-export/files/$(dirname "$f")"
+                cp "$f" "build/run-export/files/$f" || true
+                ;;
+            esac
+          done < build/run-export/run-files.txt
           env | sort | grep -E '^(MOD_CLASSES|MCP_|FORGE_|JAVA_|GRADLE_)' > build/run-export/ci-env.txt || true
       - uses: actions/upload-artifact@v4
         with:
