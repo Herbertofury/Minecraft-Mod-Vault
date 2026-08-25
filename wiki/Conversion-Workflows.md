@@ -2,7 +2,7 @@
 
 > **Status:** 📋 OmniBridge roadmap unless otherwise marked.
 
-World, version and content conversion are separate semantic pipelines. For the full world/version matrix, current specialist tools and downgrade rules, see **[WorldForge — World & Version Conversion Matrix](WorldForge-Conversion-Matrix)**.
+General mod/add-on conversion is documented in **[Mod Conversion Stack](Mod-Conversion-Stack)**. Saved-world/version conversion remains a separate WorldForge pipeline in **[WorldForge — World & Version Conversion Matrix](WorldForge-Conversion-Matrix)**.
 
 ## Target workflows
 
@@ -11,12 +11,19 @@ World, version and content conversion are separate semantic pipelines. For the f
 | CIT → Java furniture mod | real blocks/entities, placement, recipes, storage/sitting/animation where inferable |
 | CIT → Bedrock furniture | BP/RP + behavior needed for real interaction |
 | Resource-pack mob replacement → standalone mob | original vanilla mob remains untouched; converted entity gets independent ID/spawn/loot/behavior |
-| Bedrock entity → Java entity | geometry, animation/controllers, behavior, spawn, drops, sounds, particles |
-| Java entity → Bedrock add-on | BP/RP + scripts where required |
+| Bedrock entity/add-on → Java mod | geometry/animation/controller/Molang plus components/events/Script API reconstructed in target-native Java systems |
+| Java mod/entity → Bedrock add-on | BP/RP + Script API/components/controllers where required; no bytecode-to-JSON pretending |
 | `.mcaddon` → Java project | dependency-aware Java project, not a JSON dump |
-| old Java mod → newer Minecraft | mappings/API/loader/toolchain migration + tests |
-| Forge ↔ NeoForge/Fabric | semantic lifecycle/registry/network/render migration, not text substitution |
-| Blockbench/Blender → entity/build | rig/material/animation-aware conversion |
+| old Java mod → newer Minecraft | mapping/API/toolchain migration + Mixin/access/registry/network/render/data semantic tests |
+| newer Java mod → older Minecraft | target-capability backport with explicit replacements/blocked features; never version-string spoofing |
+| Forge ↔ NeoForge | lifecycle/API/data/network/render migration with target-native runtime tests |
+| Forge/NeoForge ↔ Fabric | target-native semantic port; common abstractions or compatibility layers used only when behavior remains correct |
+| Fabric Yarn/Intermediary era → Mojang / 26.1+ | Loom/Ravel mapping migration + Mixin/access target review across the unobfuscated boundary |
+| source-less JAR → target Java mod | deobfuscate/remap + dual decompile + build reconstruction + semantic target port |
+| AT ↔ AW/ClassTweaker | canonical Access IR → target-aware emitted access file |
+| Mixin → target version/loader | owner/name/descriptor/injection-point/control-flow-aware retargeting; runtime application verification |
+| Java custom blocks/items/RP → Bedrock/Geyser | Geyser semantic mappings + Rainbow/pack-generation lane where representable |
+| Blockbench/Bedrock animation → Java animated entity | rig/material/animation-aware conversion, GeckoLib/native renderer where appropriate |
 | Java world → Bedrock world | WorldForge terrain + semantic data migration with independent terrain/entity/player/map/metadata verdicts |
 | Bedrock world → Java world | WorldForge LevelDB → Java world migration with Bedrock actor/XUID provenance |
 | old Java world → newer Java | real target Minecraft WorldUpgrader/DataFixerUpper first, then semantic/modded repair |
@@ -29,11 +36,19 @@ World, version and content conversion are separate semantic pipelines. For the f
 | `.litematic` / `.schem` / Java structure NBT / `.mcstructure` | common structure IR, target-version block mapping, unsupported-block/entity report |
 | Java resource pack → Bedrock resource pack/RTX | texture/model/material mapping with explicit unsupported-feature report |
 
-## Conversion architecture
+## Mod conversion architecture
 
-Avoid N×N pairwise converters where possible:
+Avoid N×N regex translators:
 
-`source adapter → version/edition semantic IDs → canonical IR → capability/fallback policy → target adapter → repair/rebuild → verifier`
+`source/JAR → archaeology + namespaces → Semantic Port IR → target capability plan → deterministic transforms → target-native implementation → package → differential verifier`
+
+The Semantic Port IR retains mappings, registry identities, lifecycle intent, Mixin fingerprints, access intent, dependency contracts, packet schemas, persistence/components/capabilities, rendering/animation contracts and Java↔Bedrock Behavior IR.
+
+## World conversion architecture
+
+Saved worlds use their separate canonical IR:
+
+`source adapter → version/edition semantic IDs → World IR → capability/fallback policy → target adapter → repair/rebuild → verifier`
 
 Unknown or unsupported source data is retained in provenance/quarantine sidecars instead of silently discarded.
 
@@ -48,4 +63,4 @@ A successful workflow ends with:
 5. validation;
 6. real runtime verification where behavior matters.
 
-For world conversions, **terrain success alone is never enough** to claim entity, player, inventory, map, POI or structure-metadata success.
+For mods, **compile/startup success alone is never behavioral parity**. For worlds, **terrain success alone is never entity/player/inventory/map/metadata parity**.
