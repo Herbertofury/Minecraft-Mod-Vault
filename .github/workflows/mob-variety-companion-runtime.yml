@@ -6,7 +6,7 @@ on:
     branches: [mob-variety-companion-runtime]
     paths:
       - '.github/workflows/mob-variety-companion-runtime.yml'
-      - 'research/mob-variety/explorer/companion/runtime-current.part-*'
+      - 'research/mob-variety/explorer/companion/runtime-v110.part-*'
 
 permissions:
   contents: read
@@ -19,12 +19,12 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
-      - name: Rehydrate verified runtime source
+      - name: Rehydrate verified 1.1 runtime source
         shell: bash
         run: |
           set -euo pipefail
-          cat research/mob-variety/explorer/companion/runtime-current.part-* | base64 -d > runtime-template.tar.gz
-          echo '7f4b5678f999fa5254edda894c9666b64b4b169a187bcadef196c093609e0ca0  runtime-template.tar.gz' | sha256sum -c -
+          cat research/mob-variety/explorer/companion/runtime-v110.part-* | base64 -d > runtime-template.tar.gz
+          echo '1316636e15397cacf3b263a7f39b905cd3202de53b3b1989e9f077c16d6bbca5  runtime-template.tar.gz' | sha256sum -c -
           mkdir runtime
           tar -xzf runtime-template.tar.gz -C runtime
           node --check runtime/main.js
@@ -41,7 +41,7 @@ jobs:
           echo 'd65286d812719f2b4c1a1b806a80f288a1058c89c7b058dae1e03ab25e499446  electron-linux.zip' | sha256sum -c -
           echo 'e61aa3bcea8152bc0730abd015e47c032d778a0ef10e2a1c78ba3c4ea47942f9  electron-windows.zip' | sha256sum -c -
 
-      - name: Real Chromium shell self-test
+      - name: Real Chromium split and gallery self-test
         shell: bash
         run: |
           set -euo pipefail
@@ -68,10 +68,11 @@ jobs:
           cp -a runtime/. windows/resources/app/
           mv windows/electron.exe 'windows/Minecraft Mob Variety Companion.exe'
           cat > windows/README.txt <<'TXT'
-          Minecraft Mob Variety Companion
-          --------------------------------
+          Minecraft Mob Variety Companion 1.1.0
+          --------------------------------------
           Portable Windows x64 Chromium desktop runtime.
           The release process replaces the CI fixture catalog with the verified 293-project catalog before final delivery.
+          Split Research uses a draggable persisted browser-style divider, supports side swapping, and real project galleries can be discovered on demand.
           Live project sites open as real sandboxed Chromium tabs inside the app. The toolbar always exposes Open in your browser.
           TXT
           zip -q -9 -r 'Minecraft Mob Variety Companion - Windows x64 Runtime.zip' windows
@@ -80,7 +81,7 @@ jobs:
       - name: Upload verified Windows runtime
         uses: actions/upload-artifact@v4
         with:
-          name: mob-variety-companion-windows-runtime
+          name: mob-variety-companion-windows-runtime-1-1-0
           path: |
             Minecraft Mob Variety Companion - Windows x64 Runtime.zip
             runtime-self-test.log
