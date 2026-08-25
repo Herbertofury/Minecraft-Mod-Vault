@@ -53,7 +53,9 @@ jobs:
           rm -f electron-linux/resources/default_app.asar
           mkdir -p electron-linux/resources/app
           cp -a research/mob-variety/explorer/companion/runtime/. electron-linux/resources/app/
-          chmod +x electron-linux/electron electron-linux/chrome-sandbox
+          chmod +x electron-linux/electron
+          sudo chown root:root electron-linux/chrome-sandbox
+          sudo chmod 4755 electron-linux/chrome-sandbox
           set +e
           xvfb-run -a env MOB_COMPANION_TEST_MODE=1 electron-linux/electron electron-linux/resources/app > smoke.log 2>&1
           status=$?
