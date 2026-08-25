@@ -49,6 +49,7 @@ python "$PORT/tools/compat_pass_1.py" "$WORK"
 for part in a1 a2 b1 b2 c d; do
   python "$PORT/tools/compat_pass_2${part}.py" "$WORK" "$UP/spell-engine-1201"
 done
+python "$PORT/tools/compat_pass_3.py" "$WORK"
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 342
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
