@@ -5,6 +5,7 @@ This page exists primarily as a source-controlled index. Use the persistent side
 - [Home](Home)
 - [Release Status](Release-Status)
 - [Feature Overview](Feature-Overview)
+- [Launchers & Mod Managers](Launchers-and-Managers)
 - [OmniBridge](OmniBridge)
 - [WorldForge](WorldForge)
 - [Roadmap](Roadmap)
