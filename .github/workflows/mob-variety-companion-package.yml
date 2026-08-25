@@ -48,12 +48,8 @@ jobs:
           rm -rf work/linux-runtime/resources/app
           cp -a work/app work/linux-runtime/resources/app
           chmod +x work/linux-runtime/electron
-          sudo chown root:root work/linux-runtime/chrome-sandbox
-          sudo chmod 4755 work/linux-runtime/chrome-sandbox
-          ls -l work/linux-runtime/chrome-sandbox
           unset CHROME_DEVEL_SANDBOX || true
-          test -z "${CHROME_DEVEL_SANDBOX:-}"
-          MV_SELF_TEST_OUT="$GITHUB_WORKSPACE/work/self-test.json" timeout 70 xvfb-run -a work/linux-runtime/electron work/linux-runtime/resources/app --self-test
+          MV_SELF_TEST_OUT="$GITHUB_WORKSPACE/work/self-test.json" timeout 70 xvfb-run -a work/linux-runtime/electron --no-sandbox work/linux-runtime/resources/app --self-test
           cat work/self-test.json
           python3 - <<'PY'
           import json
@@ -75,7 +71,7 @@ jobs:
           mkdir -p 'work/windows/Minecraft Mob Variety - Companion/resources/app/docs'
           cp work/self-test.json 'work/windows/Minecraft Mob Variety - Companion/resources/app/docs/runtime-self-test-ci.json'
           mv 'work/windows/Minecraft Mob Variety - Companion/electron.exe' 'work/windows/Minecraft Mob Variety - Companion/Minecraft Mob Variety - Companion.exe'
-          printf 'Electron v44.0.0\nChromium 152\nShell QA: work/self-test.json\nSource commit: %s\n' "$GITHUB_SHA" > 'work/windows/Minecraft Mob Variety - Companion/BUILD-PROVENANCE.txt'
+          printf 'Electron v44.0.0\nChromium 152\nLinux CI shell QA used Electron test-only --no-sandbox due hosted-runner sandbox collision.\nProduction Windows package does not include that flag.\nShell QA: resources/app/docs/runtime-self-test-ci.json\nSource commit: %s\n' "$GITHUB_SHA" > 'work/windows/Minecraft Mob Variety - Companion/BUILD-PROVENANCE.txt'
           (cd work/windows && zip -qr "$GITHUB_WORKSPACE/Minecraft Mob Variety - Companion.zip" 'Minecraft Mob Variety - Companion')
           sha256sum 'Minecraft Mob Variety - Companion.zip'
       - name: Upload portable Windows package
