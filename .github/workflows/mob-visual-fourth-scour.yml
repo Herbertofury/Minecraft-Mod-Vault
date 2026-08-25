@@ -6,6 +6,11 @@ on:
       - 'tools/visual_metadata/fourth_scour_2026-08-24.json'
       - 'tools/visual_metadata/fetch_fourth_scour_visuals.py'
       - '.github/workflows/mob-visual-fourth-scour.yml'
+  pull_request:
+    paths:
+      - 'tools/visual_metadata/fourth_scour_2026-08-24.json'
+      - 'tools/visual_metadata/fetch_fourth_scour_visuals.py'
+      - '.github/workflows/mob-visual-fourth-scour.yml'
   workflow_dispatch:
 
 permissions:
