@@ -1,0 +1,80 @@
+name: Mob Variety Companion Package
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'research/mob-variety/explorer/companion/runtime-template.tar.gz.b64'
+      - 'research/mob-variety/explorer/companion/README.md'
+      - '.github/workflows/mob-variety-companion-package.yml'
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare runtime source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p work/app
+          base64 -d research/mob-variety/explorer/companion/runtime-template.tar.gz.b64 > work/runtime-template.tar.gz
+          echo '1b59aaced1272a1580df0de16a01f90bfe22e80033ea2f4a5fee57c688a39f0e  work/runtime-template.tar.gz' | sha256sum -c -
+          tar -xzf work/runtime-template.tar.gz -C work/app
+          node --check work/app/main.js
+          node --check work/app/preload.js
+          node --check work/app/catalog-preload.js
+          node --check work/app/shell.js
+      - name: Fetch and verify official Electron 44 runtimes
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p work/downloads
+          curl -fL --retry 4 -o work/downloads/electron-linux.zip https://github.com/electron/electron/releases/download/v44.0.0/electron-v44.0.0-linux-x64.zip
+          curl -fL --retry 4 -o work/downloads/electron-win.zip https://github.com/electron/electron/releases/download/v44.0.0/electron-v44.0.0-win32-x64.zip
+          echo 'd65286d812719f2b4c1a1b806a80f288a1058c89c7b058dae1e03ab25e499446  work/downloads/electron-linux.zip' | sha256sum -c -
+          echo 'e61aa3bcea8152bc0730abd015e47c032d778a0ef10e2a1c78ba3c4ea47942f9  work/downloads/electron-win.zip' | sha256sum -c -
+      - name: Real Electron browser-shell self test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64
+          mkdir -p work/linux-runtime
+          unzip -q work/downloads/electron-linux.zip -d work/linux-runtime
+          rm -f work/linux-runtime/resources/default_app.asar
+          rm -rf work/linux-runtime/resources/app
+          cp -a work/app work/linux-runtime/resources/app
+          chmod +x work/linux-runtime/electron
+          MV_SELF_TEST_OUT="$GITHUB_WORKSPACE/work/self-test.json" timeout 70 xvfb-run -a work/linux-runtime/electron --no-sandbox work/linux-runtime/resources/app --self-test
+          cat work/self-test.json
+          python3 - <<'PY'
+          import json
+          p='work/self-test.json'
+          r=json.load(open(p,encoding='utf-8'))
+          assert r['passed'], r
+          assert all(t['ok'] for t in r['tests']), r
+          print('Electron shell self-test:',len(r['tests']),'checks passed')
+          PY
+      - name: Build Windows x64 portable folder
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p 'work/windows/Minecraft Mob Variety - Companion'
+          unzip -q work/downloads/electron-win.zip -d 'work/windows/Minecraft Mob Variety - Companion'
+          rm -f 'work/windows/Minecraft Mob Variety - Companion/resources/default_app.asar'
+          rm -rf 'work/windows/Minecraft Mob Variety - Companion/resources/app'
+          cp -a work/app 'work/windows/Minecraft Mob Variety - Companion/resources/app'
+          mkdir -p 'work/windows/Minecraft Mob Variety - Companion/resources/app/docs'
+          cp work/self-test.json 'work/windows/Minecraft Mob Variety - Companion/resources/app/docs/runtime-self-test-ci.json'
+          mv 'work/windows/Minecraft Mob Variety - Companion/electron.exe' 'work/windows/Minecraft Mob Variety - Companion/Minecraft Mob Variety - Companion.exe'
+          printf 'Electron v44.0.0\nChromium 152\nShell QA: work/self-test.json\nSource commit: %s\n' "$GITHUB_SHA" > 'work/windows/Minecraft Mob Variety - Companion/BUILD-PROVENANCE.txt'
+          (cd work/windows && zip -qr "$GITHUB_WORKSPACE/Minecraft Mob Variety - Companion.zip" 'Minecraft Mob Variety - Companion')
+          sha256sum 'Minecraft Mob Variety - Companion.zip'
+      - name: Upload portable Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mob-variety-companion-win-x64
+          path: Minecraft Mob Variety - Companion.zip
+          compression-level: 0
+          retention-days: 7
