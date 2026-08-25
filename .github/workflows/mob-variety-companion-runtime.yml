@@ -29,7 +29,9 @@ jobs:
             research/mob-variety/explorer/companion/runtime-v110.part-01 \
             research/mob-variety/explorer/companion/runtime-v110.part-02 \
             research/mob-variety/explorer/companion/runtime-v110.tail-00 \
-            research/mob-variety/explorer/companion/runtime-v110.tail-01 \
+            research/mob-variety/explorer/companion/runtime-v110.tail-01a \
+            research/mob-variety/explorer/companion/runtime-v110.tail-01b \
+            research/mob-variety/explorer/companion/runtime-v110.tail-01c \
             research/mob-variety/explorer/companion/runtime-v110.tail-02 \
             | base64 -d > runtime-template.tar.gz
           echo '1316636e15397cacf3b263a7f39b905cd3202de53b3b1989e9f077c16d6bbca5  runtime-template.tar.gz' | sha256sum -c -
