@@ -29,6 +29,7 @@ java = forge / 'src/main/java/net/spell_engine/forge'
 res = forge / 'src/main/resources'
 (java / 'network').mkdir(parents=True, exist_ok=True)
 res.joinpath('META-INF').mkdir(parents=True, exist_ok=True)
+forge.joinpath('gradle.properties').write_text('loom.platform=forge\n')
 
 forge.joinpath('build.gradle').write_text(r'''plugins {
     id 'com.github.johnrengelman.shadow'
@@ -328,6 +329,7 @@ side="BOTH"
 res.joinpath('pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"Spell Engine Forge 1.20.1 resources"}}\n')
 
 assert "include 'forge'" in settings.read_text()
+assert forge.joinpath('gradle.properties').read_text().strip() == 'loom.platform=forge'
 assert forge.joinpath('build.gradle').exists()
 assert java.joinpath('ForgeMod.java').exists()
 assert res.joinpath('META-INF/mods.toml').exists()
