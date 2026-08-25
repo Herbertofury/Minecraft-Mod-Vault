@@ -26,7 +26,22 @@ jobs:
           sha256sum -c runtime-template.sha256
           mkdir runtime
           tar -xzf runtime-template.tar.gz -C runtime
-          sed -i 's#https://github.com/#https://example.org/#g; s#github.com#example.org#g' runtime/main.js
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('runtime/main.js')
+          s = p.read_text()
+          old = """  await first.view.webContents.loadURL('https://github.com/');
+            await waitForMainLoad(first.view.webContents, 'github.com');
+            check('https-github', first.view.webContents.getURL().startsWith('https://github.com'));
+          """
+          new = """  await first.view.webContents.loadURL('https://example.com/?second=1');
+            await waitForMainLoad(first.view.webContents, 'example.com second');
+            check('https-second-navigation', first.view.webContents.getURL().includes('?second=1'));
+          """
+          if old not in s:
+              raise SystemExit('Expected smoke block not found')
+          p.write_text(s.replace(old, new))
+          PY
           node --check runtime/main.js
           node --check runtime/preload.js
           node --check runtime/catalog-preload.js
