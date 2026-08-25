@@ -58,6 +58,7 @@ python "$PORT/tools/compat_pass_5e.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_5f.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
+python "$PORT/tools/compat_pass_6b.py" "$WORK" "$UP/spell-engine-1201"
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 342
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
