@@ -67,6 +67,10 @@ rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 unzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null
 
 SPELL_POWER_SOURCE_DIRS="$SP_SOURCES" RANGED_SOURCE_DIRS="$RW_SOURCES" \
-  gradle --no-daemon --stacktrace -p "$WORK" :common:compileJava :forge:compileJava
+  gradle --no-daemon --stacktrace -p "$WORK" :forge:build
 
-echo '[Spell Engine CI] 1.10.2 common + native Forge 47 module compile against Minecraft 1.20.1.'
+JAR="$(find "$WORK/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | head -n 1)"
+test -n "$JAR"
+unzip -t "$JAR" >/dev/null
+sha256sum "$JAR" | tee "$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell-engine-forge-1.20.1.sha256"
+echo "[Spell Engine CI] Built and ZIP-verified remapped Forge 1.20.1 JAR: $JAR"
