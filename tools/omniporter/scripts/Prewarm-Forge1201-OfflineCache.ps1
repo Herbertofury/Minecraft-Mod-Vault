@@ -19,41 +19,28 @@ $OutZip = Join-Path $ScriptRoot "omniporter-forge-$MinecraftVersion-$ForgeVersio
 
 New-Item -ItemType Directory -Force -Path $Root,$GradleHome,$Work,$Downloads | Out-Null
 
-function Test-Java17([string]$JavaExe) {
-    if ([string]::IsNullOrWhiteSpace($JavaExe) -or !(Test-Path $JavaExe)) { return $false }
-    $Text = (& $JavaExe -version 2>&1 | Out-String)
-    return $Text -match 'version\s+"17\.'
+function Get-JavaVersionText([string]$JavaExe) {
+    $Stdout = Join-Path $env:TEMP ("omniporter-java-stdout-" + [guid]::NewGuid().ToString('N') + '.txt')
+    $Stderr = Join-Path $env:TEMP ("omniporter-java-stderr-" + [guid]::NewGuid().ToString('N') + '.txt')
+    try {
+        $Process = Start-Process -FilePath $JavaExe -ArgumentList '-version' -NoNewWindow -Wait -PassThru -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr
+        $Text = ((Get-Content $Stdout -Raw -ErrorAction SilentlyContinue) + "`n" + (Get-Content $Stderr -Raw -ErrorAction SilentlyContinue)).Trim()
+        if ($Process.ExitCode -ne 0) { throw "java -version failed with exit code $($Process.ExitCode): $Text" }
+        return $Text
+    }
+    finally {
+        Remove-Item $Stdout,$Stderr -Force -ErrorAction SilentlyContinue
+    }
 }
 
-function Resolve-Java17 {
-    $Candidates = @()
+# Deliberately use an isolated Java 17 instead of the machine-wide JAVA_HOME/PATH.
+# This makes the cache reproducible and prevents Java 21/25 from breaking Forge 1.20.1 tooling.
+$BundledJava = Get-ChildItem -Path $JdkRoot -Filter java.exe -File -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match '\\bin\\java\.exe$' } |
+    Select-Object -First 1 -ExpandProperty FullName
 
-    if (![string]::IsNullOrWhiteSpace($env:OMNIPORTER_JAVA17)) {
-        $Candidates += (Join-Path $env:OMNIPORTER_JAVA17 'bin\java.exe')
-    }
-    if (![string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
-        $Candidates += (Join-Path $env:JAVA_HOME 'bin\java.exe')
-    }
-
-    $Roots = @(
-        "$env:ProgramFiles\Eclipse Adoptium",
-        "$env:ProgramFiles\Microsoft",
-        "$env:ProgramFiles\Java",
-        "$env:LOCALAPPDATA\Programs\Eclipse Adoptium"
-    )
-    foreach ($SearchRoot in $Roots) {
-        if (Test-Path $SearchRoot) {
-            $Candidates += Get-ChildItem -Path $SearchRoot -Filter java.exe -File -Recurse -ErrorAction SilentlyContinue |
-                Where-Object { $_.FullName -match '\\bin\\java\.exe$' } |
-                Select-Object -ExpandProperty FullName
-        }
-    }
-
-    foreach ($Candidate in ($Candidates | Select-Object -Unique)) {
-        if (Test-Java17 $Candidate) { return $Candidate }
-    }
-
-    Write-Host 'Java 17 was not found. Downloading latest Eclipse Temurin 17 JDK (Windows x64)...'
+if ([string]::IsNullOrWhiteSpace($BundledJava)) {
+    Write-Host 'Provisioning isolated Eclipse Temurin 17 JDK (Windows x64)...'
     if (!(Test-Path $JdkZip)) {
         Invoke-WebRequest -UseBasicParsing 'https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk' -OutFile $JdkZip
     }
@@ -63,21 +50,24 @@ function Resolve-Java17 {
     $BundledJava = Get-ChildItem -Path $JdkRoot -Filter java.exe -File -Recurse |
         Where-Object { $_.FullName -match '\\bin\\java\.exe$' } |
         Select-Object -First 1 -ExpandProperty FullName
-    if (!(Test-Java17 $BundledJava)) {
-        throw 'Temurin Java 17 provisioning failed: downloaded archive did not expose a usable Java 17 runtime.'
-    }
-    return $BundledJava
 }
 
-$JavaExe = Resolve-Java17
-$JavaBin = Split-Path $JavaExe -Parent
+if ([string]::IsNullOrWhiteSpace($BundledJava) -or !(Test-Path $BundledJava)) {
+    throw 'Could not locate the isolated Java 17 runtime.'
+}
+
+$JavaVersionText = Get-JavaVersionText $BundledJava
+if ($JavaVersionText -notmatch 'version\s+"17\.') {
+    throw "Expected Java 17 but isolated runtime reports: $JavaVersionText"
+}
+
+$JavaBin = Split-Path $BundledJava -Parent
 $JavaHome = Split-Path $JavaBin -Parent
 $env:JAVA_HOME = $JavaHome
 $env:PATH = "$JavaBin;$env:PATH"
 
-Write-Host "Using Java 17: $JavaExe"
-& $JavaExe -version
-if ($LASTEXITCODE -ne 0) { throw 'Java 17 validation failed.' }
+Write-Host "Using isolated Java 17: $BundledJava"
+Write-Host $JavaVersionText
 
 if (!(Test-Path $GradleZip)) {
     Invoke-WebRequest -UseBasicParsing "https://services.gradle.org/distributions/gradle-$GradleVersion-bin.zip" -OutFile $GradleZip
