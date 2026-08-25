@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import json, re, sys
+import json, sys
 
 if len(sys.argv) != 3:
     raise SystemExit('usage: compat_pass_6f.py <generated-port-root> <spell-engine-1.20.1-baseline>')
@@ -35,8 +35,8 @@ if 'RegistryWrapper.WrapperLookup registries' in s or 'buildPool(registries' in 
     raise SystemExit('dead loot registry parameter survived pass 6f')
 loot_helper.write_text(s)
 
-# Forge LootTable exposes addPool but keeps its existing pool list private. Access only that list for
-# the existing-drop inspection that the fallback algorithm genuinely needs.
+# Vanilla Yarn 1.20.1 stores built-table pools as LootPool[] (not the List used by newer patched
+# implementations). Access exactly that array for fallback inspection; Forge's addPool handles writes.
 accessor_dir = common_java / 'net/spell_engine/mixin/loot'
 accessor_dir.mkdir(parents=True, exist_ok=True)
 accessor_dir.joinpath('LootTableAccessor.java').write_text(r'''package net.spell_engine.mixin.loot;
@@ -46,12 +46,10 @@ import net.minecraft.loot.LootTable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-import java.util.List;
-
 @Mixin(LootTable.class)
 public interface LootTableAccessor {
     @Accessor("pools")
-    List<LootPool> spellEngine_pools();
+    LootPool[] spellEngine_pools();
 }
 ''')
 mixins = common_res / 'spell_engine.mixins.json'
@@ -88,6 +86,7 @@ import net.spell_engine.mixin.loot.LootTableAccessor;
 import net.spell_engine.network.Packets;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,8 +111,6 @@ public final class PlatformEventsImpl {
     public static void onPlayerJoin(Consumer<ServerPlayerEntity> callback) {
         MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent event) -> {
             if (event.getEntity() instanceof ServerPlayerEntity player) {
-                // Forge 1.20.1 has no NeoForge configuration-payload task API. Mirror the same
-                // authoritative server state at play-login before normal cooldown/container sync.
                 if (ForgeNetwork.isReady(player)) {
                     ForgeNetwork.sendToPlayer(player, new Packets.ConfigSync(SpellEngineMod.config));
                     ForgeNetwork.sendToPlayer(player, new Packets.SpellRegistrySync(SpellAssignments.encoded));
@@ -125,9 +122,7 @@ public final class PlatformEventsImpl {
 
     public static void onPlayerChangedWorld(Consumer<ServerPlayerEntity> callback) {
         MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent event) -> {
-            if (event.getEntity() instanceof ServerPlayerEntity player) {
-                callback.accept(player);
-            }
+            if (event.getEntity() instanceof ServerPlayerEntity player) callback.accept(player);
         });
     }
 
@@ -145,9 +140,7 @@ public final class PlatformEventsImpl {
         MinecraftForge.EVENT_BUS.addListener((LootTableLoadEvent event) -> {
             var context = new ForgeLootContext(event);
             callback.accept(context);
-            for (var pool : context.addedPools) {
-                event.getTable().addPool(pool);
-            }
+            for (var pool : context.addedPools) event.getTable().addPool(pool);
         });
     }
 
@@ -157,7 +150,6 @@ public final class PlatformEventsImpl {
         ITEM_GROUPS.computeIfAbsent(group, ignored -> new ArrayList<>()).add(callback);
     }
 
-    /** Called from ForgeMod on the mod event bus. */
     static void onCreativeTab(BuildCreativeModeTabContentsEvent event) {
         var callbacks = ITEM_GROUPS.get(event.getTabKey());
         if (callbacks == null) return;
@@ -168,11 +160,8 @@ public final class PlatformEventsImpl {
 
     private static final List<PlatformEvents.AllowEnchanting> ENCHANTING = new ArrayList<>();
 
-    public static void onAllowEnchanting(PlatformEvents.AllowEnchanting callback) {
-        ENCHANTING.add(callback);
-    }
+    public static void onAllowEnchanting(PlatformEvents.AllowEnchanting callback) { ENCHANTING.add(callback); }
 
-    /** DENY wins; otherwise any ALLOW wins over PASS. Used by the Forge enchanting hook pass. */
     static TriState evaluateAllowEnchanting(RegistryEntry<Enchantment> enchantment, ItemStack stack) {
         var result = TriState.PASS;
         for (var callback : ENCHANTING) {
@@ -192,7 +181,7 @@ public final class PlatformEventsImpl {
 
         private ForgeLootContext(LootTableLoadEvent event) {
             this.event = event;
-            this.existingPools = List.copyOf(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools());
+            this.existingPools = List.copyOf(Arrays.asList(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools()));
         }
 
         @Override public Identifier tableId() { return event.getName(); }
@@ -202,7 +191,6 @@ public final class PlatformEventsImpl {
 }
 ''')
 
-# Replace inert callback-storage bridge with a hard failure if anything accidentally references it.
 forge_java.joinpath('ForgeEventBridge.java').write_text(r'''package net.spell_engine.forge;
 
 /** Legacy scaffold intentionally empty; all event wiring lives in PlatformEventsImpl. */
@@ -221,7 +209,6 @@ if anchor not in s:
 s = s.replace(anchor, anchor + '        modBus.addListener(PlatformEventsImpl::onCreativeTab);\n')
 forge_mod.write_text(s)
 
-# Guards: no inert event-list registrations, no deprecated context getter, no fake loot registry lookup.
 pe = forge_java.joinpath('PlatformEventsImpl.java').read_text()
 for required in ('ServerStartingEvent', 'ServerStartedEvent', 'OnDatapackSyncEvent', 'PlayerLoggedInEvent',
                  'PlayerChangedDimensionEvent', 'LivingHurtEvent', 'RegisterCommandsEvent', 'LootTableLoadEvent',
