@@ -3,7 +3,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'research/mob-variety/explorer/companion/runtime-template.tar.gz.b64'
+      - 'research/mob-variety/explorer/companion/runtime-template.tar.gz.b64.part-*'
       - 'research/mob-variety/explorer/companion/README.md'
       - '.github/workflows/mob-variety-companion-package.yml'
   workflow_dispatch:
@@ -18,7 +18,9 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p work/app
-          base64 -d research/mob-variety/explorer/companion/runtime-template.tar.gz.b64 > work/runtime-template.tar.gz
+          cat research/mob-variety/explorer/companion/runtime-template.tar.gz.b64.part-* > work/runtime-template.tar.gz.b64
+          test "$(wc -c < work/runtime-template.tar.gz.b64)" -eq 23268
+          base64 -d work/runtime-template.tar.gz.b64 > work/runtime-template.tar.gz
           echo '1b59aaced1272a1580df0de16a01f90bfe22e80033ea2f4a5fee57c688a39f0e  work/runtime-template.tar.gz' | sha256sum -c -
           tar -xzf work/runtime-template.tar.gz -C work/app
           node --check work/app/main.js
