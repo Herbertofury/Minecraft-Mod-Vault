@@ -51,6 +51,7 @@ python "$PORT/tools/compat_pass_3.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_4a.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_4b.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_5a.py" "$WORK" "$UP/spell-engine-1201"
+python "$PORT/tools/compat_pass_5b.py" "$WORK" "$UP/spell-engine-1201"
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 342
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
