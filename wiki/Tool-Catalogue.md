@@ -2,6 +2,8 @@
 
 These are **research/integration targets**, not automatic dependencies or permission to reuse code without checking licenses.
 
+> For player-facing Minecraft launchers, clients, and mod managers, see **[Launchers & Mod Managers](Launchers-and-Managers)**.
+
 | Tool / project | Best for | OmniBridge / WorldForge interest | Link |
 |---|---|---|---|
 | Chunker | Java ↔ Bedrock world conversion | mappings, adapters, packaging, custom identifiers | https://github.com/HiveGamesOSS/Chunker |
