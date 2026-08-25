@@ -60,8 +60,9 @@ python "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6b.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6c.py" "$WORK" "$UP/spell-engine-1201"
+python "$PORT/tools/compat_pass_6d.py" "$WORK" "$UP/spell-engine-1201"
 
-test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 342
+test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 344
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 (cd "$WORK" && zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
@@ -73,5 +74,7 @@ SPELL_POWER_SOURCE_DIRS="$SP_SOURCES" RANGED_SOURCE_DIRS="$RW_SOURCES" \
 JAR="$(find "$WORK/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | head -n 1)"
 test -n "$JAR"
 unzip -t "$JAR" >/dev/null
-sha256sum "$JAR" | tee "$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell-engine-forge-1.20.1.sha256"
-echo "[Spell Engine CI] Built and ZIP-verified remapped Forge 1.20.1 JAR: $JAR"
+OUT_JAR="$PORT/spell_engine-forge-1.10.2+1.20.1.jar"
+cp "$JAR" "$OUT_JAR"
+sha256sum "$OUT_JAR" | tee "$PORT/spell-engine-forge-1.20.1.sha256"
+echo "[Spell Engine CI] Built and ZIP-verified remapped Forge 1.20.1 JAR: $OUT_JAR"
