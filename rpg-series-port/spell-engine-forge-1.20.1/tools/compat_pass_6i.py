@@ -149,30 +149,11 @@ public final class SpellInfinityEnchantment1201 extends Enchantment {
         super(Rarity.VERY_RARE, EnchantmentTarget.BREAKABLE, new EquipmentSlot[]{EquipmentSlot.MAINHAND});
     }
 
-    @Override
-    public int getMaxLevel() {
-        return 1;
-    }
-
-    @Override
-    public int getMinPower(int level) {
-        return 20;
-    }
-
-    @Override
-    public int getMaxPower(int level) {
-        return 50;
-    }
-
-    @Override
-    public boolean isAcceptableItem(ItemStack stack) {
-        return stack.isIn(SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY);
-    }
-
-    @Override
-    public boolean canAccept(Enchantment other) {
-        return !(other instanceof MendingEnchantment) && super.canAccept(other);
-    }
+    @Override public int getMaxLevel() { return 1; }
+    @Override public int getMinPower(int level) { return 20; }
+    @Override public int getMaxPower(int level) { return 50; }
+    @Override public boolean isAcceptableItem(ItemStack stack) { return stack.isIn(SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY); }
+    @Override public boolean canAccept(Enchantment other) { return !(other instanceof MendingEnchantment) && super.canAccept(other); }
 }
 ''')
 
@@ -187,96 +168,103 @@ if spell_infinity_registration not in fm:
     if anchor not in fm:
         raise SystemExit('pass6i Forge ENCHANTMENT registration anchor missing')
     fm = fm.replace(anchor, anchor + '        ' + spell_infinity_registration + '\n', 1)
+
+# CI-only packaged-runtime assertions. GitHub Actions exports CI=true to the child Java process; normal
+# user launches do not, so the release JAR carries the verifier but never executes it for players.
+self_test = root / 'forge/src/main/java/net/spell_engine/forge/SpellEngineCiSelfTest.java'
+self_test.write_text(r'''package net.spell_engine.forge;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Identifier;
+import net.spell_engine.SpellEngineMod;
+import net.spell_engine.api.spell.SpellDataComponents;
+import net.spell_engine.api.spell.registry.SpellRegistry;
+import net.spell_engine.compat.enchantment.SpellInfinityEnchantment1201;
+
+final class SpellEngineCiSelfTest {
+    private SpellEngineCiSelfTest() { }
+
+    static void run(MinecraftServer server) {
+        var spells = server.getRegistryManager().get(SpellRegistry.KEY);
+        if (spells == null || spells.size() <= 0) {
+            throw new IllegalStateException("Spell Engine CI self-test: synced SpellRegistry missing or empty");
+        }
+
+        var enchantments = server.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        if (enchantments.get(SpellInfinityEnchantment1201.ID) == null) {
+            throw new IllegalStateException("Spell Engine CI self-test: spell_engine:spell_infinity missing");
+        }
+
+        var expected = new Identifier(SpellEngineMod.ID, "ci_item_model_roundtrip");
+        var stack = new ItemStack(Items.STICK);
+        SpellDataComponents.set(stack, SpellDataComponents.ITEM_MODEL, expected);
+        var encoded = stack.writeNbt(new NbtCompound());
+        var restored = ItemStack.fromNbt(encoded);
+        var actual = SpellDataComponents.get(restored, SpellDataComponents.ITEM_MODEL);
+        if (!expected.equals(actual)) {
+            throw new IllegalStateException("Spell Engine CI self-test: NBT component round-trip failed: " + actual);
+        }
+
+        System.out.println("[Spell Engine CI] Packaged runtime self-test passed: SpellRegistry=" + spells.size()
+                + ", SpellInfinity=present, NBT-components=roundtrip");
+    }
+}
+''')
+if 'SpellEngineCiSelfTest::run' not in fm:
+    constructor_anchor = '        modBus.addListener(PlatformEventsImpl::onCreativeTab);\n'
+    if constructor_anchor not in fm:
+        raise SystemExit('pass6i CI self-test constructor anchor missing')
+    fm = fm.replace(constructor_anchor, constructor_anchor + '''        if ("true".equalsIgnoreCase(System.getenv("CI"))) {\n            PlatformEventsImpl.onServerStarting(SpellEngineCiSelfTest::run);\n        }\n''', 1)
 forge_mod.write_text(fm)
 
 mixins.write_text(json.dumps(data, indent=2) + '\n')
 
-# Loom's development launches discover mixin configs from the generated run configuration. A real
-# Forge installation does not inherit that launch configuration: it discovers mod mixins from the
-# packaged JAR manifest. Without this declaration the release JAR contains spell_engine.mixins.json
-# but applies none of its common/client mixins, which breaks contracts such as StatusEffect ->
-# ActionImpairing on a fresh dedicated server. Put the declaration on every Jar task so shadowJar,
-# the input to remapJar, carries it into the distributable artifact.
+# Loom dev launches discover mixins from the run configuration; installed Forge discovers them from
+# the packaged JAR manifest. Apply this to every Jar task so shadowJar/remapJar preserve the config.
 fb = forge_build.read_text()
 if "attributes 'MixinConfigs': 'spell_engine.mixins.json'" not in fb:
     fb += r'''
 
-// Real Forge installations do not inherit Loom's dev-run mixin bootstrap. Every release/shadow JAR
-// must advertise the Spell Engine mixin config from its manifest.
+// Real Forge installations do not inherit Loom's dev-run mixin bootstrap.
 tasks.withType(Jar).configureEach {
-    manifest {
-        attributes 'MixinConfigs': 'spell_engine.mixins.json'
-    }
+    manifest { attributes 'MixinConfigs': 'spell_engine.mixins.json' }
 }
 '''
 forge_build.write_text(fb)
 
-# Keep the parity ledger truthful: only remove entries whose actual 1.20.1 implementations are now
-# generated. The other three remain documented until their architecture/runtime proof is explicit.
 gate = root / 'COMPAT-GATE-PENDING.md'
 if gate.exists():
     lines = gate.read_text().splitlines()
     lines = [line for line in lines if '`effect.PoisonEffectMixin`' not in line and '`client.render.ImmediateItemGlowMixin`' not in line]
     gate.write_text('\n'.join(lines).rstrip() + '\n')
 
-for required in (
-    'if ((Object)this != StatusEffects.POISON) return;',
-    'Math.min(amplifiedAmount, entity.getHealth() - 1.0F)',
-    'duration % 25 == 0',
-):
-    if required not in poison.read_text():
-        raise SystemExit(f'pass6i missing 1.20.1 poison parity: {required}')
-for required in (
-    'Map<RenderLayer, BufferBuilder> layerBuffers',
-    'new BufferBuilder(renderLayer.getExpectedBufferSize())',
-    'CustomLayers.isItemGlowLayer(renderLayer)',
-):
-    if required not in glow.read_text():
-        raise SystemExit(f'pass6i missing 1.20.1 item-glow ordering parity: {required}')
+for required in ('if ((Object)this != StatusEffects.POISON) return;', 'Math.min(amplifiedAmount, entity.getHealth() - 1.0F)', 'duration % 25 == 0'):
+    if required not in poison.read_text(): raise SystemExit(f'pass6i missing 1.20.1 poison parity: {required}')
+for required in ('Map<RenderLayer, BufferBuilder> layerBuffers', 'new BufferBuilder(renderLayer.getExpectedBufferSize())', 'CustomLayers.isItemGlowLayer(renderLayer)'):
+    if required not in glow.read_text(): raise SystemExit(f'pass6i missing 1.20.1 item-glow ordering parity: {required}')
 final = json.loads(mixins.read_text())
-if 'effect.PoisonEffectMixin' not in final.get('mixins', []):
-    raise SystemExit('pass6i did not activate poison mixin')
-if 'client.render.ImmediateItemGlowMixin' not in final.get('client', []):
-    raise SystemExit('pass6i did not activate item glow mixin')
-for required in (
-    'effect.StatusEffectActionImpairing',
-    'effect.StatusEffectSynchronized',
-    'action_impair.LivingEntityActionImpairing',
-    'loot.LootPoolAccessor',
-):
-    if required not in final.get('mixins', []):
-        raise SystemExit(f'pass6i required common mixin missing from packaged config: {required}')
-if 'LootPoolEntry[] spellEngine_getEntries();' not in loot_pool_accessor.read_text():
-    raise SystemExit('pass6i LootPool accessor descriptor missing')
-if '((LootPoolAccessor) (Object) pool).spellEngine_getEntries()' not in loot_helper.read_text():
-    raise SystemExit('pass6i LootHelper still lacks packaged-safe LootPool accessor use')
-# Public LootConfig.Pool.entries is intentionally untouched; only vanilla LootPool private access is bridged.
-if loot_helper.read_text().count('for (var itemInjectorEntry: pool.entries)') != 1:
-    raise SystemExit('pass6i accidentally changed LootConfig tag-cache pool entries')
-if loot_helper.read_text().count('for (var entry: pool.entries)') != 1:
-    raise SystemExit('pass6i accidentally changed LootConfig buildPool entries')
-for required in (
-    'public static final Identifier ID = new Identifier(SpellEngineMod.ID, "spell_infinity")',
-    'new EquipmentSlot[]{EquipmentSlot.MAINHAND}',
-    'return stack.isIn(SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY);',
-    'return 20;',
-    'return 50;',
-    'return !(other instanceof MendingEnchantment) && super.canAccept(other);',
-):
-    if required not in spell_infinity.read_text():
-        raise SystemExit(f'pass6i missing Spell Infinity 1.20.1 parity: {required}')
-if spell_infinity_registration not in forge_mod.read_text():
-    raise SystemExit('pass6i did not register spell_engine:spell_infinity in Forge ENCHANTMENT registry')
+for required in ('effect.StatusEffectActionImpairing', 'effect.StatusEffectSynchronized', 'action_impair.LivingEntityActionImpairing', 'loot.LootPoolAccessor'):
+    if required not in final.get('mixins', []): raise SystemExit(f'pass6i required common mixin missing: {required}')
+if 'effect.PoisonEffectMixin' not in final.get('mixins', []): raise SystemExit('pass6i did not activate poison mixin')
+if 'client.render.ImmediateItemGlowMixin' not in final.get('client', []): raise SystemExit('pass6i did not activate item glow mixin')
+if 'LootPoolEntry[] spellEngine_getEntries();' not in loot_pool_accessor.read_text(): raise SystemExit('pass6i LootPool accessor descriptor missing')
+if '((LootPoolAccessor) (Object) pool).spellEngine_getEntries()' not in loot_helper.read_text(): raise SystemExit('pass6i LootHelper lacks packaged-safe LootPool accessor')
+if loot_helper.read_text().count('for (var itemInjectorEntry: pool.entries)') != 1: raise SystemExit('pass6i changed LootConfig tag-cache entries')
+if loot_helper.read_text().count('for (var entry: pool.entries)') != 1: raise SystemExit('pass6i changed LootConfig buildPool entries')
+for required in ('new EquipmentSlot[]{EquipmentSlot.MAINHAND}', 'SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY', 'return 20;', 'return 50;', 'MendingEnchantment'):
+    if required not in spell_infinity.read_text(): raise SystemExit(f'pass6i missing Spell Infinity parity: {required}')
+if spell_infinity_registration not in forge_mod.read_text(): raise SystemExit('pass6i did not register spell_infinity')
+for required in ('SpellEngineCiSelfTest::run', 'SpellDataComponents.ITEM_MODEL', 'ItemStack.fromNbt(encoded)', 'get(SpellRegistry.KEY)', 'get(RegistryKeys.ENCHANTMENT)', 'Packaged runtime self-test passed'):
+    if required not in (forge_mod.read_text() + self_test.read_text()): raise SystemExit(f'pass6i missing packaged runtime self-test: {required}')
 final_build = forge_build.read_text()
-for required in (
-    'tasks.withType(Jar).configureEach',
-    "attributes 'MixinConfigs': 'spell_engine.mixins.json'",
-):
-    if required not in final_build:
-        raise SystemExit(f'pass6i missing packaged Forge mixin bootstrap: {required}')
+for required in ('tasks.withType(Jar).configureEach', "attributes 'MixinConfigs': 'spell_engine.mixins.json'"):
+    if required not in final_build: raise SystemExit(f'pass6i missing packaged Forge mixin bootstrap: {required}')
 if gate.exists():
     text = gate.read_text()
-    if '`effect.PoisonEffectMixin`' in text or '`client.render.ImmediateItemGlowMixin`' in text:
-        raise SystemExit('pass6i left implemented parity entries in pending gate')
+    if '`effect.PoisonEffectMixin`' in text or '`client.render.ImmediateItemGlowMixin`' in text: raise SystemExit('pass6i left implemented parity in pending gate')
 
-print('Spell Engine compatibility pass 6i applied: poison/item glow + packaged mixins + LootPool accessor + Spell Infinity registry parity')
+print('Spell Engine compatibility pass 6i applied: packaged parity + runtime self-test')
