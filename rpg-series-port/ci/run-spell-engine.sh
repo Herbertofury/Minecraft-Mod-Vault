@@ -89,7 +89,7 @@ python "$PORT/tools/compat_pass_4b.py" "$WORK" "$UP/spell-engine-1201"
 for part in a b c d e f; do python "$PORT/tools/compat_pass_5${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 python "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
-for part in b c d e f g h; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
+for part in b c d e f g h i; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
