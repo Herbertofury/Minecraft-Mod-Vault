@@ -7,7 +7,10 @@ WORK="${4:?generated spell engine root}"
 PORT="${5:?spell engine port evidence dir}"
 
 find_module_jar() {
-  local group="$1" artifact="$2" version="$3" root="$HOME/.gradle/caches/modules-2/files-2.1/$group/$artifact/$version"
+  local group="$1"
+  local artifact="$2"
+  local version="$3"
+  local root="$HOME/.gradle/caches/modules-2/files-2.1/$group/$artifact/$version"
   local jar
   jar="$(find "$root" -type f -name "${artifact}-*.jar" ! -name '*sources*' ! -name '*javadoc*' | head -n 1 || true)"
   [[ -n "$jar" && -f "$jar" ]] || { echo "Missing resolved module JAR: $group:$artifact:$version" >&2; exit 1; }
