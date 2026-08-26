@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import sys
+import json, sys
 
 if len(sys.argv) != 3:
     raise SystemExit('usage: compat_pass_6g.py <generated-port-root> <spell-engine-1.20.1-baseline>')
@@ -54,27 +54,43 @@ e = e.replace(old_target, new_target, 1)
 e = e.replace(old_handler, new_handler, 1)
 effect_removal.write_text(e)
 
-# Forge 47 patches LootTable.pools from vanilla's LootPool[] to a mutable List<LootPool> so its
-# loot-table hooks can add/remove pools. The field name stays `pools`, but the runtime descriptor is
-# java.util.List. Match the Forge-patched descriptor exactly or Mixin's accessor fails during APPLY.
-loot_accessor = root / 'common/src/main/java/net/spell_engine/mixin/loot/LootTableAccessor.java'
-la = loot_accessor.read_text()
-import_anchor = 'import net.minecraft.loot.LootTable;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.gen.Accessor;'
-if import_anchor not in la:
-    raise SystemExit('LootTableAccessor import anchor missing')
-la = la.replace(import_anchor, import_anchor + '\n\nimport java.util.List;', 1)
-if 'LootPool[] spellEngine_pools();' not in la:
-    raise SystemExit('vanilla-array LootTableAccessor signature missing')
-la = la.replace('LootPool[] spellEngine_pools();', 'List<LootPool> spellEngine_pools();', 1)
-loot_accessor.write_text(la)
+# Forge 47 patches LootTable.pools from vanilla's LootPool[] to a mutable List<LootPool>. Common is
+# compiled against the vanilla/Yarn array descriptor, so a List-typed Mixin accessor fails during the
+# compile gate while an array accessor fails against Forge at runtime. Avoid that split descriptor
+# entirely on Forge: ObfuscationReflectionHelper accepts the stable SRG field name and remaps it to the
+# development name automatically, while production keeps the SRG name.
+mixins = root / 'common/src/main/resources/spell_engine.mixins.json'
+data = json.loads(mixins.read_text())
+data['mixins'] = [x for x in data.get('mixins', []) if x != 'loot.LootTableAccessor']
+data['client'] = [x for x in data.get('client', []) if x != 'loot.LootTableAccessor']
+mixins.write_text(json.dumps(data, indent=2) + '\n')
 
 forge_events = root / 'forge/src/main/java/net/spell_engine/forge/PlatformEventsImpl.java'
-fe = forge_events.read_text().replace('import java.util.Arrays;\n', '')
-old_pools = 'this.existingPools = List.copyOf(Arrays.asList(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools()));'
-new_pools = 'this.existingPools = List.copyOf(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools());'
-if old_pools not in fe:
-    raise SystemExit('ForgeLootContext array-copy expression missing')
-fe = fe.replace(old_pools, new_pools, 1)
+fe = forge_events.read_text()
+fe = fe.replace('import net.spell_engine.mixin.loot.LootTableAccessor;\n', '')
+if 'import net.minecraft.loot.LootTable;\n' not in fe:
+    marker = 'import net.minecraft.loot.LootPool;\n'
+    if marker not in fe:
+        raise SystemExit('LootPool import anchor missing')
+    fe = fe.replace(marker, marker + 'import net.minecraft.loot.LootTable;\n', 1)
+if 'import net.minecraftforge.fml.util.ObfuscationReflectionHelper;\n' not in fe:
+    marker = 'import net.minecraftforge.event.LootTableLoadEvent;\n'
+    if marker not in fe:
+        raise SystemExit('Forge LootTableLoadEvent import anchor missing')
+    fe = fe.replace(marker, marker + 'import net.minecraftforge.fml.util.ObfuscationReflectionHelper;\n', 1)
+fe = fe.replace('import java.util.Arrays;\n', '')
+for stale in (
+    'this.existingPools = List.copyOf(Arrays.asList(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools()));',
+    'this.existingPools = List.copyOf(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools());',
+):
+    if stale in fe:
+        fe = fe.replace(stale, '''var pools = ObfuscationReflectionHelper.<List<LootPool>, LootTable>getPrivateValue(
+                    LootTable.class, event.getTable(), "f_79109_");
+            if (pools == null) throw new IllegalStateException("Forge LootTable.pools reflection returned null");
+            this.existingPools = List.copyOf(pools);''', 1)
+        break
+else:
+    raise SystemExit('ForgeLootContext LootTable accessor expression missing')
 forge_events.write_text(fe)
 
 final = forge_build.read_text()
@@ -87,11 +103,20 @@ for required in (
 ):
     if required not in final:
         raise SystemExit(f'Forge runtime dependency missing: {required}')
-final_loot = loot_accessor.read_text()
-if 'List<LootPool> spellEngine_pools();' not in final_loot or 'LootPool[] spellEngine_pools();' in final_loot:
-    raise SystemExit('pass6g missing Forge-patched LootTable List accessor')
-if 'Arrays.asList' in forge_events.read_text():
-    raise SystemExit('pass6g left stale array handling in ForgeLootContext')
+final_mixins = json.loads(mixins.read_text())
+if 'loot.LootTableAccessor' in final_mixins.get('mixins', []) or 'loot.LootTableAccessor' in final_mixins.get('client', []):
+    raise SystemExit('pass6g left split-descriptor LootTableAccessor active')
+final_events = forge_events.read_text()
+for required in (
+    'ObfuscationReflectionHelper.<List<LootPool>, LootTable>getPrivateValue(',
+    'LootTable.class, event.getTable(), "f_79109_"',
+    'this.existingPools = List.copyOf(pools);',
+):
+    if required not in final_events:
+        raise SystemExit(f'pass6g missing Forge LootTable reflection bridge: {required}')
+for stale in ('LootTableAccessor', 'Arrays.asList'):
+    if stale in final_events:
+        raise SystemExit(f'pass6g left stale ForgeLootContext code: {stale}')
 final_effect = effect_removal.read_text()
 for stale in (
     'onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V',
@@ -108,4 +133,4 @@ for required in (
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
-print('Spell Engine compatibility pass 6g applied: embedded MixinExtras + TinyConfig runtimes + exact effect-removal hook + Forge LootTable List accessor')
+print('Spell Engine compatibility pass 6g applied: embedded MixinExtras + TinyConfig runtimes + exact effect-removal hook + Forge SRG LootTable bridge')
