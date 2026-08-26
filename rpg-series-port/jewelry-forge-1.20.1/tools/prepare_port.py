@@ -70,6 +70,7 @@ subprojects {
         maven { url = 'https://maven.architectury.dev/' }
         maven { url = 'https://maven.minecraftforge.net/' }
         maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://jitpack.io' }
         maven { url = 'https://api.modrinth.com/maven' }
         maven { url = 'https://maven.theillusivec4.top/' }
     }
@@ -83,7 +84,7 @@ subprojects {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17 }
+    tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17; options.compilerArgs += ['-Xmaxerrs','2000'] }
 }
 ''')
 
@@ -91,12 +92,13 @@ subprojects {
 def generatedResources = file('src/main/generated')
 sourceSets { main { resources.srcDir generatedResources } }
 repositories {
+    maven { url = 'https://jitpack.io' }
     maven { url = 'https://api.modrinth.com/maven' }
     maven { url = 'https://maven.fabricmc.net/' }
 }
 dependencies {
     modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
-    implementation "maven.modrinth:tiny-config:${rootProject.tiny_config_version}-fabric"
+    implementation "com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version"
     compileOnly files(rootProject.file('libs/structure-pool-api.jar'))
     compileOnly files(rootProject.file('libs/spell-power.jar'))
     compileOnly files(rootProject.file('libs/ranged-weapon-api.jar'))
@@ -119,6 +121,7 @@ configurations {
     shadowBundle { canBeResolved=true; canBeConsumed=false }
 }
 repositories {
+    maven { url = 'https://jitpack.io' }
     maven { url = 'https://api.modrinth.com/maven' }
     maven { url = 'https://maven.theillusivec4.top/' }
 }
@@ -126,7 +129,13 @@ dependencies {
     forge "net.minecraftforge:forge:$rootProject.forge_version"
     common(project(path: ':common', configuration: 'namedElements')) { transitive=false }
     shadowBundle project(path: ':common', configuration: 'transformProductionForge')
-    implementation include("maven.modrinth:tiny-config:${rootProject.tiny_config_version}-forge")
+
+    // Reuse the exact TinyConfig 2.3.2 packaging already proven by the Spell Engine Forge 1.20.1
+    // release: compile/runtime library plus JarJar include from JitPack.
+    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+    include tinyConfig
+    forgeRuntimeLibrary tinyConfig
+
     modImplementation files(rootProject.file('libs/structure-pool-api.jar'))
     modImplementation files(rootProject.file('libs/spell-power.jar'))
     modImplementation files(rootProject.file('libs/ranged-weapon-api.jar'))
@@ -262,6 +271,12 @@ if missing:
     raise SystemExit("Jewelry preparation lost required current content/platform state: " + ", ".join(missing))
 if "loom.platform = forge" not in (out / "forge/gradle.properties").read_text():
     raise SystemExit("Jewelry Forge Loom platform flag missing")
+for build in (out / "common/build.gradle", out / "forge/build.gradle"):
+    text = build.read_text()
+    if "com.github.ZsoltMolnarrr:TinyConfig" not in text:
+        raise SystemExit(f"Jewelry TinyConfig proven coordinate missing from {build}")
+if "forgeRuntimeLibrary tinyConfig" not in (out / "forge/build.gradle").read_text():
+    raise SystemExit("Jewelry TinyConfig Forge runtime/embed wiring missing")
 
 print("Jewelry 2.4.0 full-target Forge 1.20.1 preparation complete")
 print(f"substrate={BASE_SHA}")
