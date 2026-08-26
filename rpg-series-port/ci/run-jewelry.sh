@@ -88,9 +88,13 @@ python3 "$TOOLS/compat_pass_1.py" "$PORT"
 python3 "$TOOLS/compat_pass_2.py" "$PORT"
 python3 "$TOOLS/compat_pass_3.py" "$PORT"
 python3 "$TOOLS/compat_pass_4.py" "$PORT"
+python3 "$TOOLS/compat_pass_5.py" "$PORT"
 
 test -f "$PORT/common/src/main/generated/assets/jewelry/models/item/diamond_ring.json"
 test -f "$PORT/common/src/main/java/net/jewelry/items/JewelryItems.java"
+test -f "$PORT/forge/src/main/resources/data/jewelry/forge/biome_modifier/gem_vein.json"
+test ! -e "$PORT/forge/src/main/resources/data/jewelry/neoforge"
+grep -F '"type": "forge:add_features"' "$PORT/forge/src/main/resources/data/jewelry/forge/biome_modifier/gem_vein.json" >/dev/null
 python3 - "$PORT" <<'PY'
 from pathlib import Path
 import sys
