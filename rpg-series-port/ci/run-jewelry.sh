@@ -32,8 +32,6 @@ clone_exact() {
     test "$(git -C "$dst" rev-parse HEAD)" = "$sha"
 }
 
-# Fetch Jewelry plus the exact source pairs used by the already-verified Spell Power and Ranged
-# foundation pipelines. These run in parallel to keep the active lane fast without weakening proof.
 clone_exact ZsoltMolnarrr/Jewelry "$BASE_SHA" "$WORK/base" & p1=$!
 clone_exact ZsoltMolnarrr/Jewelry "$TARGET_SHA" "$WORK/target" & p2=$!
 clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_BASE" "$WORK/spell-power-base" & p3=$!
@@ -42,14 +40,11 @@ clone_exact FabricExtras/RangedWeaponAPI "$RANGED_BASE" "$WORK/ranged-base" & p5
 clone_exact FabricExtras/RangedWeaponAPI "$RANGED_TARGET" "$WORK/ranged-target" & p6=$!
 wait "$p1" "$p2" "$p3" "$p4" "$p5" "$p6"
 
-# Structure Pool API is already a complete native Forge project in-tree and builds directly.
 echo "[Jewelry] Building verified foundation: Structure Pool API 1.2.1"
 gradle --no-daemon --stacktrace -p "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1" :forge:build
 STRUCTURE_JAR="$(find "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
 test -n "$STRUCTURE_JAR" && test -f "$STRUCTURE_JAR"
 
-# Spell Power and Ranged are generated ports: invoke the same preparation passes that produced their
-# accepted artifacts. Never compile their intermediate repository source directly.
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 echo "[Jewelry] Preparing/building verified foundation: Spell Power 1.6.0"
 python3 "$SPELL_POWER/tools/prepare_upstream_source.py" "$WORK/spell-power-base" "$WORK/spell-power-target" "$SPELL_POWER/common"
@@ -76,7 +71,6 @@ cp "$STRUCTURE_JAR" "$PORT/libs/structure-pool-api.jar"
 cp "$SPELL_POWER_JAR" "$PORT/libs/spell-power.jar"
 cp "$RANGED_JAR" "$PORT/libs/ranged-weapon-api.jar"
 
-# Static whole-target gates before compilation: catch accidental fallback to the much smaller 1.3.7 catalog.
 test -f "$PORT/common/src/main/generated/assets/jewelry/models/item/diamond_ring.json"
 test -f "$PORT/common/src/main/java/net/jewelry/items/JewelryItems.java"
 python3 - "$PORT" <<'PY'
@@ -85,8 +79,9 @@ import sys
 root = Path(sys.argv[1])
 items = (root / 'common/src/main/java/net/jewelry/items/JewelryItems.java').read_text().lower()
 required = [
-    'diamond_ring', 'attack_ring', 'critical_strike_ring', 'dexterity_ring',
-    'arcane_ring', 'fire_ring', 'frost_ring', 'healing_ring', 'spell_ring', 'tank_ring'
+    'diamond_ring', 'unique_attack_ring', 'unique_crit_ring', 'unique_dex_ring',
+    'unique_arcane_ring', 'unique_fire_ring', 'unique_frost_ring', 'unique_healing_ring',
+    'unique_spell_ring', 'unique_tank_ring'
 ]
 missing = [x for x in required if x not in items]
 if missing:
@@ -98,7 +93,6 @@ if len(langs) < 15:
     raise SystemExit(f'Expected current translation set, found only {len(langs)} language files')
 PY
 
-# Preserve exact generated source even when compilation finds a compatibility delta.
 (
     cd "$PORT"
     zip -qr "$SOURCE_ZIP" . -x '.gradle/*' '*/build/*'
@@ -111,7 +105,6 @@ gradle --no-daemon --stacktrace -p "$PORT" :forge:remapJar
 OUT_JAR="$(find "$PORT/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
 test -f "$OUT_JAR"
 
-# Architecture gates: Jewelry must consume, never vendor/shadow, the verified foundations.
 for prefix in 'net/spell_power/' 'net/fabric_extras/ranged_weapon/' 'net/fabric_extras/structure_pool/'; do
     if unzip -Z1 "$OUT_JAR" | grep -q "^$prefix"; then
         echo "[Jewelry] ERROR: packaged dependency classes under $prefix" >&2
