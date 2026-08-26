@@ -78,6 +78,12 @@ for p in meta.glob('*neoforge*'): p.unlink()
 (meta/'mods.toml').write_text('''modLoader="javafml"\nloaderVersion="[47,)"\nlicense="MIT"\n[[mods]]\nmodId="armor_model_api"\nversion="${version}"\ndisplayName="Armor Model API"\nauthors="Daedelus"\nlogoFile="assets/armor_model_api/icon.png"\ndescription="Renders Bedrock/GeckoLib geo armor models through the vanilla armor pipeline."\n[[dependencies.armor_model_api]]\nmodId="forge"\nmandatory=true\nversionRange="[47.4,48)"\nordering="NONE"\nside="BOTH"\n[[dependencies.armor_model_api]]\nmodId="minecraft"\nmandatory=true\nversionRange="[1.20.1,1.20.2)"\nordering="NONE"\nside="BOTH"\n''')
 (out/'PORT-PINS.txt').write_text(f'target={TARGET_SHA}\nsource_branch=1.21.1\nsource_version=1.0.0\n')
 
+# Apply the explicit common-source 1.21.1 -> 1.20.1 compatibility layer after the exact
+# current upstream tree is reconstructed. Keeping this as a separate script makes each API
+# translation auditable and prevents successful local fixes from being lost between CI runs.
+compat = Path(__file__).with_name('compat_1_20_1.py')
+subprocess.run([sys.executable, str(compat), str(out)], check=True)
+
 required=[
  out/'common/src/main/java/net/rpg_foundation/armor_api/client/GeoArmorRenderer.java',
  out/'common/src/main/java/net/rpg_foundation/armor_api/client/geo/GeoBaker.java',
