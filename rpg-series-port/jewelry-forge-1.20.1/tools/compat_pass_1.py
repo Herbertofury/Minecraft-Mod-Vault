@@ -24,7 +24,7 @@ if start_marker not in items or end_marker not in items:
     raise SystemExit("JewelryItems 2.4.0 attribute-component anchors missing")
 start = items.index(start_marker)
 end = items.index(end_marker, start)
-bridge = '''            // 1.20.1 has no AttributeModifiersComponent. Preserve 2.4.0's selected config and\n            // per-item/per-attribute identity in a loader-neutral record consumed by Curios.\n            List<JewelryAttributeModifier> attributes = new ArrayList<>();\n            for (var modifier : itemConfig.selectedAttributes()) {\n                var id = new Identifier(modifier.id);\n                var attribute = AttributeResolver.get(id);\n                if (attribute != null) {\n                    var modifierName = JewelryMod.ID + ":" + entry.id().getPath()\n                            + "_" + id.getPath().replace('.', '_') + "_bonus";\n                    attributes.add(new JewelryAttributeModifier(\n                            attribute, modifierName, modifier.value, modifier.operation));\n                } else {\n                    System.err.println("Failed to resolve EntityAttribute with id: " + modifier.id);\n                }\n            }\n'''
+bridge = '''            // 1.20.1 has no item attribute-component carrier. Preserve 2.4.0's selected config and\n            // per-item/per-attribute identity in a loader-neutral record consumed by Curios.\n            List<JewelryAttributeModifier> attributes = new ArrayList<>();\n            for (var modifier : itemConfig.selectedAttributes()) {\n                var id = new Identifier(modifier.id);\n                var attribute = AttributeResolver.get(id);\n                if (attribute != null) {\n                    var modifierName = JewelryMod.ID + ":" + entry.id().getPath()\n                            + "_" + id.getPath().replace('.', '_') + "_bonus";\n                    attributes.add(new JewelryAttributeModifier(\n                            attribute, modifierName, modifier.value, modifier.operation));\n                } else {\n                    System.err.println("Failed to resolve EntityAttribute with id: " + modifier.id);\n                }\n            }\n'''
 items = items[:start] + bridge + items[end:]
 items = items.replace("entry.create(settings.maxCount(1), attributes.build())",
                       "entry.create(settings.maxCount(1), attributes)")
@@ -348,6 +348,10 @@ for java_root in (common, forge):
         text = text.replace("EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE", "EntityAttributeModifier.Operation.MULTIPLY_BASE")
         text = text.replace("EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL", "EntityAttributeModifier.Operation.MULTIPLY_TOTAL")
         text = text.replace("Identifier.of(", "new Identifier(")
+        # Current Curios helper has a 1.21-type name only in an explanatory comment; keep the
+        # assertion below focused on actual code/imports instead of documentation text.
+        text = text.replace("because Curios ignores `AttributeModifiersComponent`",
+                            "because Curios ignores vanilla item-setting attribute carriers")
         path.write_text(text)
 
 # Fail early if any known 1.21-only representation survived this pass.
