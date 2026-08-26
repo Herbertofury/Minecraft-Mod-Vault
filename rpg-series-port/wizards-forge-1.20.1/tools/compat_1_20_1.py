@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+if len(sys.argv) != 2:
+    raise SystemExit('usage: compat_1_20_1.py <generated-wizards-root>')
+
+root = Path(sys.argv[1]).resolve()
+forge_java = root / 'forge/src/main/java/net/wizards/forge'
+client_dir = forge_java / 'client'
+client_dir.mkdir(parents=True, exist_ok=True)
+
+old_client = client_dir / 'NeoForgeClientMod.java'
+new_client = client_dir / 'ForgeClientMod.java'
+if old_client.exists():
+    old_client.unlink()
+
+# Forge 47.4.x uses Mod.EventBusSubscriber on the MOD bus for lifecycle/entity renderer events,
+# MinecraftForge.EVENT_BUS for RenderLevelStageEvent, and ConfigScreenHandler.ConfigScreenFactory
+# as its config-screen extension point. Forge 1.20.x RenderLevelStageEvent exposes a Matrix4f rather
+# than NeoForge's pose-stack object, so reconstruct the 1.20.1 Yarn MatrixStack before replaying the
+# current Fire Hydra deferred render. This preserves the 3.1.1 AFTER_PARTICLES behavior instead of
+# dropping the current rendering fix during the backport.
+new_client.write_text('''package net.wizards.forge.client;\n\nimport net.minecraft.client.util.math.MatrixStack;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory;\nimport net.minecraftforge.client.event.EntityRenderersEvent;\nimport net.minecraftforge.client.event.RenderLevelStageEvent;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.SubscribeEvent;\nimport net.minecraftforge.fml.ModLoadingContext;\nimport net.minecraftforge.fml.common.Mod.EventBusSubscriber;\nimport net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;\nimport net.spell_engine.client.gui.ConfigMenuScreen;\nimport net.wizards.WizardsMod;\nimport net.wizards.client.WizardsClientMod;\nimport net.wizards.client.entity.ArcaneEmitterModel;\nimport net.wizards.client.entity.ArcaneEmitterRenderer;\nimport net.wizards.client.entity.FireHydraModel;\nimport net.wizards.client.entity.FireHydraRenderer;\nimport net.wizards.client.entity.FrostElementalModel;\nimport net.wizards.client.entity.FrostElementalRenderer;\nimport net.wizards.entity.WizardEntities;\n\n@EventBusSubscriber(modid = WizardsMod.ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)\npublic final class ForgeClientMod {\n    private ForgeClientMod() {}\n\n    @SubscribeEvent\n    public static void onClientSetup(FMLClientSetupEvent event) {\n        WizardsClientMod.init();\n        ModLoadingContext.get().registerExtensionPoint(\n                ConfigScreenFactory.class,\n                () -> new ConfigScreenFactory(parent -> new ConfigMenuScreen(parent)));\n\n        // Preserve current 3.1.1 Fire Hydra ordering: replay after particles on Forge's game bus.\n        MinecraftForge.EVENT_BUS.addListener((RenderLevelStageEvent render) -> {\n            if (render.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {\n                MatrixStack matrices = new MatrixStack();\n                matrices.multiplyPositionMatrix(render.getPoseStack());\n                FireHydraRenderer.renderAfterTranslucent(\n                        matrices, render.getCamera(), render.getPartialTick());\n            }\n        });\n    }\n\n    @SubscribeEvent\n    public static void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {\n        event.registerLayerDefinition(FrostElementalModel.TEXTURE, FrostElementalModel::getTexturedModelData);\n        event.registerLayerDefinition(ArcaneEmitterModel.LAYER, ArcaneEmitterModel::getTexturedModelData);\n        event.registerLayerDefinition(FireHydraModel.LAYER, FireHydraModel::getTexturedModelData);\n    }\n\n    @SubscribeEvent\n    public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {\n        event.registerEntityRenderer(WizardEntities.FROST_ELEMENTAL.type, FrostElementalRenderer::new);\n        event.registerEntityRenderer(WizardEntities.ARCANE_EMITTER.type, ArcaneEmitterRenderer::new);\n        event.registerEntityRenderer(WizardEntities.FIRE_HYDRA.type, FireHydraRenderer::new);\n    }\n}\n''')
+
+# Fail before Gradle if a platform-only namespace survives in loader code. Common source may still
+# legitimately need later Minecraft/API compatibility passes, but generated Forge loader code must be native.
+leaks = []
+for path in (root / 'forge/src/main/java').rglob('*.java'):
+    text = path.read_text()
+    if 'net.neoforged' in text or 'NeoForge.' in text or 'NeoForgeClientMod' in text:
+        leaks.append(str(path.relative_to(root)))
+if leaks:
+    raise SystemExit('NeoForge loader symbols survived Wizards Forge compatibility pass: ' + ', '.join(leaks))
+
+print('Wizards compatibility pass 1 applied: native Forge 47 client lifecycle/render/config wiring')
