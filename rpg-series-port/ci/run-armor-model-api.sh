@@ -21,17 +21,78 @@ test ! -d "$GEN/neoforge"
 if grep -R 'net.neoforged' "$GEN/common/src/main/java" "$GEN/forge/src/main/java"; then
   echo '[Armor Model API] NeoForge symbol leaked into native Forge source' >&2; exit 1
 fi
+MIXIN="$GEN/forge/src/main/resources/armor_model_api.mixins.json"
+grep -F '"package": "net.rpg_foundation.armor_api.forge.mixin"' "$MIXIN"
+grep -F '"compatibilityLevel": "JAVA_17"' "$MIXIN"
+ENTRY="$GEN/forge/src/main/java/net/rpg_foundation/armor_api/forge/ArmorModelApiForge.java"
+test -f "$ENTRY"
+if grep -E 'net\.minecraft\.(client|resource)' "$ENTRY"; then
+  echo '[Armor Model API] client/resource class leaked into top-level Forge mod constructor' >&2; exit 1
+fi
 
-echo '[Armor Model API] First native Forge 1.20.1 compile probe'
-gradle --no-daemon -p "$GEN" --stacktrace :forge:remapJar
+echo '[Armor Model API] Native Forge 1.20.1 clean build + reobf probe'
+gradle --no-daemon -p "$GEN" --stacktrace clean :forge:remapJar
 JAR=$(find "$GEN/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | head -1)
 test -n "$JAR"
 unzip -t "$JAR"
 unzip -p "$JAR" META-INF/mods.toml | grep -F 'modId="armor_model_api"'
+unzip -p "$JAR" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'MixinConfigs: armor_model_api.mixins.json'
+unzip -p "$JAR" armor_model_api.mixins.json | grep -F '"package": "net.rpg_foundation.armor_api.forge.mixin"'
+unzip -p "$JAR" armor_model_api.mixins.json | grep -F '"compatibilityLevel": "JAVA_17"'
 unzip -l "$JAR" | grep -F 'net/rpg_foundation/armor_api/client/GeoArmorRenderer.class'
 unzip -l "$JAR" | grep -F 'net/rpg_foundation/armor_api/forge/ArmorModelApiForge.class'
+unzip -l "$JAR" | grep -F 'net/rpg_foundation/armor_api/forge/client/ArmorModelApiForgeClient.class'
+if unzip -l "$JAR" | grep -q 'net/rpg_foundation/armor_api/neoforge/\|META-INF/neoforge.mods.toml'; then
+  echo '[Armor Model API] NeoForge package/metadata leaked into release JAR' >&2; exit 1
+fi
 sha256sum "$JAR" | tee "$PORT/armor-model-api.sha256"
+
 rm -f "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip"
 (cd "$GEN" && zip -qr "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
 sha256sum "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip" | tee "$PORT/armor-model-api-source.sha256"
-echo '[Armor Model API] Initial build/package probe passed.'
+
+echo '[Armor Model API] Dedicated-server side-safety gate'
+rm -rf "$GEN/forge/run/logs"
+mkdir -p "$GEN/forge/run"
+printf 'eula=true\n' > "$GEN/forge/run/eula.txt"
+: > "$PORT/armor-model-api-server-smoke.log"
+set +e
+timeout --signal=TERM --kill-after=10s 210s gradle --no-daemon -p "$GEN" :forge:runServer > "$PORT/armor-model-api-server-smoke.log" 2>&1
+SERVER_STATUS=$?
+set -e
+SERVER_LOG=$(find "$GEN/forge/run" -type f -path '*/logs/latest.log' | head -1 || true)
+SERVER_FILES=("$PORT/armor-model-api-server-smoke.log")
+[[ -n "$SERVER_LOG" ]] && SERVER_FILES+=("$SERVER_LOG")
+if grep -Eiq 'MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|Exception in server tick loop|The game crashed' "${SERVER_FILES[@]}"; then
+  cat "${SERVER_FILES[@]}"; exit 1
+fi
+if [[ -n "$SERVER_LOG" ]] && grep -Eq 'Done \([0-9.]+s\)!' "$SERVER_LOG"; then
+  echo '[Armor Model API] Dedicated server reached ready state.'
+elif [[ "$SERVER_STATUS" -ne 124 && "$SERVER_STATUS" -ne 143 ]]; then
+  cat "${SERVER_FILES[@]}"; echo "server exited before ready state: $SERVER_STATUS" >&2; exit 1
+else
+  cat "${SERVER_FILES[@]}"; echo '[Armor Model API] server runtime timed out before a proven ready state' >&2; exit 1
+fi
+
+echo '[Armor Model API] Headless Forge client bootstrap gate'
+rm -rf "$GEN/forge/run/logs"
+: > "$PORT/armor-model-api-client-smoke.log"
+set +e
+timeout --signal=TERM --kill-after=10s 210s xvfb-run -a gradle --no-daemon -p "$GEN" :forge:runClient > "$PORT/armor-model-api-client-smoke.log" 2>&1
+CLIENT_STATUS=$?
+set -e
+CLIENT_LOG=$(find "$GEN/forge/run" -type f -path '*/logs/latest.log' | head -1 || true)
+CLIENT_FILES=("$PORT/armor-model-api-client-smoke.log")
+[[ -n "$CLIENT_LOG" ]] && CLIENT_FILES+=("$CLIENT_LOG")
+if grep -Eiq 'MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError.*armor_model_api|The game crashed whilst initializing game|Using missing texture.*armor_model_api' "${CLIENT_FILES[@]}"; then
+  cat "${CLIENT_FILES[@]}"; exit 1
+fi
+if [[ -n "$CLIENT_LOG" ]] && grep -Eiq 'OpenAL initialized|Created: [0-9]+x[0-9]+|Reloading ResourceManager|Sound engine started|Narrator library' "$CLIENT_LOG"; then
+  echo '[Armor Model API] Headless client reached post-bootstrap runtime.'
+elif [[ "$CLIENT_STATUS" -ne 124 && "$CLIENT_STATUS" -ne 143 ]]; then
+  cat "${CLIENT_FILES[@]}"; echo "client exited before bootstrap evidence: $CLIENT_STATUS" >&2; exit 1
+else
+  cat "${CLIENT_FILES[@]}"; echo '[Armor Model API] client runtime timed out before a proven bootstrap state' >&2; exit 1
+fi
+
+echo '[Armor Model API] Build, package, server side-safety, and headless client bootstrap gates passed.'
