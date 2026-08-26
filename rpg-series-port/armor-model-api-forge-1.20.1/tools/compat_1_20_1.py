@@ -25,7 +25,7 @@ def armor_dispatcher(source: str) -> str:
     source = source.replace('import net.minecraft.util.math.ColorHelper;\n', '')
     source = source.replace('import net.minecraft.item.ItemStack;\n', 'import net.minecraft.item.ItemStack;\nimport net.minecraft.item.DyeableItem;\n')
     old = '''        int color = stack.isIn(ItemTags.DYEABLE)\n                ? ColorHelper.Argb.fullAlpha(DyedColorComponent.getColor(stack, DyedColorComponent.DEFAULT_COLOR))\n                : -1;'''
-    new = '''        int color = stack.getItem() instanceof DyeableItem dyeable\n                ? 0xFF000000 | dyeable.getColor(stack)\n                : -1;'''
+    new = '''        int color = stack.getItem() instanceof DyeableItem dyeable\n                ? dyeable.getColor(stack)\n                : 0xFFFFFF;\n        float red = (float) (color >> 16 & 255) / 255.0F;\n        float green = (float) (color >> 8 & 255) / 255.0F;\n        float blue = (float) (color & 255) / 255.0F;'''
     if old not in source:
         raise SystemExit('ArmorRenderDispatcher dye component block drifted upstream')
     source = source.replace(old, new)
@@ -33,7 +33,12 @@ def armor_dispatcher(source: str) -> str:
     new_glint = '''                RenderLayer.getArmorCutoutNoCull(renderer.config().texture()),\n                false,\n                stack.hasGlint());'''
     if old_glint not in source:
         raise SystemExit('ArmorRenderDispatcher armor glint signature drifted upstream')
-    return source.replace(old_glint, new_glint)
+    source = source.replace(old_glint, new_glint)
+    old_render = '        model.render(matrices, consumer, light, OverlayTexture.DEFAULT_UV, color);'
+    new_render = '        model.render(matrices, consumer, light, OverlayTexture.DEFAULT_UV, red, green, blue, 1.0F);'
+    if old_render not in source:
+        raise SystemExit('ArmorRenderDispatcher model render signature drifted upstream')
+    return source.replace(old_render, new_render)
 
 
 def trim_layer(source: str) -> str:
@@ -51,7 +56,12 @@ def trim_layer(source: str) -> str:
     new_glint = '''                TexturedRenderLayers.getArmorTrims(),\n                false,\n                context.stack().hasGlint()));'''
     if old_glint not in source:
         raise SystemExit('TrimLayer armor glint signature drifted upstream')
-    return source.replace(old_glint, new_glint)
+    source = source.replace(old_glint, new_glint)
+    old_render = '        context.model().render(context.matrices(), consumer, context.light(), OverlayTexture.DEFAULT_UV);'
+    new_render = '        context.model().render(context.matrices(), consumer, context.light(), OverlayTexture.DEFAULT_UV, 1.0F, 1.0F, 1.0F, 1.0F);'
+    if old_render not in source:
+        raise SystemExit('TrimLayer model render signature drifted upstream')
+    return source.replace(old_render, new_render)
 
 
 def emissive_layer(source: str) -> str:
