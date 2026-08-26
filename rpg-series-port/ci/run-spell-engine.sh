@@ -95,27 +95,42 @@ cp "$JAR" "$OUT_JAR"
 sha256sum "$OUT_JAR" | tee "$PORT/spell-engine-forge-1.20.1.sha256"
 unzip -l "$OUT_JAR" | grep -F 'META-INF/jars/mixinextras-forge-0.4.1.jar'
 
+# Forge's 1.20.x early splash owns its own GL probing and can fall into an interactive console
+# prompt under headless CI. Disable only that splash controller; NoVizFallback still creates the
+# real Minecraft window, so the client, Mixins, resources and rendering bootstrap remain exercised.
 rm -rf "$WORK/forge/run/logs"
+mkdir -p "$WORK/forge/run/config"
+printf 'earlyWindowControl = false\n' > "$WORK/forge/run/config/fml.toml"
 CLIENT_LOG="$PORT/forge-client-smoke.log"
 : > "$CLIENT_LOG"
-xvfb-run -a gradle --no-daemon -p "$WORK" :forge:runClient > "$CLIENT_LOG" 2>&1 &
+dump_logs() {
+  local file
+  for file in "$@"; do
+    [[ -f "$file" ]] || continue
+    echo "===== tail: $file ====="
+    tail -n 400 "$file" || true
+  done
+}
+env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe \
+  xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +extension RENDER -noreset' \
+  gradle --no-daemon -p "$WORK" :forge:runClient </dev/null > "$CLIENT_LOG" 2>&1 &
 ACTIVE_PID=$!
 PID=$ACTIVE_PID
 DEADLINE=$((SECONDS+180))
 READY=0
 PASS=0
-FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|The game crashed whilst initializing game|Exception in thread "Render thread"'
+FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|The game crashed whilst initializing game|Exception in thread "Render thread"|Failed to initialize graphics window|Timed out trying to setup the Game Window|Could not initialize GLFW'
 while ((SECONDS<DEADLINE)); do
   LOG="$WORK/forge/run/logs/latest.log"
   FILES=("$CLIENT_LOG"); [[ -f "$LOG" ]] && FILES+=("$LOG")
-  if grep -Eiq "$FATAL" "${FILES[@]}"; then stop_tree "$PID"; ACTIVE_PID=""; cat "${FILES[@]}"; exit 1; fi
+  if grep -Eiq "$FATAL" "${FILES[@]}"; then stop_tree "$PID"; ACTIVE_PID=""; dump_logs "${FILES[@]}"; exit 1; fi
   if [[ -f "$LOG" ]] && grep -Fq 'Reloading ResourceManager' "$LOG" && grep -Fq 'Backend library: LWJGL' "$LOG"; then
     [[ "$READY" -eq 0 ]] && READY=$SECONDS
     if ((SECONDS-READY>=8)); then PASS=1; break; fi
   fi
-  if ! kill -0 "$PID" 2>/dev/null; then wait "$PID" || true; ACTIVE_PID=""; cat "${FILES[@]}"; exit 1; fi
+  if ! kill -0 "$PID" 2>/dev/null; then wait "$PID" || true; ACTIVE_PID=""; dump_logs "${FILES[@]}"; exit 1; fi
   sleep 1
 done
-[[ "$PASS" -eq 1 ]] || { stop_tree "$PID"; ACTIVE_PID=""; cat "$CLIENT_LOG"; exit 1; }
+[[ "$PASS" -eq 1 ]] || { stop_tree "$PID"; ACTIVE_PID=""; dump_logs "$CLIENT_LOG" "$WORK/forge/run/logs/latest.log"; exit 1; }
 stop_tree "$PID"; ACTIVE_PID=""
 echo "[Spell Engine CI] Forge client bootstrap passed; JAR: $OUT_JAR"
