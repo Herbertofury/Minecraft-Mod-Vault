@@ -61,6 +61,7 @@ jobs:
           if-no-files-found: warn
           path: |
             rpg-series-port/*/forge/build/libs/*.jar
+            rpg-series-port/*/*.jar
             rpg-series-port/*/*sha256
             rpg-series-port/*/*smoke.log
             *-source-ci.zip
