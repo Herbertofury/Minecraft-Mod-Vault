@@ -71,6 +71,8 @@ cp "$STRUCTURE_JAR" "$PORT/libs/structure-pool-api.jar"
 cp "$SPELL_POWER_JAR" "$PORT/libs/spell-power.jar"
 cp "$RANGED_JAR" "$PORT/libs/ranged-weapon-api.jar"
 
+python3 "$TOOLS/compat_pass_1.py" "$PORT"
+
 test -f "$PORT/common/src/main/generated/assets/jewelry/models/item/diamond_ring.json"
 test -f "$PORT/common/src/main/java/net/jewelry/items/JewelryItems.java"
 python3 - "$PORT" <<'PY'
