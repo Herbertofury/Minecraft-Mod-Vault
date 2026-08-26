@@ -22,9 +22,6 @@ if out.exists():
     shutil.rmtree(out)
 shutil.copytree(target, out, ignore=shutil.ignore_patterns(".git", ".gradle", "build", "runs"))
 
-# The current 2.4.0 source/resource tree is the behavioral/content target. Replace only its platform
-# shell with a Forge 1.20.1 / Java 17 Architectury-Loom shell. Compatibility passes then backport
-# actual 1.21 API deltas while never dropping modern items, recipes, models, tags or translations.
 shutil.rmtree(out / "fabric", ignore_errors=True)
 if (out / "forge").exists():
     shutil.rmtree(out / "forge")
@@ -108,6 +105,9 @@ dependencies {
 
 (out / "forge/build.gradle").write_text(r'''plugins { id 'com.github.johnrengelman.shadow' }
 architectury { platformSetupLoomIde(); forge() }
+// Architectury Loom only materializes Forge dependency/runtime configurations when its Forge
+// extension is configured. This empty block is intentional for a no-mixin Jewelry module.
+loom { forge { } }
 configurations {
     common { canBeResolved=true; canBeConsumed=false }
     compileClasspath.extendsFrom common
@@ -137,8 +137,6 @@ shadowJar { configurations=[project.configurations.shadowBundle]; archiveClassif
 remapJar { inputFile.set(shadowJar.archiveFile); dependsOn(shadowJar); archiveClassifier='' }
 ''')
 
-# NeoForge module -> Forge module package/API translation. Keep the platform package suffix so
-# Architectury's @ExpectPlatform transformer resolves the implementation exactly as upstream does.
 java_root = out / "forge/src/main/java"
 for path in list(java_root.rglob("*.java")):
     s = path.read_text()
@@ -160,7 +158,6 @@ if old_pkg.exists():
         shutil.rmtree(new_pkg)
     old_pkg.rename(new_pkg)
 
-# Forge does not constructor-inject IEventBus. Preserve upstream's modular lifecycle with the 47.4.x bus.
 forge_mod = new_pkg / "NeoForgeMod.java"
 if forge_mod.exists():
     s = forge_mod.read_text().replace("public final class NeoForgeMod", "public final class ForgeMod")
