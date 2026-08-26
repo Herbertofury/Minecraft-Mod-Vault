@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const version = "2.0.0"
+const version = "2.1.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -31,13 +31,15 @@ func main() {
 		runWatch(os.Args[2:])
 	case "sources":
 		runSources(os.Args[2:])
+	case "adopt-tools":
+		runAdoptTools(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
 	}
 }
 func usage() {
-	fmt.Print(`Minecraft Dev Kit Orchestrator 2.0.0
+	fmt.Print(`Minecraft Dev Kit Orchestrator 2.1.0
 
 Commands:
   mmv-devkit validate --registry devkit-registry.json
@@ -45,6 +47,7 @@ Commands:
   mmv-devkit sync --registry devkit-registry.json [--mc ...] [--loader ...] [--apply] [--drive]
   mmv-devkit watch --registry devkit-registry.json --drive [--interval 15m]
   mmv-devkit sources --catalog tool-provenance.json [--id geckolib-forge] [--json]
+  mmv-devkit adopt-tools --catalog tool-provenance.json --registry devkit-registry.json --drive
 
 Credentials are read from environment only:
   CURSEFORGE_API_KEY, GITHUB_TOKEN, MMV_GOOGLE_DRIVE_TOKEN
@@ -170,20 +173,6 @@ func runWatch(args []string) {
 	}
 }
 
-type provenanceCatalog struct {
-	Schema int              `json:"schema"`
-	Count  int              `json:"count"`
-	Tools  []provenanceTool `json:"tools"`
-}
-type provenanceTool struct {
-	ID                 string        `json:"id"`
-	Name               string        `json:"name"`
-	Homepage           string        `json:"homepage"`
-	Patterns           []string      `json:"patterns"`
-	UpdateProviders    []ProviderRef `json:"updateProviders"`
-	AutoUpdateEligible bool          `json:"autoUpdateEligible"`
-}
-
 func runSources(args []string) {
 	fs := flag.NewFlagSet("sources", flag.ExitOnError)
 	catalogPath := fs.String("catalog", "tool-provenance.json", "tool provenance catalog")
@@ -215,5 +204,32 @@ func runSources(args []string) {
 			provider = p.Type + ":" + first(p.Repo, p.Project, p.URL)
 		}
 		fmt.Printf("%-28s %-42s %-38s %s\n", t.ID, t.Name, provider, t.Homepage)
+	}
+}
+
+func runAdoptTools(args []string) {
+	fs := flag.NewFlagSet("adopt-tools", flag.ExitOnError)
+	regPath := fs.String("registry", "devkit-registry.json", "registry path")
+	catalogPath := fs.String("catalog", "tool-provenance.json", "tool provenance catalog")
+	drive := fs.Bool("drive", false, "discover existing files from the configured Google Drive root")
+	_ = fs.Parse(args)
+	if !*drive {
+		fatal(fmt.Errorf("adopt-tools requires --drive"))
+	}
+	reg, err := loadRegistry(*regPath)
+	fatal(err)
+	cat, err := loadProvenanceCatalog(*catalogPath)
+	fatal(err)
+	dc, err := newDriveClient(reg.Drive, nil)
+	fatal(err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	n, skipped, err := adoptTools(ctx, &reg, cat, dc)
+	fatal(err)
+	fatal(validateRegistry(reg))
+	fatal(writeJSONAtomic(*regPath, reg))
+	fmt.Printf("adopted %d existing Drive tool artifacts into live managed state\n", n)
+	if len(skipped) > 0 {
+		fmt.Printf("skipped %d catalog/file cases; use sources --json to inspect provenance\n", len(skipped))
 	}
 }
