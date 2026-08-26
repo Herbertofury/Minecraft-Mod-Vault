@@ -6,13 +6,18 @@ on:
     paths:
       - 'sable-source-export-trigger/**'
       - '.github/workflows/ragdoll-sable-build.yml'
+  push:
+    branches: [ ragdoll-sable-source-export-v2 ]
+    paths:
+      - 'sable-source-export-trigger/**'
+      - '.github/workflows/ragdoll-sable-build.yml'
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: startsWith(github.head_ref, 'ragdoll-sable-source-export')
+    if: github.event_name == 'push' || startsWith(github.head_ref, 'ragdoll-sable-source-export')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
