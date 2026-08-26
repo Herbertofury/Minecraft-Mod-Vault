@@ -1,0 +1,47 @@
+name: Ragdoll Sable Source Export
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'sable-source-export-trigger/**'
+      - '.github/workflows/ragdoll-sable-source-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'ragdoll-sable-source-export')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Sable Forge 1.20.1 backport
+        uses: actions/checkout@v4
+        with:
+          repository: CamelPoem32/sable-backport
+          ref: 6dd48142a62347f1454559b546cbaa63eca648ac
+          path: sable-backport
+          fetch-depth: 1
+      - name: Checkout exact Sable 1.1.0 source
+        uses: actions/checkout@v4
+        with:
+          repository: ryanhcode/sable
+          ref: 165cf388f775d40c414cf1284c45f6a00a80f74f
+          path: sable-1.1.0
+          fetch-depth: 1
+      - name: Record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          printf '%s\n' 'sable-backport 6dd48142a62347f1454559b546cbaa63eca648ac' > export/PROVENANCE.txt
+          printf '%s\n' 'sable-1.1.0 165cf388f775d40c414cf1284c45f6a00a80f74f' >> export/PROVENANCE.txt
+          tar --exclude=.git -czf export/sable-backport-6dd48142.tar.gz sable-backport
+          tar --exclude=.git -czf export/sable-1.1.0-165cf388.tar.gz sable-1.1.0
+          sha256sum export/*.tar.gz > export/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-sable-source-export
+          path: export
+          if-no-files-found: error
+          retention-days: 7
