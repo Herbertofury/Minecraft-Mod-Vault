@@ -152,12 +152,12 @@ for path in list(java_root.rglob("*.java")):
     s = s.replace("NeoForge.EVENT_BUS", "MinecraftForge.EVENT_BUS")
     path.write_text(s)
 
-# Move package directory after textual package rewrite.
 old_pkg = java_root / "net/jewelry/neoforge"
 new_pkg = java_root / "net/jewelry/forge"
 if old_pkg.exists():
     new_pkg.parent.mkdir(parents=True, exist_ok=True)
-    if new_pkg.exists(): shutil.rmtree(new_pkg)
+    if new_pkg.exists():
+        shutil.rmtree(new_pkg)
     old_pkg.rename(new_pkg)
 
 # Forge does not constructor-inject IEventBus. Preserve upstream's modular lifecycle with the 47.4.x bus.
@@ -188,18 +188,19 @@ public class PlatformImpl {
 }
 ''')
 
-# NeoForge resource namespace -> Forge namespace for biome modifiers.
 neo_data = out / "common/src/main/resources/data/jewelry/neoforge"
 forge_data = out / "common/src/main/resources/data/jewelry/forge"
 if neo_data.exists():
     forge_data.parent.mkdir(parents=True, exist_ok=True)
-    if forge_data.exists(): shutil.rmtree(forge_data)
+    if forge_data.exists():
+        shutil.rmtree(forge_data)
     neo_data.rename(forge_data)
 
 meta = out / "forge/src/main/resources/META-INF"
 meta.mkdir(parents=True, exist_ok=True)
 for stale in (meta / "neoforge.mods.toml", meta / "neoforge.mods.toml.bak"):
-    if stale.exists(): stale.unlink()
+    if stale.exists():
+        stale.unlink()
 (meta / "mods.toml").write_text(r'''modLoader="javafml"
 loaderVersion="[47,)"
 license="All Rights Reserved"
@@ -207,7 +208,7 @@ license="All Rights Reserved"
 modId="jewelry"
 version="${version}"
 displayName="Jewelry"
-description='''Native Forge 1.20.1 backport of Jewelry 2.4.0.'''
+description="Native Forge 1.20.1 backport of Jewelry 2.4.0."
 [[dependencies.jewelry]]
 modId="forge"
 mandatory=true
@@ -246,10 +247,8 @@ ordering="AFTER"
 side="BOTH"
 ''')
 
-# Record source pins inside the generated source package for reproducibility.
 (out / "PORT-PINS.txt").write_text(f"substrate={BASE_SHA}\ntarget={TARGET_SHA}\n")
 
-# Hard gates: full current generated resources must survive the preparation pass.
 required = [
     out / "common/src/main/java/net/jewelry/items/JewelryItems.java",
     out / "common/src/main/generated/assets/jewelry/models/item/diamond_ring.json",
