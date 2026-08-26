@@ -90,6 +90,40 @@ if 'effect.PoisonEffectMixin' not in mixins_common:
 client = data.setdefault('client', [])
 if 'client.render.ImmediateItemGlowMixin' not in client:
     client.append('client.render.ImmediateItemGlowMixin')
+
+# The modern fallback-loot analyzer reads LootPool entries. A direct field read compiles in Loom's
+# widened development classes but the private SRG field remains private in a real Forge install.
+# Bridge it with a typed Mixin accessor so the exact same analyzer works in the packaged artifact.
+loot_pool_accessor = java / 'net/spell_engine/mixin/loot/LootPoolAccessor.java'
+loot_pool_accessor.write_text(r'''package net.spell_engine.mixin.loot;
+
+import net.minecraft.loot.LootPool;
+import net.minecraft.loot.entry.LootPoolEntry;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
+
+@Mixin(LootPool.class)
+public interface LootPoolAccessor {
+    @Accessor("entries")
+    LootPoolEntry[] spellEngine_getEntries();
+}
+''')
+if 'loot.LootPoolAccessor' not in mixins_common:
+    mixins_common.append('loot.LootPoolAccessor')
+
+loot_helper = java / 'net/spell_engine/rpg_series/loot/LootHelper.java'
+lh = loot_helper.read_text()
+if 'import net.spell_engine.mixin.loot.LootPoolAccessor;' not in lh:
+    lh = lh.replace('package net.spell_engine.rpg_series.loot;',
+                    'package net.spell_engine.rpg_series.loot;\nimport net.spell_engine.mixin.loot.LootPoolAccessor;', 1)
+inspect_anchor = '''    private static List<PoolContents> inspect(List<LootPool> pools) {\n        var result = new ArrayList<PoolContents>(pools.size());\n        for (var pool: pools) {\n            var items = new LinkedHashMap<String, ItemOccurrence>();\n            int[] total = { 0 };\n            for (var entry: pool.entries) {'''
+inspect_replacement = '''    private static List<PoolContents> inspect(List<LootPool> pools) {\n        var result = new ArrayList<PoolContents>(pools.size());\n        for (var pool: pools) {\n            var items = new LinkedHashMap<String, ItemOccurrence>();\n            int[] total = { 0 };\n            for (var entry: ((LootPoolAccessor) (Object) pool).spellEngine_getEntries()) {'''
+if inspect_anchor in lh:
+    lh = lh.replace(inspect_anchor, inspect_replacement, 1)
+elif '((LootPoolAccessor) (Object) pool).spellEngine_getEntries()' not in lh:
+    raise SystemExit('pass6i could not locate vanilla LootPool inspection field read')
+loot_helper.write_text(lh)
+
 mixins.write_text(json.dumps(data, indent=2) + '\n')
 
 # Loom's development launches discover mixin configs from the generated run configuration. A real
@@ -143,9 +177,19 @@ for required in (
     'effect.StatusEffectActionImpairing',
     'effect.StatusEffectSynchronized',
     'action_impair.LivingEntityActionImpairing',
+    'loot.LootPoolAccessor',
 ):
     if required not in final.get('mixins', []):
         raise SystemExit(f'pass6i required common mixin missing from packaged config: {required}')
+if 'LootPoolEntry[] spellEngine_getEntries();' not in loot_pool_accessor.read_text():
+    raise SystemExit('pass6i LootPool accessor descriptor missing')
+if '((LootPoolAccessor) (Object) pool).spellEngine_getEntries()' not in loot_helper.read_text():
+    raise SystemExit('pass6i LootHelper still lacks packaged-safe LootPool accessor use')
+# Public LootConfig.Pool.entries is intentionally untouched; only vanilla LootPool private access is bridged.
+if loot_helper.read_text().count('for (var itemInjectorEntry: pool.entries)') != 1:
+    raise SystemExit('pass6i accidentally changed LootConfig tag-cache pool entries')
+if loot_helper.read_text().count('for (var entry: pool.entries)') != 1:
+    raise SystemExit('pass6i accidentally changed LootConfig buildPool entries')
 final_build = forge_build.read_text()
 for required in (
     'tasks.withType(Jar).configureEach',
@@ -158,4 +202,4 @@ if gate.exists():
     if '`effect.PoisonEffectMixin`' in text or '`client.render.ImmediateItemGlowMixin`' in text:
         raise SystemExit('pass6i left implemented parity entries in pending gate')
 
-print('Spell Engine compatibility pass 6i applied: poison + item glow parity + packaged Forge mixin bootstrap')
+print('Spell Engine compatibility pass 6i applied: poison/item glow + packaged mixins + LootPool accessor')
