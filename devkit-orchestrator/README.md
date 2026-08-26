@@ -1,47 +1,72 @@
-# Minecraft Dev Kit Orchestrator
+# Minecraft Dev Kit Orchestrator 2.0.0 — Live Source Manager
 
-`mmv-devkit` turns the Minecraft Dev Kit folder into a capability-based toolchain instead of a pile of downloads. It is standalone, dependency-free, and designed to complement Minecraft Mod Vault TestGrid.
+The Dev Kit is no longer a static folder of downloads. The 1.0 inventory of 59 tools is preserved in `tool-provenance.json`; 47 currently have canonical GitHub or Modrinth upstream identities, while vendor-only entries remain explicitly marked for manual/provider-specific refresh rather than guessed. `mmv-devkit` tracks the canonical upstream identity of each tool, mod, API and library, resolves the newest **compatible** release for its Minecraft version/loader/platform lane, follows required dependencies recursively, mirrors matching source, and can replace the existing Google Drive object **in place** so the file ID/link remains stable.
 
-## Responsibilities
+## Provider order and truth
 
-- Discover the synced Dev Kit root.
-- Scan the real tool inventory against stable IDs.
-- Resolve the best installed JDK, Gradle/build framework, MDK/template, loader reference, mappings, decompiler/bytecode workbench, profiler, renderer debugger, world/NBT tool, model/animation tool, Bedrock tool, or launcher for a requested task.
-- Plan `build`, `port`, `repair`, `decompile`, `profile`, `render`, `world`, `model`, `bedrock`, `launch`, and `mappings` workflows.
-- Select Java by Minecraft generation: Java 17 through 1.20.x, Java 21 for 1.21.x, Java 25 for 26.x.
-- Safely prepare ZIP and `.tar.gz` archives into a local cache without modifying the Drive originals.
-- Reject archive path traversal and refuse installer execution unless explicitly allowed.
-- Emit JSON plans for TestGrid/agent consumption.
+- **Modrinth**: project/version API, exact Minecraft + loader filters, provider hashes, required dependency graph, project source repository.
+- **CurseForge**: project/file API and dependency relations when `CURSEFORGE_API_KEY` is available. Provider SHA-1 is verified when supplied.
+- **GitHub**: release assets for tools and repositories. `GITHUB_TOKEN` is optional but recommended for higher rate limits.
+- **Direct/vendor URL**: explicit fallback only; never silently outranks an exact provider identity.
 
-## TestGrid split
+The registry stores provider IDs, not search guesses. A newer file for the wrong Minecraft version, loader, operating system or architecture is not an update.
 
-The orchestrator owns **tool selection and preparation**. TestGrid remains the **execution and evidence** layer for builds, launches, log assertions, RCON/network probes, hashes, runtime reports, and other acceptance evidence. This prevents duplicated automation logic.
+## Source matching
 
-## Current release
+For Modrinth projects that declare GitHub source, the updater attempts to mirror the GitHub release/tag matching the selected runtime version. `main` is only a fallback when no matching release/tag can be resolved. Runtime and source Drive IDs are tracked separately.
 
-The complete 1.0.0 release, Windows x64 binary, Linux x64 binary, source, tests, generated registry catalog, and verification evidence are stored in the canonical Minecraft Dev Kit Google Drive under `08 Orchestration & Automation`.
+## Dependency behavior
 
-The source-controlled documentation lives in:
+Required dependencies are resolved recursively with cycle protection and a 12-level safety ceiling. An unresolved required dependency blocks the parent transaction. Dependencies that are already represented by another managed artifact are reused; previously unknown required dependencies are automatically enrolled into the registry and mirrored to the dependency library lane during a Drive-backed sync, including their matching source archive when the provider exposes a source repository.
 
-- [`wiki/Dev-Kit-Orchestrator.md`](../wiki/Dev-Kit-Orchestrator.md)
-- [`wiki/Minecraft-Dev-Kit-Tool-Catalog.md`](../wiki/Minecraft-Dev-Kit-Tool-Catalog.md)
-- [`wiki/Minecraft-Dev-Kit-Workflows.md`](../wiki/Minecraft-Dev-Kit-Workflows.md)
+## Drive in-place updates
 
-## Verified 1.0.0 checks
+The registry records stable Drive file IDs. With `MMV_GOOGLE_DRIVE_TOKEN` present, `sync --apply --drive` uses Drive `files.update` media upload semantics to replace bytes without creating a random duplicate. When the upstream filename changes, metadata is renamed on the same file ID. New dependencies/sources are created only when there is no existing tracked Drive ID.
 
-- race-enabled Go unit tests
-- `go vet`
-- Linux amd64 build
-- Windows amd64 cross-build
-- registry parse/uniqueness
-- synthetic Dev Kit scan
-- Forge 1.20.1 -> Java 17 selection
-- NeoForge 1.21.1 -> exact Java 21 gap detection
-- interspersed CLI flags
-- ZIP/path traversal rejection
-- platform-aware artifact preference
-- Wiki catalog generation from the machine registry
+Secrets are never written to the registry or lockfile.
 
-## One remaining offline inventory gap
+## Commands
 
-The collected Drive kit currently has JDK 17, 25, and 26, but not the exact JDK 21 archive required by the resolver for fully offline Minecraft/NeoForge 1.21.x work. Online Gradle toolchain resolution can cover compatible projects; `doctor` reports the gap rather than silently substituting an incompatible runtime.
+```text
+mmv-devkit validate --registry devkit-registry.json
+mmv-devkit check --registry devkit-registry.json --json
+mmv-devkit sync --registry devkit-registry.json --drive        # dry-run plan
+mmv-devkit sync --registry devkit-registry.json --apply --drive
+mmv-devkit watch --registry devkit-registry.json --drive --interval 15m
+mmv-devkit sources --catalog tool-provenance.json --id geckolib-forge
+```
+
+`watch` repeats the same compatibility/hash/dependency transaction. It does not bypass the resolver. If a runtime is already current but its tracked source mirror is missing, the planner emits a `source-refresh` transaction instead of needlessly replacing the runtime.
+
+## Environment credentials
+
+```text
+CURSEFORGE_API_KEY
+GITHUB_TOKEN
+MMV_GOOGLE_DRIVE_TOKEN
+```
+
+All are optional for read-only operation except the provider that needs them. Drive mutation requires its token.
+
+## Current seeded dependency lanes
+
+The included registry tracks the exact Drive IDs for the current dependency/API batch: Fabric API, Architectury API, Cloth Config, Balm, Forge Config API Port, YACL, Curios, Fabric Language Kotlin, Kotlin for Forge, Resourceful Lib, Moonlight Lib, TerraBlender, Citadel, Bookshelf, Puzzles Lib, Iceberg, Cardinal Components API, Trinkets, CreativeCore and Placebo.
+
+## Safety gates
+
+- release-channel filtering
+- Minecraft/loader-aware provider selection
+- downgrade block by default
+- Modrinth SHA-256 verification
+- CurseForge SHA-1 verification when available
+- required dependency failure blocks parent update
+- recursion cycle/depth protection
+- stable Drive file IDs
+- atomic registry and lockfile writes
+- exact provenance lock entries with provider/project/version/source refs and hashes
+- source release/tag matching
+- credentials excluded from durable state
+
+## Relationship with Minecraft Mod Vault
+
+Minecraft Mod Vault already has exact Modrinth hash identity, CurseForge fingerprint resolution, GitHub metadata fallback, transactional mod replacement, Doctor/Compatibility Brain and TestGrid. This orchestrator is the **Dev Kit/source/tool/library control plane**. The two use the same provider-first philosophy: Vault manages active game/project artifacts; the orchestrator keeps the development laboratory and canonical source mirrors fresh.
