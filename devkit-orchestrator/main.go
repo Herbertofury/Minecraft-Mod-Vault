@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const version = "2.1.0"
+const version = "2.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -33,13 +33,17 @@ func main() {
 		runSources(os.Args[2:])
 	case "adopt-tools":
 		runAdoptTools(os.Args[2:])
+	case "heritage":
+		runHeritage(os.Args[2:])
+	case "port-guard":
+		runPortGuard(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
 	}
 }
 func usage() {
-	fmt.Print(`Minecraft Dev Kit Orchestrator 2.1.0
+	fmt.Print(`Minecraft Dev Kit Orchestrator 2.2.0
 
 Commands:
   mmv-devkit validate --registry devkit-registry.json
@@ -47,10 +51,11 @@ Commands:
   mmv-devkit sync --registry devkit-registry.json [--mc ...] [--loader ...] [--apply] [--drive]
   mmv-devkit watch --registry devkit-registry.json --drive [--interval 15m]
   mmv-devkit sources --catalog tool-provenance.json [--id geckolib-forge] [--json]
-  mmv-devkit adopt-tools --catalog tool-provenance.json --registry devkit-registry.json --drive
+  mmv-devkit heritage --registry devkit-registry.json --id MOD --mc 1.20.1 --loader forge --out .mmv/heritage --report heritage.json
+  mmv-devkit port-guard --registry devkit-registry.json --id MOD --original original.jar --converted build.jar --converted-source src/main --mc 1.20.1 --loader forge --report port-guard.json
 
 Credentials are read from environment only:
-  CURSEFORGE_API_KEY, GITHUB_TOKEN, MMV_GOOGLE_DRIVE_TOKEN
+  CURSEFORORGE_API_KEY, GITHUB_TOKEN, MMV_GOOGLE_DRIVE_TOKEN
 `)
 }
 func loadRegistry(path string) (Registry, error) {
@@ -231,5 +236,71 @@ func runAdoptTools(args []string) {
 	fmt.Printf("adopted %d existing Drive tool artifacts into live managed state\n", n)
 	if len(skipped) > 0 {
 		fmt.Printf("skipped %d catalog/file cases; use sources --json to inspect provenance\n", len(skipped))
+	}
+}
+
+func runHeritage(args []string) {
+	fs := flag.NewFlagSet("heritage", flag.ExitOnError)
+	reg, mc, loader, channel, arch := common(fs)
+	id := fs.String("id", "", "managed mod/library artifact id")
+	outDir := fs.String("out", "", "directory for newest + target-compatible runtime/source references")
+	report := fs.String("report", "heritage-report.json", "machine-readable report path")
+	asJSON := fs.Bool("json", false, "print full JSON report")
+	_ = fs.Parse(args)
+	if strings.TrimSpace(*id) == "" {
+		fatal(fmt.Errorf("heritage requires --id"))
+	}
+	r, err := loadRegistry(*reg)
+	fatal(err)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	h, err := newEngine(r, nil).buildHeritage(ctx, *id, mkTarget(*mc, *loader, *channel, *arch), *outDir)
+	fatal(err)
+	fatal(writeReport(*report, h))
+	if *asJSON {
+		b, _ := json.MarshalIndent(h, "", "  ")
+		fmt.Println(string(b))
+		return
+	}
+	fmt.Printf("feature authority: %s (%s)\n", h.LatestUpstream.Version, h.LatestUpstream.Filename)
+	fmt.Printf("target-compatible: %s (%s)\n", h.TargetCompatible.Version, h.TargetCompatible.Filename)
+	fmt.Printf("delta: +%d changed=%d removed=%d; releases=%d; report=%s\n", len(h.RuntimeDelta.Added), len(h.RuntimeDelta.Changed), len(h.RuntimeDelta.Removed), len(h.ReleaseLineage), *report)
+}
+
+func runPortGuard(args []string) {
+	fs := flag.NewFlagSet("port-guard", flag.ExitOnError)
+	reg, mc, loader, channel, arch := common(fs)
+	id := fs.String("id", "", "managed source mod/library artifact id")
+	original := fs.String("original", "", "exact original mod artifact being converted/worked on")
+	converted := fs.String("converted", "", "converted target build/JAR to audit")
+	convertedSource := fs.String("converted-source", "", "converted project source directory or source ZIP")
+	outDir := fs.String("out", "", "directory for upstream heritage references")
+	report := fs.String("report", "port-guard-report.json", "machine-readable completion-gate report")
+	asJSON := fs.Bool("json", false, "print full JSON report")
+	_ = fs.Parse(args)
+	if strings.TrimSpace(*id) == "" {
+		fatal(fmt.Errorf("port-guard requires --id"))
+	}
+	r, err := loadRegistry(*reg)
+	fatal(err)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+	g, err := newEngine(r, nil).portGuard(ctx, *id, mkTarget(*mc, *loader, *channel, *arch), *original, *converted, *convertedSource, *outDir)
+	fatal(err)
+	fatal(writeReport(*report, g))
+	if *asJSON {
+		b, _ := json.MarshalIndent(g, "", "  ")
+		fmt.Println(string(b))
+	} else {
+		fmt.Printf("port guard: passed=%v errors=%d warnings=%d report=%s\n", g.Passed, g.Errors, g.Warnings, *report)
+		for _, f := range g.Findings {
+			if f.Severity == "info" {
+				continue
+			}
+			fmt.Printf("%-7s %-32s %s %s\n", f.Severity, f.Kind, f.Path, f.Message)
+		}
+	}
+	if !g.Passed {
+		os.Exit(3)
 	}
 }
