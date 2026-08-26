@@ -9,6 +9,10 @@ LOG="$ROOT/rpg-series-port/jewelry-forge-1.20.1/jewelry-smoke.log"
 SOURCE_ZIP="$ROOT/jewelry-2.4.0-forge-1.20.1-source-ci.zip"
 BASE_SHA="f20b7d94c4c6cdd5a4ed26e4066374b64654fb96"
 TARGET_SHA="572cb8759d13075b97e7a1acd969a6203db594cb"
+SPELL_POWER_BASE="681993d5f823aa96b1b24e21b145e89f46147f2d"
+SPELL_POWER_TARGET="6fed879e796cbe82c43684d914a8fa99a99e8b12"
+RANGED_BASE="d95ba51c2f5c35bc8d397057092ba6043b00b705"
+RANGED_TARGET="c834f2699faefbdfcefa84f7f45708cd1a6bc55a"
 
 rm -rf "$WORK" "$PORT" "$SOURCE_ZIP"
 mkdir -p "$WORK" "$(dirname "$PORT")"
@@ -28,25 +32,43 @@ clone_exact() {
     test "$(git -C "$dst" rev-parse HEAD)" = "$sha"
 }
 
-# Fetch the immutable 1.20.1 compatibility substrate and complete 2.4.0 behavior/content target in parallel.
+# Fetch Jewelry plus the exact source pairs used by the already-verified Spell Power and Ranged
+# foundation pipelines. These run in parallel to keep the active lane fast without weakening proof.
 clone_exact ZsoltMolnarrr/Jewelry "$BASE_SHA" "$WORK/base" & p1=$!
 clone_exact ZsoltMolnarrr/Jewelry "$TARGET_SHA" "$WORK/target" & p2=$!
-wait "$p1" "$p2"
+clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_BASE" "$WORK/spell-power-base" & p3=$!
+clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_TARGET" "$WORK/spell-power-target" & p4=$!
+clone_exact FabricExtras/RangedWeaponAPI "$RANGED_BASE" "$WORK/ranged-base" & p5=$!
+clone_exact FabricExtras/RangedWeaponAPI "$RANGED_TARGET" "$WORK/ranged-target" & p6=$!
+wait "$p1" "$p2" "$p3" "$p4" "$p5" "$p6"
 
-build_foundation() {
-    local project="$1" label="$2"
-    echo "[Jewelry] Building verified foundation: $label"
-    gradle --no-daemon -p "$project" :forge:remapJar
-    local jar
-    jar="$(find "$project/forge/build/libs" -maxdepth 1 -type f -name '*.jar' \
-        ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' -printf '%p\n' | sort | tail -n1)"
-    test -n "$jar" && test -f "$jar"
-    printf '%s' "$jar"
-}
+# Structure Pool API is already a complete native Forge project in-tree and builds directly.
+echo "[Jewelry] Building verified foundation: Structure Pool API 1.2.1"
+gradle --no-daemon --stacktrace -p "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1" :forge:build
+STRUCTURE_JAR="$(find "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+test -n "$STRUCTURE_JAR" && test -f "$STRUCTURE_JAR"
 
-STRUCTURE_JAR="$(build_foundation "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1" 'Structure Pool API 1.2.1' | tail -n1)"
-SPELL_POWER_JAR="$(build_foundation "$ROOT/rpg-series-port/spell_power-forge-1.20.1" 'Spell Power 1.6.0' | tail -n1)"
-RANGED_JAR="$(build_foundation "$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1" 'Ranged Weapon API 2.3.4' | tail -n1)"
+# Spell Power and Ranged are generated ports: invoke the same preparation passes that produced their
+# accepted artifacts. Never compile their intermediate repository source directly.
+SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
+echo "[Jewelry] Preparing/building verified foundation: Spell Power 1.6.0"
+python3 "$SPELL_POWER/tools/prepare_upstream_source.py" "$WORK/spell-power-base" "$WORK/spell-power-target" "$SPELL_POWER/common"
+test -f "$SPELL_POWER/common/src/generatedUpstream/java/net/spell_power/api/SpellSchool.java"
+gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build
+SPELL_POWER_JAR="$(find "$SPELL_POWER/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+test -n "$SPELL_POWER_JAR" && test -f "$SPELL_POWER_JAR"
+unzip -tq "$SPELL_POWER_JAR"
+unzip -p "$SPELL_POWER_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"' >/dev/null
+
+RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
+echo "[Jewelry] Preparing/building verified foundation: Ranged Weapon API 2.3.4"
+python3 "$RANGED/tools/prepare_upstream_source.py" "$WORK/ranged-base" "$WORK/ranged-target" "$RANGED/common"
+test -f "$RANGED/common/src/main/java/net/fabric_extras/ranged_weapon/api/RangedConfig.java"
+gradle --no-daemon --stacktrace -p "$RANGED" :forge:build
+RANGED_JAR="$(find "$RANGED/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+test -n "$RANGED_JAR" && test -f "$RANGED_JAR"
+unzip -tq "$RANGED_JAR"
+unzip -p "$RANGED_JAR" META-INF/mods.toml | grep -F 'modId="ranged_weapon_api"' >/dev/null
 
 python3 "$TOOLS/prepare_port.py" "$WORK/base" "$WORK/target" "$PORT"
 mkdir -p "$PORT/libs"
@@ -54,41 +76,42 @@ cp "$STRUCTURE_JAR" "$PORT/libs/structure-pool-api.jar"
 cp "$SPELL_POWER_JAR" "$PORT/libs/spell-power.jar"
 cp "$RANGED_JAR" "$PORT/libs/ranged-weapon-api.jar"
 
-# Static whole-target gates before compilation: these catch accidental fallback to the tiny 1.3.7 catalog.
+# Static whole-target gates before compilation: catch accidental fallback to the much smaller 1.3.7 catalog.
 test -f "$PORT/common/src/main/generated/assets/jewelry/models/item/diamond_ring.json"
 test -f "$PORT/common/src/main/java/net/jewelry/items/JewelryItems.java"
 python3 - "$PORT" <<'PY'
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
-items = (root / 'common/src/main/java/net/jewelry/items/JewelryItems.java').read_text()
+items = (root / 'common/src/main/java/net/jewelry/items/JewelryItems.java').read_text().lower()
 required = [
     'diamond_ring', 'attack_ring', 'critical_strike_ring', 'dexterity_ring',
     'arcane_ring', 'fire_ring', 'frost_ring', 'healing_ring', 'spell_ring', 'tank_ring'
 ]
-missing = [x for x in required if x not in items.lower()]
+missing = [x for x in required if x not in items]
 if missing:
     raise SystemExit('Current 2.4.0 Jewelry catalog gate missing: ' + ', '.join(missing))
-langs = list((root / 'common/src/main/resources/assets/jewelry/lang').glob('*.json'))
+lang_roots = [root / 'common/src/main/resources/assets/jewelry/lang', root / 'common/src/main/generated/assets/jewelry/lang']
+langs = sorted({p.name for r in lang_roots if r.exists() for p in r.glob('*.json')})
 print(f'[Jewelry] current catalog anchors present; language files={len(langs)}')
 if len(langs) < 15:
     raise SystemExit(f'Expected current translation set, found only {len(langs)} language files')
 PY
 
-# Preserve the exact generated state even when the first compatibility compile reveals an API delta.
+# Preserve exact generated source even when compilation finds a compatibility delta.
 (
     cd "$PORT"
     zip -qr "$SOURCE_ZIP" . -x '.gradle/*' '*/build/*'
 )
+unzip -tq "$SOURCE_ZIP"
 
 echo "[Jewelry] Compiling full current 2.4.0 source against Minecraft 1.20.1 mappings and native Forge foundations"
-gradle --no-daemon -p "$PORT" :forge:remapJar
+gradle --no-daemon --stacktrace -p "$PORT" :forge:remapJar
 
-OUT_JAR="$(find "$PORT/forge/build/libs" -maxdepth 1 -type f -name '*.jar' \
-    ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' -printf '%p\n' | sort | tail -n1)"
+OUT_JAR="$(find "$PORT/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
 test -f "$OUT_JAR"
 
-# Architecture gates: Jewelry must not vendor or shadow foundation classes.
+# Architecture gates: Jewelry must consume, never vendor/shadow, the verified foundations.
 for prefix in 'net/spell_power/' 'net/fabric_extras/ranged_weapon/' 'net/fabric_extras/structure_pool/'; do
     if unzip -Z1 "$OUT_JAR" | grep -q "^$prefix"; then
         echo "[Jewelry] ERROR: packaged dependency classes under $prefix" >&2
