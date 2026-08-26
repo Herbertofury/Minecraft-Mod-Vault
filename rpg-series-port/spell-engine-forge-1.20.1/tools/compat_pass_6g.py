@@ -12,11 +12,29 @@ addition = '''    // Spell Engine common Mixins use MixinExtras at runtime. Embe
     // like the already-runtime-proven Ranged Weapon API port; compileOnly keeps AP symbols explicit.
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$rootProject.mixinextras_version"))
     implementation(include("io.github.llamalad7:mixinextras-forge:$rootProject.mixinextras_version"))
+
+    // The common project compiles against TinyConfig, but `common { transitive = false }` intentionally
+    // keeps dependency mods/libraries out of the transformed common artifact. Forge dev runs therefore
+    // need TinyConfig explicitly on the Forge runtime classpath, and release JARs need it embedded.
+    // Mirror the already runtime-proven Spell Power 1.20.1 packaging pattern.
+    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+    include tinyConfig
+    forgeRuntimeLibrary tinyConfig
 '''
 if 'mixinextras-forge' not in s:
     if anchor not in s:
         raise SystemExit('Forge dependency anchor missing')
     s = s.replace(anchor, anchor + addition)
+elif 'forgeRuntimeLibrary tinyConfig' not in s:
+    if anchor not in s:
+        raise SystemExit('Forge dependency anchor missing for TinyConfig repair')
+    tiny = '''
+    // TinyConfig is required by SpellEngineMod static config managers at runtime.
+    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+    include tinyConfig
+    forgeRuntimeLibrary tinyConfig
+'''
+    s = s.replace(anchor, anchor + tiny)
 forge_build.write_text(s)
 
 # 1.10.2 targets the newer StatusEffect.onRemoved(AttributeContainer) call. Minecraft 1.20.1 uses
@@ -37,9 +55,15 @@ e = e.replace(old_handler, new_handler, 1)
 effect_removal.write_text(e)
 
 final = forge_build.read_text()
-for required in ('mixinextras-common', 'implementation(include("io.github.llamalad7:mixinextras-forge:'):
+for required in (
+    'mixinextras-common',
+    'implementation(include("io.github.llamalad7:mixinextras-forge:',
+    'def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:',
+    'include tinyConfig',
+    'forgeRuntimeLibrary tinyConfig',
+):
     if required not in final:
-        raise SystemExit(f'MixinExtras Forge runtime dependency missing: {required}')
+        raise SystemExit(f'Forge runtime dependency missing: {required}')
 final_effect = effect_removal.read_text()
 for stale in (
     'onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V',
@@ -56,4 +80,4 @@ for required in (
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
-print('Spell Engine compatibility pass 6g applied: embedded Forge MixinExtras runtime service + exact 1.20.1 effect-removal hook')
+print('Spell Engine compatibility pass 6g applied: embedded MixinExtras + TinyConfig Forge runtimes + exact 1.20.1 effect-removal hook')
