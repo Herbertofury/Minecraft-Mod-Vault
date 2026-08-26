@@ -5,6 +5,11 @@ ROOT="$(pwd)"
 PORT="$ROOT/rpg-series-port/jewelry-forge-1.20.1/generated"
 EVIDENCE="$ROOT/rpg-series-port/jewelry-forge-1.20.1"
 
+# Local Loom file-mod dependencies do not expand Ranged Weapon API's embedded MixinExtras
+# into a downstream development classpath. Apply the self-checking dev-runtime bridge before
+# launching the client. This does not alter Jewelry's already-verified packaged release JAR.
+python3 "$EVIDENCE/tools/compat_pass_6.py" "$PORT"
+
 # Exercise the Forge client lifecycle, client-only event subscribers, resource reload and LWJGL
 # bootstrap with the same generated source/dependency graph. This is explicitly a dev-client gate;
 # run-jewelry.sh remains the packaged release-JAR proof on fresh Forge servers.
