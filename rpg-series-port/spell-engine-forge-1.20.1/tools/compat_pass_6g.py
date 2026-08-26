@@ -54,6 +54,29 @@ e = e.replace(old_target, new_target, 1)
 e = e.replace(old_handler, new_handler, 1)
 effect_removal.write_text(e)
 
+# Forge 47 patches LootTable.pools from vanilla's LootPool[] to a mutable List<LootPool> so its
+# loot-table hooks can add/remove pools. The field name stays `pools`, but the runtime descriptor is
+# java.util.List. Match the Forge-patched descriptor exactly or Mixin's accessor fails during APPLY.
+loot_accessor = root / 'common/src/main/java/net/spell_engine/mixin/loot/LootTableAccessor.java'
+la = loot_accessor.read_text()
+import_anchor = 'import net.minecraft.loot.LootTable;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.gen.Accessor;'
+if import_anchor not in la:
+    raise SystemExit('LootTableAccessor import anchor missing')
+la = la.replace(import_anchor, import_anchor + '\n\nimport java.util.List;', 1)
+if 'LootPool[] spellEngine_pools();' not in la:
+    raise SystemExit('vanilla-array LootTableAccessor signature missing')
+la = la.replace('LootPool[] spellEngine_pools();', 'List<LootPool> spellEngine_pools();', 1)
+loot_accessor.write_text(la)
+
+forge_events = root / 'forge/src/main/java/net/spell_engine/forge/PlatformEventsImpl.java'
+fe = forge_events.read_text().replace('import java.util.Arrays;\n', '')
+old_pools = 'this.existingPools = List.copyOf(Arrays.asList(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools()));'
+new_pools = 'this.existingPools = List.copyOf(((LootTableAccessor) (Object) event.getTable()).spellEngine_pools());'
+if old_pools not in fe:
+    raise SystemExit('ForgeLootContext array-copy expression missing')
+fe = fe.replace(old_pools, new_pools, 1)
+forge_events.write_text(fe)
+
 final = forge_build.read_text()
 for required in (
     'mixinextras-common',
@@ -64,6 +87,11 @@ for required in (
 ):
     if required not in final:
         raise SystemExit(f'Forge runtime dependency missing: {required}')
+final_loot = loot_accessor.read_text()
+if 'List<LootPool> spellEngine_pools();' not in final_loot or 'LootPool[] spellEngine_pools();' in final_loot:
+    raise SystemExit('pass6g missing Forge-patched LootTable List accessor')
+if 'Arrays.asList' in forge_events.read_text():
+    raise SystemExit('pass6g left stale array handling in ForgeLootContext')
 final_effect = effect_removal.read_text()
 for stale in (
     'onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V',
@@ -80,4 +108,4 @@ for required in (
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
-print('Spell Engine compatibility pass 6g applied: embedded MixinExtras + TinyConfig Forge runtimes + exact 1.20.1 effect-removal hook')
+print('Spell Engine compatibility pass 6g applied: embedded MixinExtras + TinyConfig runtimes + exact effect-removal hook + Forge LootTable List accessor')
