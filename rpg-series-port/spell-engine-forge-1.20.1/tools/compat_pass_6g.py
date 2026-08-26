@@ -19,8 +19,39 @@ if 'mixinextras-forge' not in s:
     s = s.replace(anchor, anchor + addition)
 forge_build.write_text(s)
 
+# 1.10.2 targets the newer StatusEffect.onRemoved(AttributeContainer) call. Minecraft 1.20.1 uses
+# StatusEffect.onRemoved(LivingEntity, AttributeContainer, int). Keep the WrapOperation at the same
+# call site and preserve ordering: vanilla removal first, then Spell Engine's OnRemoval handler.
+effect_removal = root / 'common/src/main/java/net/spell_engine/mixin/effect/LivingEntityEffectRemoval.java'
+e = effect_removal.read_text()
+old_target = 'target = "Lnet/minecraft/entity/effect/StatusEffect;onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V"'
+new_target = 'target = "Lnet/minecraft/entity/effect/StatusEffect;onRemoved(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/entity/attribute/AttributeContainer;I)V"'
+old_handler = '''    private void onStatusEffectRemoved_Wrap_onRemoved(StatusEffect instance, AttributeContainer attributeContainer, Operation<Void> original) {\n        original.call(instance, attributeContainer);'''
+new_handler = '''    private void onStatusEffectRemoved_Wrap_onRemoved(StatusEffect instance, LivingEntity entity, AttributeContainer attributeContainer, int amplifier, Operation<Void> original) {\n        original.call(instance, entity, attributeContainer, amplifier);'''
+if old_target not in e:
+    raise SystemExit('modern StatusEffect.onRemoved(AttributeContainer) target missing')
+if old_handler not in e:
+    raise SystemExit('modern LivingEntityEffectRemoval wrapper signature missing')
+e = e.replace(old_target, new_target, 1)
+e = e.replace(old_handler, new_handler, 1)
+effect_removal.write_text(e)
+
 final = forge_build.read_text()
 for required in ('mixinextras-common', 'implementation(include("io.github.llamalad7:mixinextras-forge:'):
     if required not in final:
         raise SystemExit(f'MixinExtras Forge runtime dependency missing: {required}')
-print('Spell Engine compatibility pass 6g applied: embedded Forge MixinExtras runtime service')
+final_effect = effect_removal.read_text()
+for stale in (
+    'onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V',
+    'original.call(instance, attributeContainer);',
+):
+    if stale in final_effect:
+        raise SystemExit(f'pass6g left stale modern removal hook: {stale}')
+for required in (
+    'onRemoved(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/entity/attribute/AttributeContainer;I)V',
+    'StatusEffect instance, LivingEntity entity, AttributeContainer attributeContainer, int amplifier, Operation<Void> original',
+    'original.call(instance, entity, attributeContainer, amplifier);',
+):
+    if required not in final_effect:
+        raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
+print('Spell Engine compatibility pass 6g applied: embedded Forge MixinExtras runtime service + exact 1.20.1 effect-removal hook')
