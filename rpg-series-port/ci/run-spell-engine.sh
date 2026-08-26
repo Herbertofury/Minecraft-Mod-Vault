@@ -52,22 +52,33 @@ clone_exact FabricExtras/RangedWeaponAPI "$RANGED_BASE" "$UP/ranged-1201" & P5=$
 clone_exact FabricExtras/RangedWeaponAPI "$RANGED_TARGET" "$UP/ranged-234" & P6=$!
 wait "$P1" "$P2" "$P3" "$P4" "$P5" "$P6"
 
+# Build the two already-verified foundation dependencies as actual separate mods. Spell Engine compiles
+# against their named common JARs and runs against their Forge JARs; their source trees are never added
+# to Spell Engine sourceSets, so dependency implementation classes cannot leak into its release JAR.
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 python "$SPELL_POWER/tools/prepare_upstream_source.py" "$UP/spell-power-1201" "$UP/spell-power-160" "$SPELL_POWER/common"
 test -f "$SPELL_POWER/common/src/generatedUpstream/java/net/spell_power/api/SpellSchool.java"
-SP_SOURCES="$SPELL_POWER/common/src/main/java:$SPELL_POWER/common/src/generatedUpstream/java"
+gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build
+SPELL_POWER_COMMON_JAR="$(find "$SPELL_POWER/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | head -n 1)"
+SPELL_POWER_FORGE_JAR="$(find "$SPELL_POWER/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | head -n 1)"
+test -n "$SPELL_POWER_COMMON_JAR" -a -f "$SPELL_POWER_COMMON_JAR"
+test -n "$SPELL_POWER_FORGE_JAR" -a -f "$SPELL_POWER_FORGE_JAR"
+unzip -t "$SPELL_POWER_FORGE_JAR" >/dev/null
+unzip -p "$SPELL_POWER_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"'
 
 RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
 python "$RANGED/tools/prepare_upstream_source.py" "$UP/ranged-1201" "$UP/ranged-234" "$RANGED/common"
 test -f "$RANGED/common/src/main/java/net/fabric_extras/ranged_weapon/api/RangedConfig.java"
-RW_COMPILE="$UP/ranged-compile"
-mkdir -p "$RW_COMPILE/main" "$RW_COMPILE/generated"
-cp -a "$RANGED/common/src/main/java/." "$RW_COMPILE/main/"
-cp -a "$RANGED/common/src/generatedUpstream/java/." "$RW_COMPILE/generated/"
-rm -rf "$RW_COMPILE/main/net/fabric_extras/ranged_weapon/compat/emi"
-RW_SOURCES="$RW_COMPILE/main:$RW_COMPILE/generated"
-export SPELL_POWER_SOURCE_DIRS="$SP_SOURCES"
-export RANGED_SOURCE_DIRS="$RW_SOURCES"
+gradle --no-daemon --stacktrace -p "$RANGED" :forge:build
+RANGED_COMMON_JAR="$(find "$RANGED/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | head -n 1)"
+RANGED_FORGE_JAR="$(find "$RANGED/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | head -n 1)"
+test -n "$RANGED_COMMON_JAR" -a -f "$RANGED_COMMON_JAR"
+test -n "$RANGED_FORGE_JAR" -a -f "$RANGED_FORGE_JAR"
+unzip -t "$RANGED_FORGE_JAR" >/dev/null
+unzip -p "$RANGED_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="ranged_weapon_api"'
+
+export SPELL_POWER_COMMON_JAR RANGED_COMMON_JAR SPELL_POWER_FORGE_JAR RANGED_FORGE_JAR
+unset SPELL_POWER_SOURCE_DIRS RANGED_SOURCE_DIRS || true
 
 python "$PORT/tools/prepare_spell_engine.py" "$UP/spell-engine-1201" "$UP/spell-engine-1102" "$WORK"
 python "$PORT/tools/compat_pass_1.py" "$WORK"
@@ -78,10 +89,14 @@ python "$PORT/tools/compat_pass_4b.py" "$WORK" "$UP/spell-engine-1201"
 for part in a b c d e f; do python "$PORT/tools/compat_pass_5${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 python "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
-for part in b c d e f g; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
+for part in b c d e f g h; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
+if grep -R -nE 'SPELL_POWER_SOURCE_DIRS|RANGED_SOURCE_DIRS|addExternalCompileSources' "$WORK/common/build.gradle" "$WORK/forge/build.gradle"; then
+  echo 'Dependency source injection leaked into generated Spell Engine build' >&2
+  exit 1
+fi
 rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"
 (cd "$WORK" && zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
 unzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null
@@ -94,6 +109,16 @@ OUT_JAR="$PORT/spell_engine-forge-1.10.2+1.20.1.jar"
 cp "$JAR" "$OUT_JAR"
 sha256sum "$OUT_JAR" | tee "$PORT/spell-engine-forge-1.20.1.sha256"
 unzip -l "$OUT_JAR" | grep -F 'META-INF/jars/mixinextras-forge-0.4.1.jar'
+unzip -l "$OUT_JAR" | grep -F 'META-INF/jars/TinyConfig-'
+if unzip -Z1 "$OUT_JAR" | grep -Eq '^(net/spell_power/|net/fabric_extras/ranged_weapon/)'; then
+  echo 'Separate RPG dependency classes leaked into the Spell Engine release JAR' >&2
+  exit 1
+fi
+if unzip -Z1 "$OUT_JAR" | grep -Ei '^META-INF/jars/.*(spell.?power|ranged.?weapon)'; then
+  echo 'Separate RPG dependency JAR was incorrectly embedded inside Spell Engine' >&2
+  exit 1
+fi
+unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"'
 
 # Forge's 1.20.x early splash owns its own GL probing and can fall into an interactive console
 # prompt under headless CI. Disable only that splash controller; NoVizFallback still creates the
@@ -119,7 +144,7 @@ PID=$ACTIVE_PID
 DEADLINE=$((SECONDS+180))
 READY=0
 PASS=0
-FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|The game crashed whilst initializing game|Exception in thread "Render thread"|Failed to initialize graphics window|Timed out trying to setup the Game Window|Could not initialize GLFW'
+FATAL='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|The game crashed whilst initializing game|Exception in thread "Render thread"|Failed to initialize graphics window|Timed out trying to setup the Game Window|Could not initialize GLFW|Missing or unsupported mandatory dependencies'
 while ((SECONDS<DEADLINE)); do
   LOG="$WORK/forge/run/logs/latest.log"
   FILES=("$CLIENT_LOG"); [[ -f "$LOG" ]] && FILES+=("$LOG")
@@ -133,4 +158,4 @@ while ((SECONDS<DEADLINE)); do
 done
 [[ "$PASS" -eq 1 ]] || { stop_tree "$PID"; ACTIVE_PID=""; dump_logs "$CLIENT_LOG" "$WORK/forge/run/logs/latest.log"; exit 1; }
 stop_tree "$PID"; ACTIVE_PID=""
-echo "[Spell Engine CI] Forge client bootstrap passed; JAR: $OUT_JAR"
+echo "[Spell Engine CI] Forge client bootstrap passed with external RPG dependency mods; JAR: $OUT_JAR"
