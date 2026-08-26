@@ -78,7 +78,7 @@ python "$PORT/tools/compat_pass_4b.py" "$WORK" "$UP/spell-engine-1201"
 for part in a b c d e f; do python "$PORT/tools/compat_pass_5${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 python "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
-for part in b c d e f; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
+for part in b c d e f g; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
@@ -93,9 +93,8 @@ unzip -t "$JAR" >/dev/null
 OUT_JAR="$PORT/spell_engine-forge-1.10.2+1.20.1.jar"
 cp "$JAR" "$OUT_JAR"
 sha256sum "$OUT_JAR" | tee "$PORT/spell-engine-forge-1.20.1.sha256"
+unzip -l "$OUT_JAR" | grep -F 'META-INF/jars/mixinextras-forge-0.4.1.jar'
 
-# First runtime gate: real Forge dev client. Reach LWJGL + resource reload, then remain alive long
-# enough to expose delayed Mixin, renderer, screen, classloading, and resource failures.
 rm -rf "$WORK/forge/run/logs"
 CLIENT_LOG="$PORT/forge-client-smoke.log"
 : > "$CLIENT_LOG"
