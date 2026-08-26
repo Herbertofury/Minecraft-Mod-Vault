@@ -3,9 +3,10 @@ set -euo pipefail
 
 ROOT="$(pwd)"
 PORT="$ROOT/rpg-series-port/jewelry-forge-1.20.1/generated"
-TOOLS="$ROOT/rpg-series-port/jewelry-forge-1.20.1/tools"
+EVIDENCE="$ROOT/rpg-series-port/jewelry-forge-1.20.1"
+TOOLS="$EVIDENCE/tools"
 WORK="${RUNNER_TEMP:-/tmp}/jewelry-port"
-LOG="$ROOT/rpg-series-port/jewelry-forge-1.20.1/jewelry-smoke.log"
+LOG="$EVIDENCE/jewelry-smoke.log"
 SOURCE_ZIP="$ROOT/jewelry-2.4.0-forge-1.20.1-source-ci.zip"
 BASE_SHA="f20b7d94c4c6cdd5a4ed26e4066374b64654fb96"
 TARGET_SHA="572cb8759d13075b97e7a1acd969a6203db594cb"
@@ -86,6 +87,7 @@ cp "$RANGED_COMMON_JAR" "$PORT/libs/ranged-weapon-api-common.jar"
 python3 "$TOOLS/compat_pass_1.py" "$PORT"
 python3 "$TOOLS/compat_pass_2.py" "$PORT"
 python3 "$TOOLS/compat_pass_3.py" "$PORT"
+python3 "$TOOLS/compat_pass_4.py" "$PORT"
 
 test -f "$PORT/common/src/main/generated/assets/jewelry/models/item/diamond_ring.json"
 test -f "$PORT/common/src/main/java/net/jewelry/items/JewelryItems.java"
@@ -129,6 +131,22 @@ for prefix in 'net/spell_power/' 'net/fabric_extras/ranged_weapon/' 'net/fabric_
 done
 
 unzip -tq "$OUT_JAR"
-sha256sum "$OUT_JAR" | tee "$ROOT/rpg-series-port/jewelry-forge-1.20.1/jewelry.sha256"
-sha256sum "$SOURCE_ZIP" | tee "$ROOT/rpg-series-port/jewelry-forge-1.20.1/jewelry-source.sha256"
+unzip -p "$OUT_JAR" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'MixinConfigs: jewelry.mixins.json' >/dev/null
+python3 - "$OUT_JAR" <<'PY'
+import sys, zipfile
+jar = sys.argv[1]
+with zipfile.ZipFile(jar) as z:
+    meta = z.read('META-INF/mods.toml').decode()
+block = meta.split('modId="curios"', 1)[1].split('[[dependencies.jewelry]]', 1)[0]
+if 'mandatory=false' not in block:
+    raise SystemExit('Packaged Jewelry metadata does not preserve optional Curios')
+PY
+
+sha256sum "$OUT_JAR" | tee "$EVIDENCE/jewelry.sha256"
+sha256sum "$SOURCE_ZIP" | tee "$EVIDENCE/jewelry-source.sha256"
 echo "[Jewelry] build/package gate passed: $OUT_JAR"
+
+bash "$ROOT/rpg-series-port/ci/run-jewelry-package-smoke.sh" \
+    "$OUT_JAR" "$STRUCTURE_JAR" "$SPELL_POWER_JAR" "$RANGED_JAR" "$PORT" "$EVIDENCE"
+
+echo "[Jewelry] full packaged runtime gate passed"
