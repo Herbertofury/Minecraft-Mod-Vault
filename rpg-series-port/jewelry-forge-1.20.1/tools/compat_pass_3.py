@@ -79,4 +79,28 @@ for required in (
     if required not in forge_events:
         raise SystemExit(f"compat pass 3 missing Forge tooltip invariant: {required}")
 
-print("Jewelry compatibility pass 3 applied: native Forge client MOD/FORGE bus split")
+# Forge 47's IEventBus infers T from a typed Consumer<T>; NeoForge's newer two-argument
+# addListener(EventClass, listener) convenience overload does not exist. Preserve the exact event
+# routing while translating registration syntax only.
+forge_mod = root / "forge/src/main/java/net/jewelry/forge/ForgeMod.java"
+if not forge_mod.exists():
+    raise SystemExit("ForgeMod.java missing before compatibility pass 3")
+main = forge_mod.read_text()
+listener_replacements = {
+    "modBus.addListener(RegisterEvent.class, ForgeMod::register);":
+        "modBus.addListener(ForgeMod::register);",
+    "modBus.addListener(BuildCreativeModeTabContentsEvent.class, ForgeMod::buildTabContents);":
+        "modBus.addListener(ForgeMod::buildTabContents);",
+    "MinecraftForge.EVENT_BUS.addListener(VillagerTradesEvent.class, ForgeMod::onVillagerTrades);":
+        "MinecraftForge.EVENT_BUS.addListener(ForgeMod::onVillagerTrades);",
+}
+for old, new in listener_replacements.items():
+    if old not in main:
+        raise SystemExit(f"compat pass 3 Forge listener anchor missing: {old}")
+    main = main.replace(old, new, 1)
+forge_mod.write_text(main)
+for required in listener_replacements.values():
+    if required not in forge_mod.read_text():
+        raise SystemExit(f"compat pass 3 missing Forge 47 listener registration: {required}")
+
+print("Jewelry compatibility pass 3 applied: native Forge client buses + inferred Forge 47 listeners")
