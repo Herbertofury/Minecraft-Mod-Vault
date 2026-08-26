@@ -16,6 +16,12 @@ python "$PORT/tools/prepare_port.py" "$UP" "$GEN"
 
 test -f "$GEN/PORT-PINS.txt"
 grep -F "target=$TARGET" "$GEN/PORT-PINS.txt"
+grep -F 'architectury_loom=1.7.435' "$GEN/PORT-PINS.txt"
+grep -F 'architectury_plugin=3.4.164' "$GEN/PORT-PINS.txt"
+grep -F 'architectury_common_project_id=0674af327c11f602eea7defcf5d514dc' "$GEN/PORT-PINS.txt"
+grep -F 'architectury_forge_project_id=baae45cdf3cd30ac01447a62ccd0232e' "$GEN/PORT-PINS.txt"
+test "$(cat "$GEN/common/.gradle/architectury-cache/projectID")" = '0674af327c11f602eea7defcf5d514dc'
+test "$(cat "$GEN/forge/.gradle/architectury-cache/projectID")" = 'baae45cdf3cd30ac01447a62ccd0232e'
 test ! -d "$GEN/fabric"
 test ! -d "$GEN/neoforge"
 if grep -R 'net.neoforged' "$GEN/common/src/main/java" "$GEN/forge/src/main/java"; then
@@ -46,11 +52,49 @@ if unzip -l "$JAR" | grep -q 'net/rpg_foundation/armor_api/neoforge/\|META-INF/n
   echo '[Armor Model API] NeoForge package/metadata leaked into release JAR' >&2; exit 1
 fi
 javap -verbose -classpath "$JAR" net.rpg_foundation.armor_api.forge.ArmorModelApiForge | grep -F 'major version: 61'
-sha256sum "$JAR" | tee "$PORT/armor-model-api.sha256"
+FIRST_JAR_SHA=$(sha256sum "$JAR" | awk '{print $1}')
+printf '%s  %s\n' "$FIRST_JAR_SHA" "$JAR" | tee "$PORT/armor-model-api-first-build.sha256"
 
-rm -f "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip"
-(cd "$GEN" && zip -qr "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')
-sha256sum "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip" | tee "$PORT/armor-model-api-source.sha256"
+echo '[Armor Model API] Reproducibility gate: clean rebuild must be byte-identical'
+gradle --no-daemon -p "$GEN" --stacktrace clean :forge:remapJar
+JAR=$(find "$GEN/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | head -1)
+test -n "$JAR"
+SECOND_JAR_SHA=$(sha256sum "$JAR" | awk '{print $1}')
+printf '%s  %s\n' "$SECOND_JAR_SHA" "$JAR" | tee "$PORT/armor-model-api.sha256"
+if [[ "$FIRST_JAR_SHA" != "$SECOND_JAR_SHA" ]]; then
+  echo "[Armor Model API] non-reproducible release JAR: first=$FIRST_JAR_SHA second=$SECOND_JAR_SHA" >&2
+  exit 1
+fi
+echo "[Armor Model API] Reproducible release JAR SHA-256: $SECOND_JAR_SHA"
+
+SOURCE_ZIP="$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip"
+rm -f "$SOURCE_ZIP"
+python - "$GEN" "$SOURCE_ZIP" <<'PY'
+from pathlib import Path
+import stat, sys, zipfile
+src = Path(sys.argv[1]).resolve()
+out = Path(sys.argv[2]).resolve()
+skip = {'.gradle', 'build', 'run', 'runs', '.git'}
+files = []
+for path in src.rglob('*'):
+    rel = path.relative_to(src)
+    if any(part in skip for part in rel.parts):
+        continue
+    if path.is_file():
+        files.append((rel.as_posix(), path))
+with zipfile.ZipFile(out, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+    for arcname, path in sorted(files):
+        info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = (stat.S_IFREG | 0o644) << 16
+        info.create_system = 3
+        zf.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+PY
+unzip -t "$SOURCE_ZIP" >/dev/null
+if unzip -l "$SOURCE_ZIP" | grep -E '/\.gradle/|/build/|/run/|/runs/' >/dev/null; then
+  echo '[Armor Model API] generated cache/build/runtime state leaked into source archive' >&2; exit 1
+fi
+sha256sum "$SOURCE_ZIP" | tee "$PORT/armor-model-api-source.sha256"
 
 echo '[Armor Model API] Dedicated-server side-safety gate'
 rm -rf "$GEN/forge/run/logs"
@@ -99,4 +143,4 @@ fi
 echo '[Armor Model API] Fresh packaged Forge server gate'
 bash "$ROOT/rpg-series-port/ci/run-armor-model-api-package-smoke.sh" "$JAR" "$GEN" "$PORT"
 
-echo '[Armor Model API] Build, package, Java 17 bytecode, dev server/client, and fresh packaged-server gates passed.'
+echo '[Armor Model API] Build, reproducibility, package, Java 17 bytecode, dev server/client, and fresh packaged-server gates passed.'
