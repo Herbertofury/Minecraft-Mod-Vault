@@ -27,7 +27,7 @@ e = effect_removal.read_text()
 old_target = 'target = "Lnet/minecraft/entity/effect/StatusEffect;onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V"'
 new_target = 'target = "Lnet/minecraft/entity/effect/StatusEffect;onRemoved(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/entity/attribute/AttributeContainer;I)V"'
 old_handler = '''    private void onStatusEffectRemoved_Wrap_onRemoved(StatusEffect instance, AttributeContainer attributeContainer, Operation<Void> original) {\n        original.call(instance, attributeContainer);'''
-new_handler = '''    private void onStatusEffectRemoved_Wrap_onRemoved(StatusEffect instance, LivingEntity entity, AttributeContainer attributeContainer, int amplifier, Operation<Void> original) {\n        original.call(instance, entity, attributeContainer, amplifier);'''
+new_handler = '''    private void onStatusEffectRemoved_Wrap_onRemoved(StatusEffect instance, LivingEntity removedFrom, AttributeContainer attributeContainer, int amplifier, Operation<Void> original) {\n        original.call(instance, removedFrom, attributeContainer, amplifier);'''
 if old_target not in e:
     raise SystemExit('modern StatusEffect.onRemoved(AttributeContainer) target missing')
 if old_handler not in e:
@@ -44,13 +44,15 @@ final_effect = effect_removal.read_text()
 for stale in (
     'onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V',
     'original.call(instance, attributeContainer);',
+    'LivingEntity entity, AttributeContainer attributeContainer, int amplifier, Operation<Void> original',
 ):
     if stale in final_effect:
-        raise SystemExit(f'pass6g left stale modern removal hook: {stale}')
+        raise SystemExit(f'pass6g left stale/ambiguous removal hook: {stale}')
 for required in (
     'onRemoved(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/entity/attribute/AttributeContainer;I)V',
-    'StatusEffect instance, LivingEntity entity, AttributeContainer attributeContainer, int amplifier, Operation<Void> original',
-    'original.call(instance, entity, attributeContainer, amplifier);',
+    'StatusEffect instance, LivingEntity removedFrom, AttributeContainer attributeContainer, int amplifier, Operation<Void> original',
+    'original.call(instance, removedFrom, attributeContainer, amplifier);',
+    'var entity = (LivingEntity) (Object) this;',
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
