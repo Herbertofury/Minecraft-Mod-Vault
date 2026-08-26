@@ -41,9 +41,12 @@ clone_exact FabricExtras/RangedWeaponAPI "$RANGED_TARGET" "$WORK/ranged-target" 
 wait "$p1" "$p2" "$p3" "$p4" "$p5" "$p6"
 
 echo "[Jewelry] Building verified foundation: Structure Pool API 1.2.1"
-gradle --no-daemon --stacktrace -p "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1" :forge:build
-STRUCTURE_JAR="$(find "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+STRUCTURE="$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1"
+gradle --no-daemon --stacktrace -p "$STRUCTURE" :forge:build
+STRUCTURE_JAR="$(find "$STRUCTURE/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+STRUCTURE_COMMON_JAR="$(find "$STRUCTURE/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*javadoc*' | sort | head -n1)"
 test -n "$STRUCTURE_JAR" && test -f "$STRUCTURE_JAR"
+test -n "$STRUCTURE_COMMON_JAR" && test -f "$STRUCTURE_COMMON_JAR"
 
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 echo "[Jewelry] Preparing/building verified foundation: Spell Power 1.6.0"
@@ -51,7 +54,9 @@ python3 "$SPELL_POWER/tools/prepare_upstream_source.py" "$WORK/spell-power-base"
 test -f "$SPELL_POWER/common/src/generatedUpstream/java/net/spell_power/api/SpellSchool.java"
 gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build
 SPELL_POWER_JAR="$(find "$SPELL_POWER/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+SPELL_POWER_COMMON_JAR="$(find "$SPELL_POWER/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*javadoc*' | sort | head -n1)"
 test -n "$SPELL_POWER_JAR" && test -f "$SPELL_POWER_JAR"
+test -n "$SPELL_POWER_COMMON_JAR" && test -f "$SPELL_POWER_COMMON_JAR"
 unzip -tq "$SPELL_POWER_JAR"
 unzip -p "$SPELL_POWER_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"' >/dev/null
 
@@ -61,17 +66,25 @@ python3 "$RANGED/tools/prepare_upstream_source.py" "$WORK/ranged-base" "$WORK/ra
 test -f "$RANGED/common/src/main/java/net/fabric_extras/ranged_weapon/api/RangedConfig.java"
 gradle --no-daemon --stacktrace -p "$RANGED" :forge:build
 RANGED_JAR="$(find "$RANGED/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' | sort | head -n1)"
+RANGED_COMMON_JAR="$(find "$RANGED/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*javadoc*' | sort | head -n1)"
 test -n "$RANGED_JAR" && test -f "$RANGED_JAR"
+test -n "$RANGED_COMMON_JAR" && test -f "$RANGED_COMMON_JAR"
 unzip -tq "$RANGED_JAR"
 unzip -p "$RANGED_JAR" META-INF/mods.toml | grep -F 'modId="ranged_weapon_api"' >/dev/null
 
 python3 "$TOOLS/prepare_port.py" "$WORK/base" "$WORK/target" "$PORT"
 mkdir -p "$PORT/libs"
+# Loader/runtime JARs stay distinct from named common compilation JARs. Never source-inject or
+# shadow these foundations into Jewelry.
 cp "$STRUCTURE_JAR" "$PORT/libs/structure-pool-api.jar"
 cp "$SPELL_POWER_JAR" "$PORT/libs/spell-power.jar"
 cp "$RANGED_JAR" "$PORT/libs/ranged-weapon-api.jar"
+cp "$STRUCTURE_COMMON_JAR" "$PORT/libs/structure-pool-api-common.jar"
+cp "$SPELL_POWER_COMMON_JAR" "$PORT/libs/spell-power-common.jar"
+cp "$RANGED_COMMON_JAR" "$PORT/libs/ranged-weapon-api-common.jar"
 
 python3 "$TOOLS/compat_pass_1.py" "$PORT"
+python3 "$TOOLS/compat_pass_2.py" "$PORT"
 
 test -f "$PORT/common/src/main/generated/assets/jewelry/models/item/diamond_ring.json"
 test -f "$PORT/common/src/main/java/net/jewelry/items/JewelryItems.java"
