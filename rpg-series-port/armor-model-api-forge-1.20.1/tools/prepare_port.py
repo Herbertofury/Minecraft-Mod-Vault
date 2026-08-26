@@ -26,29 +26,51 @@ if (out / 'forge').exists(): shutil.rmtree(out / 'forge')
 (out/'build.gradle').write_text('''plugins {\n    id 'dev.architectury.loom' version '1.7.+' apply false\n    id 'architectury-plugin' version '3.4.+'\n    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false\n}\narchitectury { minecraft = project.minecraft_version }\nallprojects { group = rootProject.maven_group; version = rootProject.mod_version }\nsubprojects {\n    apply plugin: 'dev.architectury.loom'\n    apply plugin: 'architectury-plugin'\n    apply plugin: 'maven-publish'\n    base { archivesName = "$rootProject.archives_name-$project.name" }\n    repositories {\n        mavenCentral()\n        maven { url = 'https://maven.fabricmc.net/' }\n        maven { url = 'https://maven.architectury.dev/' }\n        maven { url = 'https://maven.minecraftforge.net/' }\n    }\n    dependencies {\n        minecraft "com.mojang:minecraft:$rootProject.minecraft_version"\n        mappings "net.fabricmc:yarn:$rootProject.yarn_mappings:v2"\n    }\n    java {\n        toolchain { languageVersion = JavaLanguageVersion.of(17) }\n        withSourcesJar()\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n    tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.release=17; options.compilerArgs += ['-Xmaxerrs','2000'] }\n}\n''')
 (out/'common/build.gradle').write_text('''architectury { common 'forge' }\nloom { accessWidenerPath = file('src/main/resources/armor_model_api.accesswidener') }\ndependencies {\n    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"\n}\n''')
 (out/'forge/gradle.properties').write_text('loom.platform = forge\n')
-(out/'forge/build.gradle').write_text('''plugins { id 'com.github.johnrengelman.shadow' }\narchitectury { platformSetupLoomIde(); forge() }\nloom {\n    accessWidenerPath = project(':common').loom.accessWidenerPath\n    forge { mixinConfig 'armor_model_api.mixins.json' }\n}\nconfigurations {\n    common { canBeResolved=true; canBeConsumed=false }\n    compileClasspath.extendsFrom common\n    runtimeClasspath.extendsFrom common\n    developmentForge.extendsFrom common\n    shadowBundle { canBeResolved=true; canBeConsumed=false }\n}\ndependencies {\n    forge "net.minecraftforge:forge:$rootProject.forge_version"\n    common(project(path: ':common', configuration: 'namedElements')) { transitive=false }\n    shadowBundle project(path: ':common', configuration: 'transformProductionForge')\n}\nprocessResources {\n    inputs.property 'version', project.version\n    filesMatching('META-INF/mods.toml') { expand(version: project.version) }\n}\nshadowJar { configurations=[project.configurations.shadowBundle]; archiveClassifier='dev-shadow' }\nremapJar { inputFile.set(shadowJar.archiveFile); dependsOn(shadowJar); archiveClassifier='' }\n''')
+(out/'forge/build.gradle').write_text('''plugins { id 'com.github.johnrengelman.shadow' }\narchitectury { platformSetupLoomIde(); forge() }\nloom {\n    accessWidenerPath = project(':common').loom.accessWidenerPath\n    forge { mixinConfig 'armor_model_api.mixins.json' }\n}\nconfigurations {\n    common { canBeResolved=true; canBeConsumed=false }\n    compileClasspath.extendsFrom common\n    runtimeClasspath.extendsFrom common\n    developmentForge.extendsFrom common\n    shadowBundle { canBeResolved=true; canBeConsumed=false }\n}\ndependencies {\n    forge "net.minecraftforge:forge:$rootProject.forge_version"\n    common(project(path: ':common', configuration: 'namedElements')) { transitive=false }\n    shadowBundle project(path: ':common', configuration: 'transformProductionForge')\n}\nprocessResources {\n    inputs.property 'version', project.version\n    filesMatching('META-INF/mods.toml') { expand(version: project.version) }\n}\nshadowJar {\n    configurations=[project.configurations.shadowBundle]\n    archiveClassifier='dev-shadow'\n    manifest { attributes 'MixinConfigs': 'armor_model_api.mixins.json' }\n}\nremapJar { inputFile.set(shadowJar.archiveFile); dependsOn(shadowJar); archiveClassifier='' }\n''')
 
 java_root = out/'forge/src/main/java'
+forge_replacements = {
+    'net.rpg_foundation.armor_api.neoforge': 'net.rpg_foundation.armor_api.forge',
+    'net.neoforged.api.distmarker.Dist': 'net.minecraftforge.api.distmarker.Dist',
+    'net.neoforged.bus.api.IEventBus': 'net.minecraftforge.eventbus.api.IEventBus',
+    'net.neoforged.fml.common.Mod': 'net.minecraftforge.fml.common.Mod',
+    'net.neoforged.fml.loading.FMLEnvironment': 'net.minecraftforge.fml.loading.FMLEnvironment',
+    'net.neoforged.fml.loading.FMLLoader': 'net.minecraftforge.fml.loading.FMLLoader',
+    'net.neoforged.fml.loading.LoadingModList': 'net.minecraftforge.fml.loading.LoadingModList',
+    'net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent': 'net.minecraftforge.client.event.RegisterClientReloadListenersEvent',
+}
 for p in java_root.rglob('*.java'):
     s=p.read_text()
-    s=s.replace('net.rpg_foundation.armor_api.neoforge','net.rpg_foundation.armor_api.forge')
-    s=s.replace('net.neoforged.api.distmarker.Dist','net.minecraftforge.api.distmarker.Dist')
-    s=s.replace('net.neoforged.bus.api.IEventBus','net.minecraftforge.eventbus.api.IEventBus')
-    s=s.replace('net.neoforged.fml.common.Mod','net.minecraftforge.fml.common.Mod')
-    s=s.replace('net.neoforged.fml.loading.FMLEnvironment','net.minecraftforge.fml.loading.FMLEnvironment')
-    s=s.replace('net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent','net.minecraftforge.client.event.RegisterClientReloadListenersEvent')
+    for old_symbol, new_symbol in forge_replacements.items():
+        s=s.replace(old_symbol, new_symbol)
     p.write_text(s)
 old=java_root/'net/rpg_foundation/armor_api/neoforge'
 new=java_root/'net/rpg_foundation/armor_api/forge'
 if old.exists():
     new.parent.mkdir(parents=True,exist_ok=True)
     old.rename(new)
+
+# Keep the mod constructor free of Minecraft client classes. Client-only reload/shader wiring
+# lives behind a side check in a separate class, reducing dedicated-server classloading risk.
 entry=new/'ArmorModelApiNeoForge.java'
 if entry.exists():
-    s=entry.read_text().replace('public final class ArmorModelApiNeoForge','public final class ArmorModelApiForge')
-    s=s.replace('public ArmorModelApiNeoForge(IEventBus modBus) {','public ArmorModelApiForge() {\n        IEventBus modBus = net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModEventBus();')
-    (new/'ArmorModelApiForge.java').write_text(s)
     entry.unlink()
+(new/'ArmorModelApiForge.java').write_text('''package net.rpg_foundation.armor_api.forge;\n\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.eventbus.api.IEventBus;\nimport net.minecraftforge.fml.common.Mod;\nimport net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;\nimport net.minecraftforge.fml.loading.FMLEnvironment;\nimport net.rpg_foundation.armor_api.ArmorModelApi;\n\n@Mod(ArmorModelApi.MOD_ID)\npublic final class ArmorModelApiForge {\n    public ArmorModelApiForge() {\n        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();\n        if (FMLEnvironment.dist == Dist.CLIENT) {\n            net.rpg_foundation.armor_api.forge.client.ArmorModelApiForgeClient.initialize(modBus);\n        }\n    }\n}\n''')
+client_dir=new/'client'
+client_dir.mkdir(parents=True, exist_ok=True)
+(client_dir/'ArmorModelApiForgeClient.java').write_text('''package net.rpg_foundation.armor_api.forge.client;\n\nimport net.minecraft.resource.SynchronousResourceReloader;\nimport net.minecraftforge.client.event.RegisterClientReloadListenersEvent;\nimport net.minecraftforge.eventbus.api.IEventBus;\nimport net.rpg_foundation.armor_api.client.GeoModelCache;\nimport net.rpg_foundation.armor_api.client.compatibility.ShaderCompat;\n\npublic final class ArmorModelApiForgeClient {\n    private ArmorModelApiForgeClient() {}\n\n    public static void initialize(IEventBus modBus) {\n        ShaderCompat.initialize();\n        modBus.addListener(RegisterClientReloadListenersEvent.class, event ->\n                event.registerReloadListener((SynchronousResourceReloader) manager -> GeoModelCache.invalidate()));\n    }\n}\n''')
+platform_impl=new/'PlatformImpl.java'
+if platform_impl.exists():
+    s=platform_impl.read_text().replace('NeoForgeUtil', 'ForgeUtil')
+    platform_impl.write_text(s)
+
+# The source package was renamed from neoforge -> forge and Java 1.20.1 is Java 17.
+mixin_config=out/'forge/src/main/resources/armor_model_api.mixins.json'
+if mixin_config.exists():
+    s=mixin_config.read_text()
+    s=s.replace('net.rpg_foundation.armor_api.neoforge.mixin', 'net.rpg_foundation.armor_api.forge.mixin')
+    s=s.replace('"JAVA_21"', '"JAVA_17"')
+    mixin_config.write_text(s)
 
 meta=out/'forge/src/main/resources/META-INF'
 meta.mkdir(parents=True,exist_ok=True)
@@ -61,7 +83,9 @@ required=[
  out/'common/src/main/java/net/rpg_foundation/armor_api/client/geo/GeoBaker.java',
  out/'common/src/main/java/net/rpg_foundation/armor_api/client/layer/TrimLayer.java',
  out/'forge/src/main/java/net/rpg_foundation/armor_api/forge/ArmorModelApiForge.java',
+ out/'forge/src/main/java/net/rpg_foundation/armor_api/forge/client/ArmorModelApiForgeClient.java',
  out/'forge/src/main/resources/META-INF/mods.toml',
+ out/'forge/src/main/resources/armor_model_api.mixins.json',
 ]
 missing=[str(p) for p in required if not p.exists()]
 if missing: raise SystemExit('Armor Model API preparation lost required source: '+', '.join(missing))
