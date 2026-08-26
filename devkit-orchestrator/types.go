@@ -49,6 +49,7 @@ type ProviderRef struct {
 	Project    string `json:"project,omitempty"`
 	ProjectID  string `json:"projectId,omitempty"`
 	Repo       string `json:"repo,omitempty"`
+	Branch     string `json:"branch,omitempty"`
 	AssetRegex string `json:"assetRegex,omitempty"`
 	Source     bool   `json:"source,omitempty"`
 	Maven      string `json:"maven,omitempty"`
