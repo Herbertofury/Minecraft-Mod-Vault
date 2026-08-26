@@ -146,7 +146,7 @@ public final class SpellInfinityEnchantment1201 extends Enchantment {
     public static final SpellInfinityEnchantment1201 INSTANCE = new SpellInfinityEnchantment1201();
 
     private SpellInfinityEnchantment1201() {
-        super(Rarity.VERY_RARE, EnchantmentTarget.BREAKABLE, EquipmentSlot.MAINHAND);
+        super(Rarity.VERY_RARE, EnchantmentTarget.BREAKABLE, new EquipmentSlot[]{EquipmentSlot.MAINHAND});
     }
 
     @Override
@@ -257,6 +257,7 @@ if loot_helper.read_text().count('for (var entry: pool.entries)') != 1:
     raise SystemExit('pass6i accidentally changed LootConfig buildPool entries')
 for required in (
     'public static final Identifier ID = new Identifier(SpellEngineMod.ID, "spell_infinity")',
+    'new EquipmentSlot[]{EquipmentSlot.MAINHAND}',
     'return stack.isIn(SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY);',
     'return 20;',
     'return 50;',
