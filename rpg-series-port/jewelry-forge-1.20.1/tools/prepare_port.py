@@ -103,10 +103,13 @@ dependencies {
 }
 ''')
 
+# Match upstream Architectury's multi-loader layout: platform selection belongs to the platform
+# subproject. Keeping this out of the root properties leaves :common in common-mode while :forge
+# enables Loom's Forge dependency/runtime configurations.
+(out / "forge/gradle.properties").write_text("loom.platform = forge\n")
+
 (out / "forge/build.gradle").write_text(r'''plugins { id 'com.github.johnrengelman.shadow' }
 architectury { platformSetupLoomIde(); forge() }
-// Architectury Loom only materializes Forge dependency/runtime configurations when its Forge
-// extension is configured. This empty block is intentional for a no-mixin Jewelry module.
 loom { forge { } }
 configurations {
     common { canBeResolved=true; canBeConsumed=false }
@@ -252,10 +255,13 @@ required = [
     out / "common/src/main/resources/data/jewelry",
     out / "forge/src/main/java/net/jewelry/forge/ForgeMod.java",
     out / "forge/src/main/resources/META-INF/mods.toml",
+    out / "forge/gradle.properties",
 ]
 missing = [str(p) for p in required if not p.exists()]
 if missing:
-    raise SystemExit("Jewelry preparation lost required current content: " + ", ".join(missing))
+    raise SystemExit("Jewelry preparation lost required current content/platform state: " + ", ".join(missing))
+if "loom.platform = forge" not in (out / "forge/gradle.properties").read_text():
+    raise SystemExit("Jewelry Forge Loom platform flag missing")
 
 print("Jewelry 2.4.0 full-target Forge 1.20.1 preparation complete")
 print(f"substrate={BASE_SHA}")
