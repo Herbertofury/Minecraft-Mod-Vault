@@ -7,6 +7,7 @@ if len(sys.argv) != 3:
 root = Path(sys.argv[1]).resolve()
 java = root / 'common/src/main/java'
 resources = root / 'common/src/main/resources'
+forge_build = root / 'forge/build.gradle'
 
 # Modern 1.10.2 patches PoisonStatusEffect. In 1.20.1 poison still uses StatusEffect itself, so guard
 # by object identity and reproduce the modern semantics: damage scales with amplifier, never kills,
@@ -91,6 +92,26 @@ if 'client.render.ImmediateItemGlowMixin' not in client:
     client.append('client.render.ImmediateItemGlowMixin')
 mixins.write_text(json.dumps(data, indent=2) + '\n')
 
+# Loom's development launches discover mixin configs from the generated run configuration. A real
+# Forge installation does not inherit that launch configuration: it discovers mod mixins from the
+# packaged JAR manifest. Without this declaration the release JAR contains spell_engine.mixins.json
+# but applies none of its common/client mixins, which breaks contracts such as StatusEffect ->
+# ActionImpairing on a fresh dedicated server. Put the declaration on every Jar task so shadowJar,
+# the input to remapJar, carries it into the distributable artifact.
+fb = forge_build.read_text()
+if "attributes 'MixinConfigs': 'spell_engine.mixins.json'" not in fb:
+    fb += r'''
+
+// Real Forge installations do not inherit Loom's dev-run mixin bootstrap. Every release/shadow JAR
+// must advertise the Spell Engine mixin config from its manifest.
+tasks.withType(Jar).configureEach {
+    manifest {
+        attributes 'MixinConfigs': 'spell_engine.mixins.json'
+    }
+}
+'''
+forge_build.write_text(fb)
+
 # Keep the parity ledger truthful: only remove entries whose actual 1.20.1 implementations are now
 # generated. The other three remain documented until their architecture/runtime proof is explicit.
 gate = root / 'COMPAT-GATE-PENDING.md'
@@ -118,9 +139,23 @@ if 'effect.PoisonEffectMixin' not in final.get('mixins', []):
     raise SystemExit('pass6i did not activate poison mixin')
 if 'client.render.ImmediateItemGlowMixin' not in final.get('client', []):
     raise SystemExit('pass6i did not activate item glow mixin')
+for required in (
+    'effect.StatusEffectActionImpairing',
+    'effect.StatusEffectSynchronized',
+    'action_impair.LivingEntityActionImpairing',
+):
+    if required not in final.get('mixins', []):
+        raise SystemExit(f'pass6i required common mixin missing from packaged config: {required}')
+final_build = forge_build.read_text()
+for required in (
+    'tasks.withType(Jar).configureEach',
+    "attributes 'MixinConfigs': 'spell_engine.mixins.json'",
+):
+    if required not in final_build:
+        raise SystemExit(f'pass6i missing packaged Forge mixin bootstrap: {required}')
 if gate.exists():
     text = gate.read_text()
     if '`effect.PoisonEffectMixin`' in text or '`client.render.ImmediateItemGlowMixin`' in text:
         raise SystemExit('pass6i left implemented parity entries in pending gate')
 
-print('Spell Engine compatibility pass 6i applied: exact 1.20.1 poison semantics + vanilla item-glow buffer ordering')
+print('Spell Engine compatibility pass 6i applied: poison + item glow parity + packaged Forge mixin bootstrap')
