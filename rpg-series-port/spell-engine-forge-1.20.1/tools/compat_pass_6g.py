@@ -119,6 +119,37 @@ else:
     raise SystemExit('ForgeLootContext LootTable accessor expression missing')
 forge_events.write_text(fe)
 
+# SpellEngineMod.registerSpellBinding() spans five vanilla registries. Calling that grouped helper from
+# Forge's BLOCK RegisterEvent works for the block then attempts late writes into already-locked block
+# entity, screen-handler and loot-function registries. Register each value in its own Forge event.
+forge_mod = root / 'forge/src/main/java/net/spell_engine/forge/ForgeMod.java'
+fm = forge_mod.read_text()
+import_anchor = 'import net.spell_engine.item.SpellEngineItems;\n'
+extra_imports = '''import net.spell_engine.spellbinding.SpellBinding;
+import net.spell_engine.spellbinding.SpellBindingBlock;
+import net.spell_engine.spellbinding.SpellBindingBlockEntity;
+import net.spell_engine.spellbinding.SpellBindingScreenHandler;
+import net.spell_engine.spellbinding.SpellBindRandomlyLootFunction;
+import net.spell_engine.spellbinding.spellchoice.SpellChoiceFeature;
+import net.spell_engine.spellbinding.spellchoice.SpellChoiceScreenHandler;
+'''
+if 'import net.spell_engine.spellbinding.SpellBinding;' not in fm:
+    if import_anchor not in fm:
+        raise SystemExit('ForgeMod import anchor missing')
+    fm = fm.replace(import_anchor, import_anchor + extra_imports, 1)
+old_grouped = '        event.register(RegistryKeys.BLOCK, helper -> SpellEngineMod.registerSpellBinding());'
+new_split = '''        event.register(RegistryKeys.BLOCK, helper -> helper.register(SpellBinding.ID, SpellBindingBlock.INSTANCE));
+        event.register(RegistryKeys.BLOCK_ENTITY_TYPE, helper -> helper.register(SpellBinding.ID, SpellBindingBlockEntity.ENTITY_TYPE));
+        event.register(RegistryKeys.SCREEN_HANDLER, helper -> {
+            helper.register(SpellBinding.ID, SpellBindingScreenHandler.HANDLER_TYPE);
+            helper.register(SpellChoiceFeature.ID, SpellChoiceScreenHandler.HANDLER_TYPE);
+        });
+        event.register(RegistryKeys.LOOT_FUNCTION_TYPE, helper -> helper.register(SpellBindRandomlyLootFunction.ID, SpellBindRandomlyLootFunction.TYPE));'''
+if old_grouped not in fm:
+    raise SystemExit('grouped SpellBinding Forge registration call missing')
+fm = fm.replace(old_grouped, new_split, 1)
+forge_mod.write_text(fm)
+
 # Mirror 1.10.2's required dependency contract using the actual 1.20.1-compatible versions in this
 # port. Curios stays out until its optional integration is restored and verified rather than advertised
 # as functional prematurely.
@@ -187,6 +218,18 @@ if 'modifier.modifier().getId().toString(),' not in effects.read_text() or 'modi
     raise SystemExit('pass6g missing deterministic UUID status-effect modifier bridge')
 if 'getLastAttackTime()==(player.getAttackCooldownProgressPerTick()*20)' not in melee.read_text():
     raise SystemExit('pass6g missing vanilla melee combo fallback')
+final_forge_mod = forge_mod.read_text()
+for required in (
+    'RegistryKeys.BLOCK_ENTITY_TYPE',
+    'RegistryKeys.SCREEN_HANDLER',
+    'RegistryKeys.LOOT_FUNCTION_TYPE',
+    'helper.register(SpellBinding.ID, SpellBindingBlock.INSTANCE)',
+    'helper.register(SpellBindRandomlyLootFunction.ID, SpellBindRandomlyLootFunction.TYPE)',
+):
+    if required not in final_forge_mod:
+        raise SystemExit(f'pass6g missing split Forge registry registration: {required}')
+if 'SpellEngineMod.registerSpellBinding()' in final_forge_mod:
+    raise SystemExit('pass6g left cross-registry SpellBinding registration in ForgeMod')
 final_mods = mods.read_text()
 for dep in ('modId="cloth_config"', 'modId="playeranimator"', 'modId="spell_power"'):
     if dep not in final_mods:
@@ -207,4 +250,4 @@ for required in (
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
-print('Spell Engine compatibility pass 6g applied: Forge runtimes + effect UUID/removal bridges + SRG loot bridge + base melee + dependency metadata')
+print('Spell Engine compatibility pass 6g applied: Forge runtimes + UUID/removal bridges + SRG loot + split registries + base melee + metadata')
