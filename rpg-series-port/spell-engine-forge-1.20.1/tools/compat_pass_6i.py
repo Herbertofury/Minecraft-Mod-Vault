@@ -124,6 +124,71 @@ elif '((LootPoolAccessor) (Object) pool).spellEngine_getEntries()' not in lh:
     raise SystemExit('pass6i could not locate vanilla LootPool inspection field read')
 loot_helper.write_text(lh)
 
+# Minecraft 1.21.1 made enchantments data-driven; Minecraft 1.20.1 still uses the static ENCHANTMENT
+# registry. Preserve the current spell_infinity definition as a real 1.20.1 Enchantment object so
+# modern tags, Ammo lookup, enchanting/anvils and the non_treasure tag all resolve the same ID.
+spell_infinity = java / 'net/spell_engine/compat/enchantment/SpellInfinityEnchantment1201.java'
+spell_infinity.parent.mkdir(parents=True, exist_ok=True)
+spell_infinity.write_text(r'''package net.spell_engine.compat.enchantment;
+
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentTarget;
+import net.minecraft.enchantment.MendingEnchantment;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Identifier;
+import net.spell_engine.SpellEngineMod;
+import net.spell_engine.api.tags.SpellEngineItemTags;
+
+/** Registry-backed 1.20.1 equivalent of Spell Engine 1.10.2's data-driven spell_infinity. */
+public final class SpellInfinityEnchantment1201 extends Enchantment {
+    public static final Identifier ID = new Identifier(SpellEngineMod.ID, "spell_infinity");
+    public static final SpellInfinityEnchantment1201 INSTANCE = new SpellInfinityEnchantment1201();
+
+    private SpellInfinityEnchantment1201() {
+        super(Rarity.VERY_RARE, EnchantmentTarget.BREAKABLE, EquipmentSlot.MAINHAND);
+    }
+
+    @Override
+    public int getMaxLevel() {
+        return 1;
+    }
+
+    @Override
+    public int getMinPower(int level) {
+        return 20;
+    }
+
+    @Override
+    public int getMaxPower(int level) {
+        return 50;
+    }
+
+    @Override
+    public boolean isAcceptableItem(ItemStack stack) {
+        return stack.isIn(SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY);
+    }
+
+    @Override
+    public boolean canAccept(Enchantment other) {
+        return !(other instanceof MendingEnchantment) && super.canAccept(other);
+    }
+}
+''')
+
+forge_mod = root / 'forge/src/main/java/net/spell_engine/forge/ForgeMod.java'
+fm = forge_mod.read_text()
+if 'import net.spell_engine.compat.enchantment.SpellInfinityEnchantment1201;' not in fm:
+    fm = fm.replace('import net.spell_engine.SpellEngineMod;\n',
+                    'import net.spell_engine.SpellEngineMod;\nimport net.spell_engine.compat.enchantment.SpellInfinityEnchantment1201;\n', 1)
+spell_infinity_registration = 'event.register(RegistryKeys.ENCHANTMENT, helper -> helper.register(SpellInfinityEnchantment1201.ID, SpellInfinityEnchantment1201.INSTANCE));'
+if spell_infinity_registration not in fm:
+    anchor = '        event.register(RegistryKeys.STATUS_EFFECT, helper -> SpellEngineEffects.register());\n'
+    if anchor not in fm:
+        raise SystemExit('pass6i Forge ENCHANTMENT registration anchor missing')
+    fm = fm.replace(anchor, anchor + '        ' + spell_infinity_registration + '\n', 1)
+forge_mod.write_text(fm)
+
 mixins.write_text(json.dumps(data, indent=2) + '\n')
 
 # Loom's development launches discover mixin configs from the generated run configuration. A real
@@ -190,6 +255,17 @@ if loot_helper.read_text().count('for (var itemInjectorEntry: pool.entries)') !=
     raise SystemExit('pass6i accidentally changed LootConfig tag-cache pool entries')
 if loot_helper.read_text().count('for (var entry: pool.entries)') != 1:
     raise SystemExit('pass6i accidentally changed LootConfig buildPool entries')
+for required in (
+    'public static final Identifier ID = new Identifier(SpellEngineMod.ID, "spell_infinity")',
+    'return stack.isIn(SpellEngineItemTags.ENCHANTABLE_SPELL_INFINITY);',
+    'return 20;',
+    'return 50;',
+    'return !(other instanceof MendingEnchantment) && super.canAccept(other);',
+):
+    if required not in spell_infinity.read_text():
+        raise SystemExit(f'pass6i missing Spell Infinity 1.20.1 parity: {required}')
+if spell_infinity_registration not in forge_mod.read_text():
+    raise SystemExit('pass6i did not register spell_engine:spell_infinity in Forge ENCHANTMENT registry')
 final_build = forge_build.read_text()
 for required in (
     'tasks.withType(Jar).configureEach',
@@ -202,4 +278,4 @@ if gate.exists():
     if '`effect.PoisonEffectMixin`' in text or '`client.render.ImmediateItemGlowMixin`' in text:
         raise SystemExit('pass6i left implemented parity entries in pending gate')
 
-print('Spell Engine compatibility pass 6i applied: poison/item glow + packaged mixins + LootPool accessor')
+print('Spell Engine compatibility pass 6i applied: poison/item glow + packaged mixins + LootPool accessor + Spell Infinity registry parity')
