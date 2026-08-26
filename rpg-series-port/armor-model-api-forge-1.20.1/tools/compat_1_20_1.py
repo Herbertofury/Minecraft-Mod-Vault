@@ -28,7 +28,12 @@ def armor_dispatcher(source: str) -> str:
     new = '''        int color = stack.getItem() instanceof DyeableItem dyeable\n                ? 0xFF000000 | dyeable.getColor(stack)\n                : -1;'''
     if old not in source:
         raise SystemExit('ArmorRenderDispatcher dye component block drifted upstream')
-    return source.replace(old, new)
+    source = source.replace(old, new)
+    old_glint = '''                RenderLayer.getArmorCutoutNoCull(renderer.config().texture()),\n                stack.hasGlint());'''
+    new_glint = '''                RenderLayer.getArmorCutoutNoCull(renderer.config().texture()),\n                false,\n                stack.hasGlint());'''
+    if old_glint not in source:
+        raise SystemExit('ArmorRenderDispatcher armor glint signature drifted upstream')
+    return source.replace(old_glint, new_glint)
 
 
 def trim_layer(source: str) -> str:
@@ -41,11 +46,25 @@ def trim_layer(source: str) -> str:
     old_layer = 'TexturedRenderLayers.getArmorTrims(trim.getPattern().value().decal())'
     if old_layer not in source:
         raise SystemExit('TrimLayer 1.21 render-layer call drifted upstream')
-    return source.replace(old_layer, 'TexturedRenderLayers.getArmorTrims()')
+    source = source.replace(old_layer, 'TexturedRenderLayers.getArmorTrims()')
+    old_glint = '''                TexturedRenderLayers.getArmorTrims(),\n                context.stack().hasGlint()));'''
+    new_glint = '''                TexturedRenderLayers.getArmorTrims(),\n                false,\n                context.stack().hasGlint()));'''
+    if old_glint not in source:
+        raise SystemExit('TrimLayer armor glint signature drifted upstream')
+    return source.replace(old_glint, new_glint)
+
+
+def emissive_layer(source: str) -> str:
+    old = '''        context.model().render(\n                context.matrices(),\n                context.vertexConsumers().getBuffer(layer),\n                LightmapTextureManager.MAX_LIGHT_COORDINATE,\n                OverlayTexture.DEFAULT_UV);'''
+    new = '''        context.model().render(\n                context.matrices(),\n                context.vertexConsumers().getBuffer(layer),\n                LightmapTextureManager.MAX_LIGHT_COORDINATE,\n                OverlayTexture.DEFAULT_UV,\n                1.0F, 1.0F, 1.0F, 1.0F);'''
+    if old not in source:
+        raise SystemExit('EmissiveLayer model render signature drifted upstream')
+    return source.replace(old, new)
 
 
 rewrite(common / 'ArmorRenderDispatcher.java', armor_dispatcher)
 rewrite(common / 'layer/TrimLayer.java', trim_layer)
+rewrite(common / 'layer/EmissiveLayer.java', emissive_layer)
 
 shader = common / 'compatibility/ShaderCompat.java'
 if not shader.is_file():
