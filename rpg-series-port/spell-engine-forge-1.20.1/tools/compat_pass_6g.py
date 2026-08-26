@@ -54,6 +54,32 @@ e = e.replace(old_target, new_target, 1)
 e = e.replace(old_handler, new_handler, 1)
 effect_removal.write_text(e)
 
+# The modern config path names attribute modifiers with identifiers. Our 1.20.1 AttributeCompat has
+# already converted that identifier into a deterministic UUID; StatusEffect.addAttributeModifier in
+# 1.20.1 wants the UUID string, not the human-readable modifier name.
+effects = root / 'common/src/main/java/net/spell_engine/api/effect/Effects.java'
+es = effects.read_text()
+old_modifier_id = '''                                modifier.modifier().getName(),\n                                modifier.modifier().getValue(),'''
+new_modifier_id = '''                                modifier.modifier().getId().toString(),\n                                modifier.modifier().getValue(),'''
+if old_modifier_id not in es:
+    raise SystemExit('modern status-effect modifier-name call missing')
+es = es.replace(old_modifier_id, new_modifier_id, 1)
+effects.write_text(es)
+
+# The temporary compile scaffold must not erase base Spell Engine melee behavior. Even when Better
+# Combat is absent, 1.10.2 derives combo timing from the vanilla player attack state.
+melee = root / 'common/src/main/java/net/spell_engine/compat/MeleeCompat.java'
+ms = melee.read_text()
+old_melee = ' public static Function<PlayerEntity,Attack> attackProperties=p->Attack.EMPTY;'
+new_melee = ''' public static Function<PlayerEntity,Attack> attackProperties=player->{
+  var isCombo=player.getLastAttackTime()==(player.getAttackCooldownProgressPerTick()*20);
+  return new Attack(isCombo,false);
+ };'''
+if old_melee not in ms:
+    raise SystemExit('temporary inert MeleeCompat fallback missing')
+ms = ms.replace(old_melee, new_melee, 1)
+melee.write_text(ms)
+
 # Forge 47 patches LootTable.pools from vanilla's LootPool[] to a mutable List<LootPool>. Common is
 # compiled against the vanilla/Yarn array descriptor, so a List-typed Mixin accessor fails during the
 # compile gate while an array accessor fails against Forge at runtime. Avoid that split descriptor
@@ -93,6 +119,46 @@ else:
     raise SystemExit('ForgeLootContext LootTable accessor expression missing')
 forge_events.write_text(fe)
 
+# Mirror 1.10.2's required dependency contract using the actual 1.20.1-compatible versions in this
+# port. Curios stays out until its optional integration is restored and verified rather than advertised
+# as functional prematurely.
+mods = root / 'forge/src/main/resources/META-INF/mods.toml'
+mt = mods.read_text()
+dep_anchor = '''[[dependencies.spell_engine]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
+'''
+required_deps = '''
+[[dependencies.spell_engine]]
+modId="cloth_config"
+mandatory=true
+versionRange="[11.1.106,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.spell_engine]]
+modId="playeranimator"
+mandatory=true
+versionRange="[1.0.2,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.spell_engine]]
+modId="spell_power"
+mandatory=true
+versionRange="[1.6.0,)"
+ordering="AFTER"
+side="BOTH"
+'''
+if 'modId="cloth_config"' not in mt:
+    if dep_anchor not in mt:
+        raise SystemExit('mods.toml minecraft dependency anchor missing')
+    mt = mt.replace(dep_anchor, dep_anchor + required_deps, 1)
+mods.write_text(mt)
+
 final = forge_build.read_text()
 for required in (
     'mixinextras-common',
@@ -117,6 +183,14 @@ for required in (
 for stale in ('LootTableAccessor', 'Arrays.asList'):
     if stale in final_events:
         raise SystemExit(f'pass6g left stale ForgeLootContext code: {stale}')
+if 'modifier.modifier().getId().toString(),' not in effects.read_text() or 'modifier.modifier().getName(),' in effects.read_text():
+    raise SystemExit('pass6g missing deterministic UUID status-effect modifier bridge')
+if 'getLastAttackTime()==(player.getAttackCooldownProgressPerTick()*20)' not in melee.read_text():
+    raise SystemExit('pass6g missing vanilla melee combo fallback')
+final_mods = mods.read_text()
+for dep in ('modId="cloth_config"', 'modId="playeranimator"', 'modId="spell_power"'):
+    if dep not in final_mods:
+        raise SystemExit(f'pass6g missing required dependency metadata: {dep}')
 final_effect = effect_removal.read_text()
 for stale in (
     'onRemoved(Lnet/minecraft/entity/attribute/AttributeContainer;)V',
@@ -133,4 +207,4 @@ for required in (
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
-print('Spell Engine compatibility pass 6g applied: embedded MixinExtras + TinyConfig runtimes + exact effect-removal hook + Forge SRG LootTable bridge')
+print('Spell Engine compatibility pass 6g applied: Forge runtimes + effect UUID/removal bridges + SRG loot bridge + base melee + dependency metadata')
