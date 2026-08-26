@@ -5,23 +5,32 @@ import re, sys
 root = Path(sys.argv[1]).resolve()
 java = root / 'common/src/main/java'
 
-# Compile against the exact already-verified Spell Power/Ranged source trees supplied by CI.
-# Their generated-upstream classes are compile inputs only; Spell Engine packaging later excludes
-# these external source roots so dependencies remain separate mods.
+# Compile Spell Engine against the already-verified dependency common JARs, never their source trees.
+# This keeps Spell Power and Ranged Weapon API as real separate mods and prevents their classes from
+# being shadowed into the Spell Engine release artifact.
 build = root / 'common/build.gradle'
 bs = build.read_text()
 bs = re.sub(r"\s*compileOnly fileTree\(dir: rootProject\.file\('../rpg-series-port/spell_power-forge-1\.20\.1/common/build/libs'\), include: \['\*\.jar'\], exclude: \['\*sources\*'\]\)", '', bs)
 bs = re.sub(r"\s*compileOnly fileTree\(dir: rootProject\.file\('../rpg-series-port/ranged-weapon-api-forge-1\.20\.1/common/build/libs'\), include: \['\*\.jar'\], exclude: \['\*sources\*'\]\)", '', bs)
+bs = re.sub(r"\n\ndef addExternalCompileSources = \{ String envName ->.*?addExternalCompileSources\('RANGED_SOURCE_DIRS'\)\n", '\n', bs, flags=re.S)
 bs += r'''
 
-def addExternalCompileSources = { String envName ->
+def requireExternalJar = { String envName ->
  def raw = System.getenv(envName)
- if (raw != null && !raw.isBlank()) {
-  raw.split(java.io.File.pathSeparator).each { sourceSets.main.java.srcDir it }
+ if (raw == null || raw.isBlank()) {
+  throw new GradleException("Missing required external dependency JAR environment variable: ${envName}")
  }
+ def jarFile = file(raw)
+ if (!jarFile.isFile()) {
+  throw new GradleException("External dependency JAR does not exist for ${envName}: ${jarFile}")
+ }
+ return jarFile
 }
-addExternalCompileSources('SPELL_POWER_SOURCE_DIRS')
-addExternalCompileSources('RANGED_SOURCE_DIRS')
+
+dependencies {
+ compileOnly files(requireExternalJar('SPELL_POWER_COMMON_JAR'))
+ compileOnly files(requireExternalJar('RANGED_COMMON_JAR'))
+}
 '''
 build.write_text(bs)
 
@@ -88,4 +97,8 @@ public class ParticleGroupType extends ParticleType<ParticleGroupType> implement
 for needle in ('Identifier.of(', 'RegistryByteBuf', 'network.codec.PacketCodec', 'network.packet.CustomPayload'):
     found=[str(f.relative_to(java)) for f in java.rglob('*.java') if needle in f.read_text()]
     if found: raise SystemExit(f'compat pass failed; {needle!r} remains in {found[:12]}')
-print('Spell Engine compatibility pass 1 applied: identifiers + 1.20.1 packet envelope + particle type')
+for stale in ('SPELL_POWER_SOURCE_DIRS', 'RANGED_SOURCE_DIRS', 'addExternalCompileSources'):
+    if stale in build.read_text(): raise SystemExit(f'compat pass left dependency source injection enabled: {stale}')
+for required in ('SPELL_POWER_COMMON_JAR', 'RANGED_COMMON_JAR'):
+    if required not in build.read_text(): raise SystemExit(f'compat pass missing dependency common JAR gate: {required}')
+print('Spell Engine compatibility pass 1 applied: external dependency JAR compile gate + identifiers + 1.20.1 packet envelope + particle type')
