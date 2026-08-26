@@ -1,1 +1,1 @@
-Export exact Sable 1.1.0 and Forge 1.20.1 Sable backport sources for the ragdoll parity build.
+Export exact Sable sources and build the current Forge 1.20.1 M9.19 backport against Forge 47.4.23 for ragdoll parity acceptance.
