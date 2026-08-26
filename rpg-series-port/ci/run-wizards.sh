@@ -7,8 +7,6 @@ WORK="${RUNNER_TEMP:-/tmp}/wizards-port"
 BASE_SHA=395ade75b50067c19f9b57a84c409bf962e09224
 TARGET_SHA=82fd3a0f48366e6e406b4e7ca4b6d827a3793fb9
 ARMOR_SHA=a664155a0aab3161cd7e4bf0c1f72512b4ec4949
-SPELL_POWER_BASE=681993d5f823aa96b1b24e21b145e89f46147f2d
-SPELL_POWER_TARGET=6fed879e796cbe82c43684d914a8fa99a99e8b12
 
 rm -rf "$WORK" "$GEN"
 mkdir -p "$WORK"
@@ -28,11 +26,11 @@ clone_exact ZsoltMolnarrr/Wizards "$TARGET_SHA" "$WORK/wizards-target" & p2=$!
 clone_exact FabricExtras/ArmorModelAPI "$ARMOR_SHA" "$WORK/armor-target" & p3=$!
 wait "$p1" "$p2" "$p3"
 
-# Rebuild already-graduated foundations as separate real artifacts. The Spell Engine verifier also
-# reconstructs its current source and the Spell Power/Ranged foundations it needs. It intentionally
-# leaves the generated Spell Engine common build tree available for downstream named compilation.
-echo '[Wizards] Reconstructing graduated Spell Engine foundation and its compile dependencies'
-bash "$ROOT/rpg-series-port/ci/run-spell-engine.sh"
+# Downstream port iterations need the exact graduated Spell Engine artifact and named common JAR,
+# not another replay of its already-sealed headless client acceptance suite. This helper uses the
+# same immutable source/compatibility/build path and stops at the verified build/package boundary.
+echo '[Wizards] Reconstructing graduated Spell Engine foundation and compile dependencies (build-only fast path)'
+bash "$ROOT/rpg-series-port/ci/build-spell-engine-foundation.sh"
 
 echo '[Wizards] Building graduated Structure Pool API and Runes foundations'
 STRUCTURE="$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1"
@@ -45,9 +43,6 @@ ARMOR="$ROOT/rpg-series-port/armor-model-api-forge-1.20.1"
 python3 "$ARMOR/tools/prepare_port.py" "$WORK/armor-target" "$ARMOR/generated"
 gradle --no-daemon --stacktrace -p "$ARMOR/generated" :forge:remapJar
 
-# Spell Power was reconstructed/built by run-spell-engine.sh. Spell Engine generated tree is kept at
-# .spell-engine-build by that verifier. Stage named common JARs for compile and Forge release JARs for
-# loader/runtime; never add foundation sources to Wizards sourceSets and never shadow them into Wizards.
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 SPELL_ENGINE_WORK="$ROOT/.spell-engine-build"
 SPELL_ENGINE_PORT="$ROOT/rpg-series-port/spell-engine-forge-1.20.1"
@@ -74,6 +69,7 @@ for jar in "$STRUCTURE_COMMON" "$STRUCTURE_FORGE" "$RUNES_COMMON" "$RUNES_FORGE"
 done
 
 python3 "$PORT/tools/prepare_port.py" "$WORK/wizards-base" "$WORK/wizards-target" "$GEN"
+python3 "$PORT/tools/compat_1_20_1.py" "$GEN"
 mkdir -p "$GEN/libs"
 cp "$ARMOR_COMMON" "$GEN/libs/armor-model-api-common.jar"
 cp "$ARMOR_FORGE" "$GEN/libs/armor-model-api-forge.jar"
@@ -94,8 +90,9 @@ grep -F 'architectury_plugin=3.4.164' "$GEN/PORT-PINS.txt"
 test ! -d "$GEN/fabric"
 test ! -d "$GEN/neoforge"
 test -f "$GEN/forge/src/main/java/net/wizards/forge/ForgeMod.java"
+test -f "$GEN/forge/src/main/java/net/wizards/forge/client/ForgeClientMod.java"
 test -f "$GEN/forge/src/main/resources/META-INF/mods.toml"
-if grep -R -n 'net.neoforged' "$GEN/forge/src/main/java"; then
+if grep -R -nE 'net\.neoforged|NeoForge\.' "$GEN/forge/src/main/java"; then
   echo '[Wizards] NeoForge loader symbol leaked into generated Forge source' >&2
   exit 2
 fi
