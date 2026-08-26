@@ -45,6 +45,7 @@ unzip -l "$JAR" | grep -F 'net/rpg_foundation/armor_api/forge/client/ArmorModelA
 if unzip -l "$JAR" | grep -q 'net/rpg_foundation/armor_api/neoforge/\|META-INF/neoforge.mods.toml'; then
   echo '[Armor Model API] NeoForge package/metadata leaked into release JAR' >&2; exit 1
 fi
+javap -verbose -classpath "$JAR" net.rpg_foundation.armor_api.forge.ArmorModelApiForge | grep -F 'major version: 61'
 sha256sum "$JAR" | tee "$PORT/armor-model-api.sha256"
 
 rm -f "$ROOT/armor-model-api-1.0.0-forge-1.20.1-source-ci.zip"
@@ -95,4 +96,7 @@ else
   cat "${CLIENT_FILES[@]}"; echo '[Armor Model API] client runtime timed out before a proven bootstrap state' >&2; exit 1
 fi
 
-echo '[Armor Model API] Build, package, server side-safety, and headless client bootstrap gates passed.'
+echo '[Armor Model API] Fresh packaged Forge server gate'
+bash "$ROOT/rpg-series-port/ci/run-armor-model-api-package-smoke.sh" "$JAR" "$GEN" "$PORT"
+
+echo '[Armor Model API] Build, package, Java 17 bytecode, dev server/client, and fresh packaged-server gates passed.'
