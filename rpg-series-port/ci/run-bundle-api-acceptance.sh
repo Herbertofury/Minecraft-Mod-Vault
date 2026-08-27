@@ -13,17 +13,18 @@ grep -Fx 'forge_version=1.20.1-47.4.23' "$PORT/gradle.properties" >/dev/null
 grep -Fx 'yarn_mappings=1.20.1+build.10' "$PORT/gradle.properties" >/dev/null
 
 # Source/API hygiene before paying for a build.
-grep -R -E 'net\.neoforged|net\.fabricmc\.api|DataComponentTypes|CUSTOM_BUNDLE_CONTENTS_COMPONENT' \
-  "$PORT/common/src/main/java" "$PORT/forge/src/main/java" && {
+if grep -R -E 'net\.neoforged|net\.fabricmc\.api|DataComponentTypes|CUSTOM_BUNDLE_CONTENTS_COMPONENT' \
+  "$PORT/common/src/main/java" "$PORT/forge/src/main/java"; then
   echo '[Bundle API] forbidden 1.21/loader-only API survived the native 1.20.1 port' >&2
   exit 1
-} || true
+fi
 for required in \
   'com/github/theredbrain/bundleapi/BundleAPI.java' \
   'com/github/theredbrain/bundleapi/component/type/CustomBundleContentsComponent.java' \
   'com/github/theredbrain/bundleapi/item/CustomBundleItem.java'; do
   test -f "$PORT/common/src/main/java/$required"
 done
+test -f "$PORT/forge/src/main/java/com/github/theredbrain/bundleapi/forge/BundleAPISelfTest.java"
 
 echo '[Bundle API] Compile + remapped package'
 gradle --no-daemon --stacktrace -p "$PORT" clean :forge:remapJar
@@ -81,25 +82,24 @@ PY
 unzip -tq "$SOURCE_ZIP"
 sha256sum "$SOURCE_ZIP" | tee "$PORT/bundle-api-source.sha256"
 
-# Real Forge development runtime smoke. Bundle API is a foundation library, so a clean
-# mod bootstrap is required here; behavior/storage tests are promoted immediately after
-# this first compile/runtime boundary is known green.
-echo '[Bundle API] Dedicated Forge dev-server gate'
+# Run semantic storage/occupancy tests inside a real initialized Forge runtime.
+echo '[Bundle API] Dedicated Forge dev-server + semantic self-test gate'
 rm -rf "$PORT/forge/run/logs"; mkdir -p "$PORT/forge/run"; printf 'eula=true\n' > "$PORT/forge/run/eula.txt"
 SERVER_SMOKE="$PORT/bundle-api-server-smoke.log"; : > "$SERVER_SMOKE"
 set +e
-timeout --signal=TERM --kill-after=10s 150s gradle --no-daemon -p "$PORT" :forge:runServer > "$SERVER_SMOKE" 2>&1
+timeout --signal=TERM --kill-after=10s 150s env BUNDLE_API_SELF_TEST=1 gradle --no-daemon -p "$PORT" :forge:runServer > "$SERVER_SMOKE" 2>&1
 STATUS=$?
 set -e
 SERVER_LOG=$(find "$PORT/forge/run" -type f -path '*/logs/latest.log' | head -n1 || true)
 FILES=("$SERVER_SMOKE"); [[ -n "$SERVER_LOG" ]] && FILES+=("$SERVER_LOG")
-if grep -Eiq 'MixinApplyError|InvalidMixinException|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Missing or unsupported mandatory dependencies|Exception in server tick loop|The game crashed' "${FILES[@]}"; then cat "${FILES[@]}"; exit 1; fi
+if grep -Eiq 'BUNDLE_API_SELF_TEST_FAILED|MixinApplyError|InvalidMixinException|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Missing or unsupported mandatory dependencies|Exception in server tick loop|The game crashed' "${FILES[@]}"; then cat "${FILES[@]}"; exit 1; fi
+if ! grep -Fq 'BUNDLE_API_SELF_TEST_PASS' "${FILES[@]}"; then cat "${FILES[@]}"; echo '[Bundle API] semantic self-test did not report success' >&2; exit 1; fi
 if [[ -n "$SERVER_LOG" ]] && grep -Eq 'Done \([0-9.]+s\)!' "$SERVER_LOG"; then
-  echo '[Bundle API] Forge dev server reached ready state.'
+  echo '[Bundle API] Forge dev server reached ready state with semantic self-test green.'
 elif [[ "$STATUS" -ne 124 && "$STATUS" -ne 143 ]]; then
   cat "${FILES[@]}"; exit "$STATUS"
 else
   cat "${FILES[@]}"; echo '[Bundle API] server did not prove ready state' >&2; exit 1
 fi
 
-echo '[Bundle API] First acceptance boundary passed: compile/package/Java17/determinism/dev-server.'
+echo '[Bundle API] Acceptance boundary passed: compile/package/Java17/determinism/storage semantics/dev-server.'
