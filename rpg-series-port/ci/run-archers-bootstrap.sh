@@ -51,6 +51,38 @@ for jar in "$STRUCTURE_JAR" "$BUNDLE_JAR" "$ARMOR_JAR" "$RANGED_JAR" "$SPELL_POW
   test -n "$jar" && test -f "$jar"; unzip -tq "$jar"
 done
 
+# Raw file dependencies are opaque to Loom's mod remapper. Materialize the exact packaged
+# Forge JARs as commit-keyed Maven artifacts so modCompileOnly resolves/remaps Mojmap/SRG
+# signatures into the common Yarn named namespace. The copied bytes remain exact.
+ABI_REPO="$TMP/abi-repo"
+ABI_VERSION="${GITHUB_SHA:0:12}"
+mkdir -p "$ABI_REPO"
+stage_abi() {
+  local artifact="$1" jar="$2"
+  local dir="$ABI_REPO/local/archersabi/$artifact/$ABI_VERSION"
+  mkdir -p "$dir"
+  cp "$jar" "$dir/$artifact-$ABI_VERSION.jar"
+  cat > "$dir/$artifact-$ABI_VERSION.pom" <<POM
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>local.archersabi</groupId>
+  <artifactId>$artifact</artifactId>
+  <version>$ABI_VERSION</version>
+</project>
+POM
+  cmp -s "$jar" "$dir/$artifact-$ABI_VERSION.jar"
+  printf '[Archers ABI] %s %s\n' "$artifact" "$(sha256sum "$jar" | cut -d' ' -f1)"
+}
+stage_abi bundle-api "$BUNDLE_JAR"
+stage_abi armor-model-api "$ARMOR_JAR"
+stage_abi ranged-weapon-api "$RANGED_JAR"
+stage_abi structure-pool-api "$STRUCTURE_JAR"
+stage_abi spell-power "$SPELL_POWER_JAR"
+stage_abi spell-engine "$SPELL_ENGINE_JAR"
+stage_abi tiny-config "$TINY_JAR"
+stage_abi cloth-config "$CLOTH_JAR"
+stage_abi player-animator "$PLAYER_JAR"
+
 echo '[Archers] Materializing exact current 3.1.1 content + explicit 1.20.1 transforms'
 bash "$PORT/materialize_port.sh"
 test -f "$PORT/generated/common/java/net/archers/ArchersMod.java"
@@ -68,17 +100,10 @@ if grep -R -nE 'net\.neoforged|net\.fabricmc\.fabric' "$PORT/generated/common/ja
   exit 2
 fi
 
-echo '[Archers] Compiling current 3.1.1 against separate packaged Forge dependencies'
+echo '[Archers] Compiling current 3.1.1 against Loom-remapped views of separate packaged Forge dependencies'
 ARGS=(
-  "-Pbundle_api_jar=$BUNDLE_JAR"
-  "-Parmor_model_api_jar=$ARMOR_JAR"
-  "-Pranged_weapon_api_jar=$RANGED_JAR"
-  "-Pstructure_pool_api_jar=$STRUCTURE_JAR"
-  "-Pspell_power_jar=$SPELL_POWER_JAR"
-  "-Pspell_engine_jar=$SPELL_ENGINE_JAR"
-  "-Ptiny_config_jar=$TINY_JAR"
-  "-Pcloth_config_jar=$CLOTH_JAR"
-  "-Pplayer_animator_jar=$PLAYER_JAR"
+  "-Parchers_abi_repo=$ABI_REPO"
+  "-Parchers_abi_version=$ABI_VERSION"
   "-Pcurios_jar=$CURIOS_JAR"
 )
 gradle --no-daemon --stacktrace -p "$PORT" clean :common:compileJava :forge:compileJava "${ARGS[@]}"
