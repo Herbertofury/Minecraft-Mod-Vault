@@ -1,0 +1,1 @@
+Fetch and verify at.yawk.lz4:lz4-java:1.11.0 for the local Forge 1.20.1 Sable/Rapier build.
