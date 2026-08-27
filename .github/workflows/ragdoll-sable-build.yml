@@ -6,6 +6,7 @@ on:
     paths:
       - 'sable-source-export-trigger/**'
       - '.github/workflows/ragdoll-sable-build.yml'
+      - '.github/workflows/ragdoll-sable-final-build.yml'
 
 permissions:
   contents: read
@@ -16,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout Sable Forge backport head
+      - name: Checkout pinned Sable Forge backport
         uses: actions/checkout@v4
         with:
           repository: CamelPoem32/sable-backport
@@ -27,7 +28,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Stage exact target dependencies before ForgeGradle starts
+      - name: Stage exact target dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -40,49 +41,30 @@ jobs:
           echo "535c5578cab5dcd0a438e202df80091632b873c0370c25d9b1c1ad1d73577207  $lz4" | sha256sum -c -
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib
-          import zipfile
-
+          import hashlib, zipfile
           create = Path('target_modpack/mods/create-1.20.1-6.0.8.jar')
           repo = Path('sable/forge/build/targetModpackRepository')
           repo.mkdir(parents=True, exist_ok=True)
           specs = [
-              ('create-1.20.1', '6.0.8', None, 'create-1.20.1-6.0.8.jar',
-               '6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0'),
-              ('flywheel-forge-1.20.1', '1.0.5', 'META-INF/jarjar/flywheel-forge-1.20.1-1.0.5.jar',
-               'flywheel-forge-1.20.1-1.0.5.jar',
-               '316ca250f19244956b5f0cd75329309ea65a77b4b8da854389b6a9222e7f427c'),
-              ('Registrate', 'MC1.20-1.3.3', 'META-INF/jarjar/Registrate-MC1.20-1.3.3.jar',
-               'Registrate-MC1.20-1.3.3.jar',
-               '226862d4638b77273f4627fbac871aa0b3af584dde377f4ce2cb0c7cc228cf00'),
-              ('Ponder-Forge-1.20.1', '1.0.91', 'META-INF/jarjar/Ponder-Forge-1.20.1-1.0.91.jar',
-               'Ponder-Forge-1.20.1-1.0.91.jar',
-               '86e6b64372aba6d9c56f2c35725ea26d8febf2c75eed9950566e7f2849443b34'),
+              ('create-1.20.1','6.0.8',None,'create-1.20.1-6.0.8.jar','6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0'),
+              ('flywheel-forge-1.20.1','1.0.5','META-INF/jarjar/flywheel-forge-1.20.1-1.0.5.jar','flywheel-forge-1.20.1-1.0.5.jar','316ca250f19244956b5f0cd75329309ea65a77b4b8da854389b6a9222e7f427c'),
+              ('Registrate','MC1.20-1.3.3','META-INF/jarjar/Registrate-MC1.20-1.3.3.jar','Registrate-MC1.20-1.3.3.jar','226862d4638b77273f4627fbac871aa0b3af584dde377f4ce2cb0c7cc228cf00'),
+              ('Ponder-Forge-1.20.1','1.0.91','META-INF/jarjar/Ponder-Forge-1.20.1-1.0.91.jar','Ponder-Forge-1.20.1-1.0.91.jar','86e6b64372aba6d9c56f2c35725ea26d8febf2c75eed9950566e7f2849443b34'),
           ]
           with zipfile.ZipFile(create) as zf:
               for artifact, version, member, filename, expected in specs:
                   data = create.read_bytes() if member is None else zf.read(member)
                   actual = hashlib.sha256(data).hexdigest()
-                  if actual != expected:
-                      raise SystemExit(f'{artifact}:{version} SHA mismatch: {actual}')
-                  flat = repo / filename
-                  flat.write_bytes(data)
+                  if actual != expected: raise SystemExit(f'{artifact}:{version} SHA mismatch: {actual}')
+                  (repo / filename).write_bytes(data)
                   module = repo / 'local' / 'target' / artifact / version
                   module.mkdir(parents=True, exist_ok=True)
                   (module / filename).write_bytes(data)
-                  pom = module / f'{artifact}-{version}.pom'
-                  pom.write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
-          <project xmlns="http://maven.apache.org/POM/4.0.0">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>local.target</groupId>
-            <artifactId>{artifact}</artifactId>
-            <version>{version}</version>
-            <packaging>jar</packaging>
-          </project>
-          ''', encoding='utf-8')
+                  (module / f'{artifact}-{version}.pom').write_text(f'''<?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><groupId>local.target</groupId><artifactId>{artifact}</artifactId><version>{version}</version><packaging>jar</packaging></project>''')
                   print(f'PRESTAGED local.target:{artifact}:{version} sha256={actual}')
           PY
-      - name: Rebase Forge patch to 47.4.23 and repair build graph
+      - name: Apply frozen Forge fixes and strict ABI verifier correction
         working-directory: sable
         shell: bash
         run: |
@@ -91,98 +73,75 @@ jobs:
           sed -i 's/^org\.gradle\.parallel=true$/org.gradle.parallel=false/' gradle.properties
           python3 - <<'PY'
           from pathlib import Path
-
           path = Path('forge/build.gradle')
-          text = path.read_text(encoding='utf-8')
-
+          text = path.read_text()
           old_repo = """    flatDir {
                   dirs layout.buildDirectory.dir('targetModpackRepository')
               }
           """
           new_repo = """    maven {
                   url = file('build/targetModpackRepository')
-                  metadataSources {
-                      mavenPom()
-                      artifact()
-                  }
+                  metadataSources { mavenPom(); artifact() }
               }
               flatDir {
                   dirs layout.buildDirectory.dir('targetModpackRepository')
               }
           """
-          if old_repo not in text:
-              raise SystemExit('target repository block not found')
+          if old_repo not in text: raise SystemExit('target repository block not found')
           text = text.replace(old_repo, new_repo, 1)
-
           marker = """        expectedTargetArtifacts.each { key, spec ->
                       logger.lifecycle(\"Staged ${spec.group}:${spec.artifact}:${spec.version} (${spec.sha256})\")
                   }
           """
           stage_maven = """        expectedTargetArtifacts.each { key, spec ->
                       File flatJar = new File(repositoryDir, spec.file)
-                      if (!flatJar.isFile()) {
-                          throw new GradleException(\"Missing staged target jar for local Maven publication: ${flatJar}\")
-                      }
+                      if (!flatJar.isFile()) throw new GradleException(\"Missing staged target jar: ${flatJar}\")
                       File moduleDir = new File(repositoryDir, \"local/target/${spec.artifact}/${spec.version}\")
-                      if (!moduleDir.mkdirs() && !moduleDir.isDirectory()) {
-                          throw new GradleException(\"Unable to create local Maven module directory: ${moduleDir}\")
-                      }
+                      if (!moduleDir.mkdirs() && !moduleDir.isDirectory()) throw new GradleException(\"Unable to create ${moduleDir}\")
                       File moduleJar = new File(moduleDir, \"${spec.artifact}-${spec.version}.jar\")
                       Files.copy(flatJar.toPath(), moduleJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
                       File modulePom = new File(moduleDir, \"${spec.artifact}-${spec.version}.pom\")
-                      modulePom.setText(\"\"\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>
-          <project xmlns=\\\"http://maven.apache.org/POM/4.0.0\\\">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>local.target</groupId>
-            <artifactId>${spec.artifact}</artifactId>
-            <version>${spec.version}</version>
-            <packaging>jar</packaging>
-          </project>
-          \"\"\", 'UTF-8')
-                      logger.lifecycle(\"Published local.target:${spec.artifact}:${spec.version} -> ${moduleJar}\")
+                      modulePom.setText(\"\"\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?><project xmlns=\\\"http://maven.apache.org/POM/4.0.0\\\"><modelVersion>4.0.0</modelVersion><groupId>local.target</groupId><artifactId>${spec.artifact}</artifactId><version>${spec.version}</version><packaging>jar</packaging></project>\"\"\", 'UTF-8')
                   }
-
-                  expectedTargetArtifacts.each { key, spec ->
-                      logger.lifecycle(\"Staged ${spec.group}:${spec.artifact}:${spec.version} (${spec.sha256})\")
-                  }
+                  expectedTargetArtifacts.each { key, spec -> logger.lifecycle(\"Staged ${spec.group}:${spec.artifact}:${spec.version} (${spec.sha256})\") }
           """
-          if marker not in text:
-              raise SystemExit('target artifact logger marker not found')
+          if marker not in text: raise SystemExit('target artifact marker not found')
           text = text.replace(marker, stage_maven, 1)
-
-          graph_fix = r'''
-
-          // CI/Gradle 8.14 correctness: these verification tasks consume classes after
-          // syncMixinRefmap mutates the generated refmap/class output. Make that producer
-          // relationship explicit instead of relying on compileJava.finalizedBy ordering.
+          text += r'''
           [
-              'verifySubLevelEntityCollisionBoundary',
-              'verifyBasicSubLevelRenderLifecycle',
-              'verifySableSpawnCommandBoundary',
-              'verifyRapierPackagedArtifact',
-              'verifyRapierProductionNamespace',
-              'verifyCompanionProductionNamespace',
+              'verifySubLevelEntityCollisionBoundary','verifyBasicSubLevelRenderLifecycle','verifySableSpawnCommandBoundary',
+              'verifyRapierPackagedArtifact','verifyRapierProductionNamespace','verifyCompanionProductionNamespace',
               'verifyProductionMinecraftAccessBoundary'
-          ].each { verificationTask ->
-              tasks.named(verificationTask) {
-                  dependsOn tasks.named('syncMixinRefmap')
-              }
-          }
+          ].each { verificationTask -> tasks.named(verificationTask) { dependsOn tasks.named('syncMixinRefmap') } }
           '''
-          text += graph_fix
-          path.write_text(text, encoding='utf-8')
+          path.write_text(text)
+
+          mapper = Path('buildSrc/src/main/java/RapierProductionJarMapper.java')
+          m = mapper.read_text()
+          needle = '''        private boolean resolvesNamedMember(String owner, String name, String descriptor, boolean method) {
+              if (method ? declaresMethod(owner, name, descriptor) : declaresField(owner, name, descriptor)) {
+                  return true;
+              }
+'''
+          replacement = '''        private boolean resolvesNamedMember(String owner, String name, String descriptor, boolean method) {
+              if (method ? declaresMethod(owner, name, descriptor) : declaresField(owner, name, descriptor)) {
+                  return true;
+              }
+              // java.lang classes are intentionally outside this packaged hierarchy. Enum methods
+              // are inherited from java/lang/Enum and are valid without weakening Sable/MC checks.
+              if (method && supertypes(owner).contains("java/lang/Enum")) {
+                  if (("ordinal".equals(name) && "()I".equals(descriptor))
+                          || ("name".equals(name) && "()Ljava/lang/String;".equals(descriptor))) return true;
+              }
+'''
+          if needle not in m: raise SystemExit('ABI resolver marker not found')
+          mapper.write_text(m.replace(needle, replacement, 1))
           PY
-          grep '^forge_version=' gradle.properties
-          grep '^org.gradle.parallel=' gradle.properties
-          grep -n "targetModpackRepository\|verifySubLevelEntityCollisionBoundary" forge/build.gradle | tail -n 16
           chmod +x gradlew
       - name: Build Companion sequentially
         working-directory: sable
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./gradlew --no-daemon --no-parallel :sable_companion_1_20:build
-      - name: Build and verify production Sable/Rapier artifact
+        run: ./gradlew --no-daemon --no-parallel :sable_companion_1_20:build
+      - name: Build and verify production Sable
         working-directory: sable
         shell: bash
         run: |
@@ -197,24 +156,28 @@ jobs:
             :forge:verifyRapierPackagedArtifact \
             :forge:verifyRapierProductionNamespace \
             :forge:verifyCompanionProductionNamespace \
-            :forge:verifyProductionMinecraftAccessBoundary
-      - name: Collect exact artifact and proof
+            :forge:verifyProductionMinecraftAccessBoundary \
+            :forge:prepareStandaloneSableUserdevArtifact
+      - name: Collect production and userdev artifacts
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p export
-          find sable/forge/build/libs -maxdepth 1 -type f -name '*-all.jar' -print -exec cp '{}' export/ \;
-          test "$(find export -type f -name '*-all.jar' | wc -l)" -ge 1
-          sha256sum export/*-all.jar > export/SHA256SUMS.txt
+          cp sable/forge/build/libs/sable-forge-1.20.1-2.0.0-all.jar export/
+          cp sable/forge/build/standaloneRuntime/sable-forge-1.20.1-2.0.0-all-userdev.jar export/
+          cp sable/forge/build/createMcpToSrg/output.tsrg export/createMcpToSrg-output.tsrg
+          cp sable/forge/build/createSrgToMcp/output.srg export/createSrgToMcp-output.srg
+          sha256sum export/*.jar export/*.tsrg export/*.srg > export/SHA256SUMS.txt
           printf '%s\n' \
-            'source=6dd48142a62347f1454559b546cbaa63eca648ac' \
+            'sable_backport_source=6dd48142a62347f1454559b546cbaa63eca648ac' \
+            'sable_1_1_0_source=165cf388f775d40c414cf1284c45f6a00a80f74f' \
             'forge=47.4.23' \
             'create_sha256=6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0' \
-            'ci_patch=prestage-local-maven+sequential-forgegradle+explicit-refmap-verification-deps' \
+            'abi_verifier_fix=java.lang.Enum inherited ordinal/name only' \
             > export/PROVENANCE.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: sable-forge-1.20.1-m9.19-build
+          name: sable-forge-1.20.1-final-with-userdev
           path: export
           if-no-files-found: error
           retention-days: 7
