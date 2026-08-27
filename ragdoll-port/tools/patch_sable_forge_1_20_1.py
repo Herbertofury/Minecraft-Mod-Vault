@@ -7,7 +7,8 @@ props = root / "gradle.properties"
 build = root / "forge" / "build.gradle"
 mapper = root / "buildSrc" / "src" / "main" / "java" / "RapierProductionJarMapper.java"
 
-p = props.read_text(encoding="utf-8")np = p.replace("forge_version=47.4.20", "forge_version=47.4.23").replace("org.gradle.parallel=true", "org.gradle.parallel=false")
+p = props.read_text(encoding="utf-8")
+np = p.replace("forge_version=47.4.20", "forge_version=47.4.23").replace("org.gradle.parallel=true", "org.gradle.parallel=false")
 if np == p:
     if "forge_version=47.4.23" not in p:
         raise SystemExit("unexpected forge_version in gradle.properties")
