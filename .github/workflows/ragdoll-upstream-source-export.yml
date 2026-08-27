@@ -1,0 +1,52 @@
+name: Ragdoll Exact Upstream Source Export
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/ragdoll-upstream-source-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'ragdoll-sable-source-export')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Sable Ragdolls 0.7.2 source
+        uses: actions/checkout@v4
+        with:
+          repository: Leo-T22/sable-player-ragdoll
+          ref: e7ddd59d4411a16bccbda42fb849cb1bf6d2f8b1
+          path: sable-player-ragdoll-0.7.2
+          fetch-depth: 1
+      - name: Checkout Ragdoll Reactions 0.7.0 source
+        uses: actions/checkout@v4
+        with:
+          repository: Leo-T22/ragdoll-reactions
+          ref: e223bf0bd40a73eec51c883d4dbd9908b40f5da9
+          path: ragdoll-reactions-0.7.0
+          fetch-depth: 1
+      - name: Freeze source provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf sable-player-ragdoll-0.7.2/.git ragdoll-reactions-0.7.0/.git
+          printf '%s\n' \
+            'sable_player_ragdoll=0.7.2' \
+            'sable_player_ragdoll_commit=e7ddd59d4411a16bccbda42fb849cb1bf6d2f8b1' \
+            'ragdoll_reactions=0.7.0' \
+            'ragdoll_reactions_commit=e223bf0bd40a73eec51c883d4dbd9908b40f5da9' \
+            > UPSTREAM-PROVENANCE.txt
+          find sable-player-ragdoll-0.7.2 ragdoll-reactions-0.7.0 -type f -print0 | sort -z | xargs -0 sha256sum > UPSTREAM-FILES-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-exact-upstream-sources
+          path: |
+            sable-player-ragdoll-0.7.2
+            ragdoll-reactions-0.7.0
+            UPSTREAM-PROVENANCE.txt
+            UPSTREAM-FILES-SHA256.txt
+          if-no-files-found: error
+          retention-days: 7
