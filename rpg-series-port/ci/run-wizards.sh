@@ -28,9 +28,12 @@ clone_exact FabricExtras/ArmorModelAPI "$ARMOR_SHA" "$WORK/armor-target" & p3=$!
 clone_exact ZsoltMolnarrr/TinyConfig "$TINY_SHA" "$WORK/tiny-config-target" & p4=$!
 wait "$p1" "$p2" "$p3" "$p4"
 
-# Downstream port iterations need the exact graduated Spell Engine artifact and named common JAR,
-# not another replay of its already-sealed headless client acceptance suite. This helper uses the
-# same immutable source/compatibility/build path and stops at the verified build/package boundary.
+echo '[Wizards] Auditing current upstream dependency declarations against the Forge 1.20.1 compatibility ledger'
+python3 "$ROOT/rpg-series-port/ci/audit-dependency-compat.py" \
+  "$ROOT/rpg-series-port/dependency-compatibility.json" \
+  wizards \
+  "$WORK/wizards-target"
+
 echo '[Wizards] Reconstructing graduated Spell Engine foundation and compile dependencies (build-only fast path)'
 bash "$ROOT/rpg-series-port/ci/build-spell-engine-foundation.sh"
 
@@ -78,6 +81,7 @@ done
 
 python3 "$PORT/tools/prepare_port.py" "$WORK/wizards-base" "$WORK/wizards-target" "$GEN"
 python3 "$PORT/tools/compat_1_20_1.py" "$GEN"
+python3 "$PORT/tools/compat_api_1_20_1.py" "$GEN"
 python3 "$PORT/tools/compat_tiny_config.py" "$GEN"
 mkdir -p "$GEN/libs"
 cp "$ARMOR_COMMON" "$GEN/libs/armor-model-api-common.jar"
@@ -93,7 +97,6 @@ cp "$SPELL_ENGINE_FORGE" "$GEN/libs/spell-engine-forge.jar"
 cp "$TINY_COMMON" "$GEN/libs/tiny-config-common.jar"
 cp "$TINY_FORGE" "$GEN/libs/tiny-config-forge.jar"
 
-# Deterministic lane hygiene before expensive compile.
 grep -F "substrate=$BASE_SHA" "$GEN/PORT-PINS.txt"
 grep -F "target=$TARGET_SHA" "$GEN/PORT-PINS.txt"
 grep -F 'architectury_loom=1.7.435' "$GEN/PORT-PINS.txt"

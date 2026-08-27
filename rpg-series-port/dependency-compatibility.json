@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "unknown_direct_dependency": "fail_before_expensive_build",
+    "user_notification": "Immediately flag any dependency without a verified Forge 1.20.1 path; provide exact source/download link or convert it as a reusable foundation.",
+    "transitive_runtime_audit": "required_before_leaf_graduation"
+  },
+  "foundations": {
+    "structure_pool_api": {"status": "graduated", "target": "1.2.1", "user_download_required": false},
+    "runes": {"status": "graduated", "target": "1.3.2", "user_download_required": false},
+    "spell_power": {"status": "graduated", "target": "1.6.0", "user_download_required": false},
+    "ranged_weapon_api": {"status": "graduated", "target": "2.3.4", "user_download_required": false},
+    "spell_engine": {"status": "graduated_core", "target": "1.10.2", "user_download_required": false},
+    "jewelry": {"status": "graduated", "target": "2.4.0", "user_download_required": false},
+    "armor_model_api": {"status": "graduated", "target": "1.0.0", "user_download_required": false},
+    "tiny_config": {
+      "status": "forge_1.20.1_build_package_green_runtime_pending",
+      "target": "3.1.0",
+      "upstream_commit": "e20fc8ac72fde8274f0df72de2ebb81ffe6f8727",
+      "forge_jar_sha256_run129": "0182a492d6c59d7d5f491a39bb2f6634ba5dd38083295305c4769fdb6539db18",
+      "user_download_required": false
+    }
+  },
+  "projects": {
+    "wizards": {
+      "target_commit": "82fd3a0f48366e6e406b4e7ca4b6d827a3793fb9",
+      "target_version": "3.1.1",
+      "source_files": ["common/build.gradle", "neoforge/build.gradle"],
+      "dependencies": [
+        {"id": "fabric_loader", "classification": "common_source_compile_only", "status": "not_native_forge_runtime", "upstream_tokens": ["net.fabricmc:fabric-loader"], "user_download_required": false},
+        {"id": "fabric_api", "classification": "fabric_source_platform_only", "status": "removed_from_native_forge_target", "upstream_tokens": ["net.fabricmc.fabric-api:fabric-api"], "user_download_required": false},
+        {"id": "player_animator", "classification": "existing_forge_1.20.1", "status": "pinned_1.0.2-rc1+1.20", "upstream_tokens": ["dev.kosmx.player-anim"], "user_download_required": false},
+        {"id": "cloth_config", "classification": "existing_forge_1.20.1", "status": "pinned_11.1.136", "upstream_tokens": ["me.shedaniel.cloth"], "user_download_required": false},
+        {"id": "armor_model_api", "classification": "converted_foundation", "status": "graduated", "upstream_tokens": ["maven.modrinth:armor-model-api"], "user_download_required": false},
+        {"id": "tiny_config", "classification": "converted_foundation", "status": "build_package_green_runtime_pending", "upstream_tokens": ["maven.modrinth:tiny-config"], "user_download_required": false},
+        {"id": "structure_pool_api", "classification": "converted_foundation", "status": "graduated", "upstream_tokens": ["maven.modrinth:structure-pool-api"], "user_download_required": false},
+        {"id": "runes", "classification": "converted_foundation", "status": "graduated", "upstream_tokens": ["maven.modrinth:runes"], "user_download_required": false},
+        {"id": "spell_power", "classification": "converted_foundation", "status": "graduated", "upstream_tokens": ["maven.modrinth:spell-power"], "user_download_required": false},
+        {"id": "spell_engine", "classification": "converted_foundation", "status": "graduated_core", "upstream_tokens": ["maven.modrinth:spell-engine"], "user_download_required": false},
+        {"id": "curios", "classification": "existing_forge_1.20.1", "status": "pinned_5.14.1+1.20.1", "upstream_tokens": ["top.theillusivec4.curios"], "user_download_required": false},
+        {"id": "neoforge", "classification": "source_loader", "status": "translated_to_forge_47.4.23", "upstream_tokens": ["net.neoforged:neoforge"], "user_download_required": false}
+      ],
+      "optional_integrations": [
+        {"id": "lithostitched", "status": "optional_runtime_detected_in_source_not_core_dependency", "user_download_required": false}
+      ]
+    }
+  }
+}
