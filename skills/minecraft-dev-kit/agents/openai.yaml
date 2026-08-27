@@ -1,0 +1,3 @@
+interface:
+  display_name: "Minecraft Dev Kit"
+  short_description: "Build, port, and prove Minecraft mods in real runtimes"
