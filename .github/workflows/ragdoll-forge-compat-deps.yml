@@ -21,6 +21,7 @@ jobs:
           mkdir -p export
           curl -fL --retry 4 --retry-delay 2 -o export/curios-forge-5.14.1+1.20.1.jar 'https://edge.forgecdn.net/files/6418/456/curios-forge-5.14.1%2B1.20.1.jar'
           curl -fL --retry 4 --retry-delay 2 -o export/Jade-1.20.1-Forge-11.13.3.jar 'https://edge.forgecdn.net/files/8479/276/Jade-1.20.1-Forge-11.13.3.jar'
+          printf 'trigger_revision=2\n' > export/PROVENANCE.txt
           sha256sum export/*.jar > export/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
