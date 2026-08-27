@@ -1,7 +1,7 @@
 package com.github.theredbrain.bundleapi.component.type;
 
 import com.github.theredbrain.bundleapi.BundleAPI;
-import net.minecraft.block.entity.BeehiveBlockEntity;
+import com.github.theredbrain.bundleapi.item.CustomBundleItem;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtElement;
@@ -54,8 +54,8 @@ public final class CustomBundleContentsComponent {
     }
 
     public static Fraction getOccupancy(ItemStack stack, int sizeMultiplier) {
-        if (stack.getItem() instanceof com.github.theredbrain.bundleapi.item.CustomBundleItem) {
-            CustomBundleContentsComponent nested = BundleAPI.getContents(stack);
+        if (stack.getItem() instanceof CustomBundleItem nestedItem) {
+            CustomBundleContentsComponent nested = BundleAPI.getContents(stack, nestedItem.defaultSizeMultiplier());
             return NESTED_BUNDLE_OCCUPANCY.add(nested.getOccupancy());
         }
         if (stack.hasNbt()) {
@@ -115,25 +115,26 @@ public final class CustomBundleContentsComponent {
             int accepted = Math.min(stack.getCount(), getMaxAllowed(stack));
             if (accepted <= 0) return 0;
 
+            int remaining = accepted;
             int merge = mergeIndex(stack);
             if (merge >= 0) {
                 ItemStack existing = stacks.remove(merge);
-                int room = existing.getMaxCount() - existing.getCount();
-                int merged = Math.min(room, accepted);
+                int merged = Math.min(existing.getMaxCount() - existing.getCount(), remaining);
                 ItemStack joined = existing.copy();
                 joined.increment(merged);
                 stacks.add(0, joined);
-                int remainder = accepted - merged;
-                if (remainder > 0) {
-                    ItemStack extra = stack.copy();
-                    extra.setCount(remainder);
-                    stacks.add(0, extra);
-                }
-            } else {
-                ItemStack inserted = stack.copy();
-                inserted.setCount(accepted);
-                stacks.add(0, inserted);
+                remaining -= merged;
             }
+
+            int maxStackSize = Math.max(1, stack.getMaxCount());
+            while (remaining > 0) {
+                int chunk = Math.min(maxStackSize, remaining);
+                ItemStack inserted = stack.copy();
+                inserted.setCount(chunk);
+                stacks.add(0, inserted);
+                remaining -= chunk;
+            }
+
             if (consume) stack.decrement(accepted);
             return accepted;
         }
