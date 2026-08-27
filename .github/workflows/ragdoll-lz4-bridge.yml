@@ -21,25 +21,33 @@ jobs:
           set -euo pipefail
           mkdir -p export
 
-          curl -fL --retry 4 --retry-delay 2 \
-            -o export/lz4-java-1.11.0.jar \
+          curl -fL --retry 4 --retry-delay 2 -o export/lz4-java-1.11.0.jar \
             'https://repo1.maven.org/maven2/at/yawk/lz4/lz4-java/1.11.0/lz4-java-1.11.0.jar'
           echo '535c5578cab5dcd0a438e202df80091632b873c0370c25d9b1c1ad1d73577207  export/lz4-java-1.11.0.jar' | sha256sum -c -
 
-          base='https://maven.blamejared.com/foundry/veil/Veil-forge-1.20.1/1.0.0.296'
-          for file in \
-            Veil-forge-1.20.1-1.0.0.296-slim.jar \
-            Veil-forge-1.20.1-1.0.0.296.jar \
-            Veil-forge-1.20.1-1.0.0.296.pom; do
-            curl -fL --retry 4 --retry-delay 2 -o "export/$file" "$base/$file"
-            curl -fL --retry 4 --retry-delay 2 -o "export/$file.sha256" "$base/$file.sha256"
+          veil='https://maven.blamejared.com/foundry/veil/Veil-forge-1.20.1/1.0.0.296'
+          for file in Veil-forge-1.20.1-1.0.0.296-slim.jar Veil-forge-1.20.1-1.0.0.296.jar Veil-forge-1.20.1-1.0.0.296.pom; do
+            curl -fL --retry 4 --retry-delay 2 -o "export/$file" "$veil/$file"
+            curl -fL --retry 4 --retry-delay 2 -o "export/$file.sha256" "$veil/$file.sha256"
             expected="$(tr -d '[:space:]' < "export/$file.sha256")"
             actual="$(sha256sum "export/$file" | awk '{print $1}')"
             test "$actual" = "$expected"
-            printf '%s  %s\n' "$actual" "$file"
           done
 
-          (cd export && sha256sum lz4-java-1.11.0.jar Veil-forge-1.20.1-1.0.0.296-slim.jar Veil-forge-1.20.1-1.0.0.296.jar Veil-forge-1.20.1-1.0.0.296.pom > SHA256SUMS.txt)
+          central='https://repo1.maven.org/maven2/io/github/llamalad7'
+          for artifact in mixinextras-common mixinextras-forge; do
+            for ext in jar pom; do
+              file="${artifact}-0.5.3.${ext}"
+              url="$central/$artifact/0.5.3/$file"
+              curl -fL --retry 4 --retry-delay 2 -o "export/$file" "$url"
+              curl -fL --retry 4 --retry-delay 2 -o "export/$file.sha256" "$url.sha256"
+              expected="$(tr -d '[:space:]' < "export/$file.sha256")"
+              actual="$(sha256sum "export/$file" | awk '{print $1}')"
+              test "$actual" = "$expected"
+            done
+          done
+
+          (cd export && sha256sum lz4-java-1.11.0.jar Veil-forge-1.20.1-1.0.0.296-slim.jar Veil-forge-1.20.1-1.0.0.296.jar Veil-forge-1.20.1-1.0.0.296.pom mixinextras-common-0.5.3.jar mixinextras-common-0.5.3.pom mixinextras-forge-0.5.3.jar mixinextras-forge-0.5.3.pom > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
           name: sable-forge-dependencies
