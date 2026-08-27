@@ -69,15 +69,14 @@ require_replace(
     "AutoFireHookItem 1.20.1 tooltip callback",
 )
 
-# 1.21 BuyItemFactory gained a configurable emerald payout. 1.20.1's built-in
-# BuyForOneEmeraldFactory cannot represent current Archers' 5/3/8 emerald payouts, so preserve
-# the exact current economy with an ordinary target-native TradeOffer factory. SellItemFactory's
-# 1.20.1 ItemStack overload retains the explicit 0.01 arrow price multiplier.
+# 1.20.1's nested vanilla SellItemFactory/SellEnchantedToolFactory implementations are not public
+# under the target mappings, and its buy helper hardcodes a one-emerald payout. Preserve current
+# Archers 3.1.1 economics with tiny target-native factories instead of reducing the trade table.
 villagers = java_root / "net/archers/village/ArcherVillagers.java"
 require_replace(
     villagers,
     "import net.minecraft.item.Items;\n",
-    "import net.minecraft.item.Item;\nimport net.minecraft.item.ItemStack;\nimport net.minecraft.item.Items;\n",
+    "import net.minecraft.enchantment.EnchantmentHelper;\nimport net.minecraft.item.Item;\nimport net.minecraft.item.ItemStack;\nimport net.minecraft.item.Items;\n",
     "ArcherVillagers trade imports",
 )
 require_replace(
@@ -95,34 +94,46 @@ require_replace(
     "                new ItemStack(Items.EMERALD, emeralds),\n"
     "                maxUses, experience, 0.05F);\n"
     "    }\n\n"
+    "    private static TradeOffers.Factory sell(Item item, int emeralds, int count, int maxUses, int experience) {\n"
+    "        return sell(item, emeralds, count, maxUses, experience, 0.05F);\n"
+    "    }\n\n"
+    "    private static TradeOffers.Factory sell(Item item, int emeralds, int count, int maxUses, int experience, float multiplier) {\n"
+    "        return (entity, random) -> new TradeOffer(\n"
+    "                new ItemStack(Items.EMERALD, emeralds),\n"
+    "                new ItemStack(item, count),\n"
+    "                maxUses, experience, multiplier);\n"
+    "    }\n\n"
+    "    private static TradeOffers.Factory sellEnchanted(Item item, int baseEmeralds, int maxUses, int experience, float multiplier) {\n"
+    "        return (entity, random) -> {\n"
+    "            int level = 5 + random.nextInt(15);\n"
+    "            ItemStack enchanted = EnchantmentHelper.enchant(random, new ItemStack(item), level, false);\n"
+    "            int emeralds = Math.min(baseEmeralds + level, 64);\n"
+    "            return new TradeOffer(new ItemStack(Items.EMERALD, emeralds), enchanted, maxUses, experience, multiplier);\n"
+    "        };\n"
+    "    }\n\n"
     "    public static void registerVillagers() {\n",
-    "ArcherVillagers target-native buy factory",
+    "ArcherVillagers target-native factories",
 )
-require_replace(
-    villagers,
-    "new TradeOffers.SellItemFactory(Items.ARROW, 2, 8, 128, 3, 0.01f)",
-    "new TradeOffers.SellItemFactory(new ItemStack(Items.ARROW), 2, 8, 128, 3, 0.01f)",
-    "ArcherVillagers arrow sell multiplier",
-)
-require_replace(
-    villagers,
-    "new TradeOffers.BuyItemFactory(Items.LEATHER, 8, 12, 6, 5)",
-    "buyForEmeralds(Items.LEATHER, 8, 12, 6, 5)",
-    "ArcherVillagers leather buy",
-)
-require_replace(
-    villagers,
-    "new TradeOffers.BuyItemFactory(Items.STRING, 6, 12, 8, 3)",
-    "buyForEmeralds(Items.STRING, 6, 12, 8, 3)",
-    "ArcherVillagers string buy",
-)
-require_replace(
-    villagers,
-    "new TradeOffers.BuyItemFactory(Items.REDSTONE, 12, 12, 5, 8)",
-    "buyForEmeralds(Items.REDSTONE, 12, 12, 5, 8)",
-    "ArcherVillagers redstone buy",
-)
+
+trade_rewrites = [
+    ("new TradeOffers.SellItemFactory(Items.ARROW, 2, 8, 128, 3, 0.01f)", "sell(Items.ARROW, 2, 8, 128, 3, 0.01F)", "arrow sell"),
+    ("new TradeOffers.BuyItemFactory(Items.LEATHER, 8, 12, 6, 5)", "buyForEmeralds(Items.LEATHER, 8, 12, 6, 5)", "leather buy"),
+    ("new TradeOffers.SellItemFactory(ArcherWeapons.composite_longbow.item(), 6, 1, 16)", "sell(ArcherWeapons.composite_longbow.item(), 6, 1, 1, 16)", "composite longbow sell"),
+    ("new TradeOffers.SellItemFactory(ArcherArmors.archerArmorSet_T1.head, 15, 1, 18)", "sell(ArcherArmors.archerArmorSet_T1.head, 15, 1, 1, 18)", "archer hood sell"),
+    ("new TradeOffers.BuyItemFactory(Items.STRING, 6, 12, 8, 3)", "buyForEmeralds(Items.STRING, 6, 12, 8, 3)", "string buy"),
+    ("new TradeOffers.SellItemFactory(ArcherArmors.archerArmorSet_T1.feet, 15, 1, 18)", "sell(ArcherArmors.archerArmorSet_T1.feet, 15, 1, 1, 18)", "archer boots sell"),
+    ("new TradeOffers.BuyItemFactory(Items.REDSTONE, 12, 12, 5, 8)", "buyForEmeralds(Items.REDSTONE, 12, 12, 5, 8)", "redstone buy"),
+    ("new TradeOffers.SellItemFactory(ArcherArmors.archerArmorSet_T1.legs, 15, 1, 18)", "sell(ArcherArmors.archerArmorSet_T1.legs, 15, 1, 1, 18)", "archer leggings sell"),
+    ("new TradeOffers.SellItemFactory(ArcherArmors.archerArmorSet_T1.chest, 15, 1, 18)", "sell(ArcherArmors.archerArmorSet_T1.chest, 15, 1, 1, 18)", "archer tunic sell"),
+    ("new TradeOffers.SellItemFactory(Items.TURTLE_SCUTE, 20, 12, 10)", "sell(Items.SCUTE, 20, 1, 12, 10)", "scute sell"),
+    ("(entity, random) -> new TradeOffers.SellEnchantedToolFactory(\n                        ArcherWeapons.royal_longbow.item(), 40, 3, 30, 0F).create(entity, random)", "sellEnchanted(ArcherWeapons.royal_longbow.item(), 40, 3, 30, 0F)", "royal longbow enchanted sell"),
+    ("(entity, random) -> new TradeOffers.SellEnchantedToolFactory(\n                        ArcherWeapons.mechanic_shortbow.item(), 40, 3, 30, 0F).create(entity, random)", "sellEnchanted(ArcherWeapons.mechanic_shortbow.item(), 40, 3, 30, 0F)", "mechanic shortbow enchanted sell"),
+    ("(entity, random) -> new TradeOffers.SellEnchantedToolFactory(\n                        ArcherWeapons.rapid_crossbow.item(), 40, 3, 30, 0F).create(entity, random)", "sellEnchanted(ArcherWeapons.rapid_crossbow.item(), 40, 3, 30, 0F)", "rapid crossbow enchanted sell"),
+    ("(entity, random) -> new TradeOffers.SellEnchantedToolFactory(\n                        ArcherWeapons.heavy_crossbow.item(), 40, 3, 30, 0F).create(entity, random)", "sellEnchanted(ArcherWeapons.heavy_crossbow.item(), 40, 3, 30, 0F)", "heavy crossbow enchanted sell"),
+]
+for old, new, label in trade_rewrites:
+    require_replace(villagers, old, new, f"ArcherVillagers {label}")
 
 print("[Archers API transforms] workbench note instrument: NoteBlockInstrument.BASS -> Instrument.BASS")
 print("[Archers API transforms] workbench + auto-fire-hook tooltips: current text on native 1.20.1 callbacks")
-print("[Archers API transforms] villager trades: current counts/maxUses/xp/emerald payouts preserved on 1.20.1")
+print("[Archers API transforms] villager trades: full 3.1.1 buy/sell/enchant economy preserved with target-native factories")
