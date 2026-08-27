@@ -74,6 +74,35 @@ if marker in text:
 elif "Published local.target:${spec.artifact}:${spec.version}" not in text:
     raise SystemExit("target artifact logger marker not found")
 
+# The production access verifier must resolve Forge-injected members from the same
+# patched/mapped Minecraft jar that compileJava actually used. The vanilla SRG jar
+# cannot know captureBlockSnapshots, Forge capability hooks, or Forge BakedModel APIs.
+visibility_needle = """                File forgeUniversalJar = new File(gradle.gradleUserHomeDir,
+                        \"caches/forge_gradle/maven_downloader/net/minecraftforge/forge/${forge_minecraft_version}-${forge_version}/forge-${forge_minecraft_version}-${forge_version}-universal.jar\")
+                List<File> minecraftVisibilityClasspath = [minecraftSrgJar]
+                if (forgeBinpatchedJar.isFile()) {
+                    minecraftVisibilityClasspath.add(forgeBinpatchedJar)
+                }
+"""
+visibility_replacement = """                File forgeUniversalJar = new File(gradle.gradleUserHomeDir,
+                        \"caches/forge_gradle/maven_downloader/net/minecraftforge/forge/${forge_minecraft_version}-${forge_version}/forge-${forge_minecraft_version}-${forge_version}-universal.jar\")
+                File forgeMappedMinecraftJar = layout.buildDirectory.file(
+                        \"fg_cache/net/minecraftforge/forge/${forge_minecraft_version}-${forge_version}_mapped_official_${forge_minecraft_version}/forge-${forge_minecraft_version}-${forge_version}_mapped_official_${forge_minecraft_version}.jar\").get().asFile
+                List<File> minecraftVisibilityClasspath = [minecraftSrgJar]
+                if (forgeMappedMinecraftJar.isFile()) {
+                    minecraftVisibilityClasspath.add(forgeMappedMinecraftJar)
+                } else {
+                    throw new GradleException(\"Missing Forge-patched mapped Minecraft jar required by production access audit: ${forgeMappedMinecraftJar}\")
+                }
+                if (forgeBinpatchedJar.isFile()) {
+                    minecraftVisibilityClasspath.add(forgeBinpatchedJar)
+                }
+"""
+if visibility_needle in text:
+    text = text.replace(visibility_needle, visibility_replacement, 1)
+elif "File forgeMappedMinecraftJar = layout.buildDirectory.file(" not in text:
+    raise SystemExit("production access verifier classpath marker not found")
+
 graph_marker = "ragdoll-port explicit refmap verification dependencies"
 if graph_marker not in text:
     text += """
@@ -120,4 +149,4 @@ elif "supertypes(owner).contains(\"java/lang/Enum\")" not in m:
     raise SystemExit("Rapier ABI resolver marker not found")
 mapper.write_text(m, encoding="utf-8")
 
-print("Sable Forge 1.20.1 patch applied: Forge 47.4.23, sequential Gradle, local Maven staging, refmap graph, strict Enum ABI inheritance")
+print("Sable Forge 1.20.1 patch applied: Forge 47.4.23, sequential Gradle, local Maven staging, refmap graph, strict Enum ABI inheritance, Forge-patched production access audit")
