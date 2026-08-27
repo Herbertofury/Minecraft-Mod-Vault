@@ -1,0 +1,33 @@
+name: Ragdoll LZ4 Dependency Bridge
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'sable-lz4-bridge/**'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'ragdoll-sable-lz4-bridge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download and verify exact Sable LZ4 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          curl -fL --retry 4 --retry-delay 2 \
+            -o export/lz4-java-1.11.0.jar \
+            'https://repo1.maven.org/maven2/at/yawk/lz4/lz4-java/1.11.0/lz4-java-1.11.0.jar'
+          echo '535c5578cab5dcd0a438e202df80091632b873c0370c25d9b1c1ad1d73577207  export/lz4-java-1.11.0.jar' | sha256sum -c -
+          sha256sum export/lz4-java-1.11.0.jar > export/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sable-lz4-java-1.11.0
+          path: export
+          if-no-files-found: error
+          retention-days: 1
