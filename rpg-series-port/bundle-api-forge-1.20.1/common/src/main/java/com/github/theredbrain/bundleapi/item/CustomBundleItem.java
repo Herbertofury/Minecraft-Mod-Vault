@@ -2,7 +2,9 @@ package com.github.theredbrain.bundleapi.item;
 
 import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
+import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import net.minecraft.client.item.TooltipContext;
+import net.minecraft.client.item.TooltipData;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -27,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 /** Bundle API 1.1.0 item semantics adapted from 1.21 data components to 1.20.1 NBT. */
 public class CustomBundleItem extends Item {
@@ -74,6 +77,11 @@ public class CustomBundleItem extends Item {
             return item.contents(stack).getOccupancy().floatValue();
         }
         return BundleAPI.getContents(stack).getOccupancy().floatValue();
+    }
+
+    @Override
+    public Optional<TooltipData> getTooltipData(ItemStack stack) {
+        return Optional.of(new CustomBundleTooltipData(contents(stack)));
     }
 
     @Override
