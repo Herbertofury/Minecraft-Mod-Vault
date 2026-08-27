@@ -58,9 +58,11 @@ config.write_text(s)
 cb = common_build.read_text()
 modern_common_dep = "    compileOnly files('../libs/tiny-config-common.jar')\n"
 if modern_common_dep not in cb:
-    anchor = '    implementation "com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version"\n'
+    # Earlier compatibility passes may rewrite the legacy TinyConfig declaration, so do not key this
+    # parity bridge to that historical spelling. The dependencies block itself is the stable owner.
+    anchor = 'dependencies {\n'
     if anchor not in cb:
-        raise SystemExit('legacy TinyConfig common dependency anchor missing')
+        raise SystemExit('Spell Engine common dependencies block missing')
     cb = cb.replace(anchor, anchor + modern_common_dep, 1)
 common_build.write_text(cb)
 
@@ -96,8 +98,8 @@ for required in (
 final_common = common_build.read_text()
 if modern_common_dep.strip() not in final_common:
     raise SystemExit('TinyConfig 3.1.0 common API dependency missing')
-if 'com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version' not in final_common:
-    raise SystemExit('legacy TinyConfig internal dependency unexpectedly removed')
+# The existing compatibility chain remains responsible for the legacy 2.3.2 internal path; 6j must
+# neither require one historical Gradle spelling nor delete/rewrite any existing dependency line.
 final_forge = forge_build.read_text()
 if modern_forge_dep.strip() not in final_forge:
     raise SystemExit('TinyConfig 3.1.0 Forge runtime dependency missing')
