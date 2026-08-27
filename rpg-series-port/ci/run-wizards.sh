@@ -7,6 +7,7 @@ WORK="${RUNNER_TEMP:-/tmp}/wizards-port"
 BASE_SHA=395ade75b50067c19f9b57a84c409bf962e09224
 TARGET_SHA=82fd3a0f48366e6e406b4e7ca4b6d827a3793fb9
 ARMOR_SHA=a664155a0aab3161cd7e4bf0c1f72512b4ec4949
+TINY_SHA=e20fc8ac72fde8274f0df72de2ebb81ffe6f8727
 
 rm -rf "$WORK" "$GEN"
 mkdir -p "$WORK"
@@ -20,11 +21,12 @@ clone_exact() {
   test "$(git -C "$dst" rev-parse HEAD)" = "$sha"
 }
 
-echo '[Wizards] Fetching exact two-pin source and Armor Model API source in parallel'
+echo '[Wizards] Fetching exact Wizards pins + Armor Model API + TinyConfig 3.1.0 in parallel'
 clone_exact ZsoltMolnarrr/Wizards "$BASE_SHA" "$WORK/wizards-base" & p1=$!
 clone_exact ZsoltMolnarrr/Wizards "$TARGET_SHA" "$WORK/wizards-target" & p2=$!
 clone_exact FabricExtras/ArmorModelAPI "$ARMOR_SHA" "$WORK/armor-target" & p3=$!
-wait "$p1" "$p2" "$p3"
+clone_exact ZsoltMolnarrr/TinyConfig "$TINY_SHA" "$WORK/tiny-config-target" & p4=$!
+wait "$p1" "$p2" "$p3" "$p4"
 
 # Downstream port iterations need the exact graduated Spell Engine artifact and named common JAR,
 # not another replay of its already-sealed headless client acceptance suite. This helper uses the
@@ -42,6 +44,10 @@ echo '[Wizards] Reconstructing/building graduated Armor Model API foundation wit
 ARMOR="$ROOT/rpg-series-port/armor-model-api-forge-1.20.1"
 python3 "$ARMOR/tools/prepare_port.py" "$WORK/armor-target" "$ARMOR/generated"
 gradle --no-daemon --stacktrace -p "$ARMOR/generated" :forge:remapJar
+
+echo '[Wizards] Building exact TinyConfig 3.1.0 API as a separate native Forge 1.20.1 foundation'
+TINY="$ROOT/rpg-series-port/tiny-config-forge-1.20.1"
+bash "$ROOT/rpg-series-port/ci/build-tiny-config-foundation.sh" "$WORK/tiny-config-target"
 
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 SPELL_ENGINE_WORK="$ROOT/.spell-engine-build"
@@ -61,15 +67,18 @@ SPELL_ENGINE_COMMON="$(pick_jar "$SPELL_ENGINE_WORK/common/build/libs")"
 SPELL_ENGINE_FORGE="$SPELL_ENGINE_PORT/spell_engine-forge-1.10.2+1.20.1.jar"
 ARMOR_COMMON="$(pick_jar "$ARMOR/generated/common/build/libs")"
 ARMOR_FORGE="$(pick_jar "$ARMOR/generated/forge/build/libs")"
+TINY_COMMON="$(pick_jar "$TINY/generated/common/build/libs")"
+TINY_FORGE="$(pick_jar "$TINY/generated/forge/build/libs")"
 for jar in "$STRUCTURE_COMMON" "$STRUCTURE_FORGE" "$RUNES_COMMON" "$RUNES_FORGE" \
            "$SPELL_POWER_COMMON" "$SPELL_POWER_FORGE" "$SPELL_ENGINE_COMMON" "$SPELL_ENGINE_FORGE" \
-           "$ARMOR_COMMON" "$ARMOR_FORGE"; do
+           "$ARMOR_COMMON" "$ARMOR_FORGE" "$TINY_COMMON" "$TINY_FORGE"; do
   test -n "$jar" && test -f "$jar"
   unzip -tq "$jar"
 done
 
 python3 "$PORT/tools/prepare_port.py" "$WORK/wizards-base" "$WORK/wizards-target" "$GEN"
 python3 "$PORT/tools/compat_1_20_1.py" "$GEN"
+python3 "$PORT/tools/compat_tiny_config.py" "$GEN"
 mkdir -p "$GEN/libs"
 cp "$ARMOR_COMMON" "$GEN/libs/armor-model-api-common.jar"
 cp "$ARMOR_FORGE" "$GEN/libs/armor-model-api-forge.jar"
@@ -81,27 +90,36 @@ cp "$SPELL_POWER_COMMON" "$GEN/libs/spell-power-common.jar"
 cp "$SPELL_POWER_FORGE" "$GEN/libs/spell-power-forge.jar"
 cp "$SPELL_ENGINE_COMMON" "$GEN/libs/spell-engine-common.jar"
 cp "$SPELL_ENGINE_FORGE" "$GEN/libs/spell-engine-forge.jar"
+cp "$TINY_COMMON" "$GEN/libs/tiny-config-common.jar"
+cp "$TINY_FORGE" "$GEN/libs/tiny-config-forge.jar"
 
 # Deterministic lane hygiene before expensive compile.
 grep -F "substrate=$BASE_SHA" "$GEN/PORT-PINS.txt"
 grep -F "target=$TARGET_SHA" "$GEN/PORT-PINS.txt"
 grep -F 'architectury_loom=1.7.435' "$GEN/PORT-PINS.txt"
 grep -F 'architectury_plugin=3.4.164' "$GEN/PORT-PINS.txt"
+grep -F 'tiny_config_version=3.1.0+1.20.1' "$GEN/gradle.properties"
 test ! -d "$GEN/fabric"
 test ! -d "$GEN/neoforge"
 test -f "$GEN/forge/src/main/java/net/wizards/forge/ForgeMod.java"
 test -f "$GEN/forge/src/main/java/net/wizards/forge/client/ForgeClientMod.java"
 test -f "$GEN/forge/src/main/resources/META-INF/mods.toml"
+unzip -p "$TINY_FORGE" META-INF/mods.toml | grep -F 'modId="tiny_config"'
+grep -F 'modId="tiny_config"' "$GEN/forge/src/main/resources/META-INF/mods.toml"
 if grep -R -nE 'net\.neoforged|NeoForge\.' "$GEN/forge/src/main/java"; then
   echo '[Wizards] NeoForge loader symbol leaked into generated Forge source' >&2
   exit 2
 fi
-if grep -R -nE 'sourceSets.*(spell|runes|armor|structure)|srcDirs.*(spell|runes|armor|structure)' "$GEN/common/build.gradle" "$GEN/forge/build.gradle"; then
+if grep -R -nE 'sourceSets.*(spell|runes|armor|structure|tiny)|srcDirs.*(spell|runes|armor|structure|tiny)' "$GEN/common/build.gradle" "$GEN/forge/build.gradle"; then
   echo '[Wizards] dependency source injection detected' >&2
   exit 2
 fi
+if grep -R -n 'maven.modrinth:tiny-config' "$GEN/common/build.gradle" "$GEN/forge/build.gradle"; then
+  echo '[Wizards] unresolved external TinyConfig coordinate survived local foundation staging' >&2
+  exit 2
+fi
 
-echo '[Wizards] Compiling current 3.1.1 behavior/content against Minecraft 1.20.1 + graduated real-JAR foundations'
+echo '[Wizards] Compiling current 3.1.1 behavior/content against Minecraft 1.20.1 + real separate foundation JARs'
 gradle --no-daemon --stacktrace -p "$GEN" :common:compileJava :forge:compileJava
 
 echo '[Wizards] Initial compile layer green; probing remapped release package'
@@ -111,7 +129,7 @@ test -f "$JAR"
 unzip -tq "$JAR"
 unzip -p "$JAR" META-INF/mods.toml | grep -F 'modId="wizards"'
 unzip -p "$JAR" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'MixinConfigs: wizards.mixins.json'
-for prefix in 'net/spell_engine/' 'net/spell_power/' 'net/rpg_series/runes/' 'net/rpg_foundation/armor_api/' 'net/fabric_extras/structure_pool/'; do
+for prefix in 'net/spell_engine/' 'net/spell_power/' 'net/rpg_series/runes/' 'net/rpg_foundation/armor_api/' 'net/fabric_extras/structure_pool/' 'net/tiny_config/'; do
   if unzip -Z1 "$JAR" | grep -q "^$prefix"; then
     echo "[Wizards] ERROR: packaged foundation classes leaked under $prefix" >&2
     exit 3
