@@ -47,7 +47,14 @@ jobs:
             done
           done
 
-          (cd export && sha256sum lz4-java-1.11.0.jar Veil-forge-1.20.1-1.0.0.296-slim.jar Veil-forge-1.20.1-1.0.0.296.jar Veil-forge-1.20.1-1.0.0.296.pom mixinextras-common-0.5.3.jar mixinextras-common-0.5.3.pom mixinextras-forge-0.5.3.jar mixinextras-forge-0.5.3.pom > SHA256SUMS.txt)
+          sponge='https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5'
+          curl -fL --retry 4 --retry-delay 2 -o export/mixin-0.8.5-processor.jar "$sponge/mixin-0.8.5-processor.jar"
+          curl -fL --retry 4 --retry-delay 2 -o export/mixin-0.8.5-processor.jar.sha1 "$sponge/mixin-0.8.5-processor.jar.sha1"
+          expected_sha1="$(tr -d '[:space:]' < export/mixin-0.8.5-processor.jar.sha1)"
+          actual_sha1="$(sha1sum export/mixin-0.8.5-processor.jar | awk '{print $1}')"
+          test "$actual_sha1" = "$expected_sha1"
+
+          (cd export && sha256sum lz4-java-1.11.0.jar Veil-forge-1.20.1-1.0.0.296-slim.jar Veil-forge-1.20.1-1.0.0.296.jar Veil-forge-1.20.1-1.0.0.296.pom mixinextras-common-0.5.3.jar mixinextras-common-0.5.3.pom mixinextras-forge-0.5.3.jar mixinextras-forge-0.5.3.pom mixin-0.8.5-processor.jar > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
           name: sable-forge-dependencies
