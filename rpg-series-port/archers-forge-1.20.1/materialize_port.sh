@@ -18,15 +18,13 @@ cp -a "$CURRENT/common/src/main/java/." "$GENERATED/common/java/"
 if [[ -d "$CURRENT/common/src/main/resources" ]]; then
   cp -a "$CURRENT/common/src/main/resources/." "$GENERATED/common/resources/"
 fi
-# Current upstream keeps generated assets/data in common/src/main/generated; merge those into resources.
 if [[ -d "$CURRENT/common/src/main/generated" ]]; then
   cp -a "$CURRENT/common/src/main/generated/." "$GENERATED/common/resources/"
 fi
-# Preserve exact loader and historical mapping references outside compiled source roots.
 cp -a "$CURRENT/neoforge/src/main/." "$GENERATED/reference/current-neoforge/"
 cp -a "$LEGACY/src/main/." "$GENERATED/reference/legacy-1.20.1/"
 
-python3 "$ROOT/apply_1201_transforms.py" "$GENERATED/common/java"
+python3 "$ROOT/apply_1201_transforms.py" "$GENERATED/common/java" "$GENERATED/common/resources"
 
 (
   cd "$GENERATED"
