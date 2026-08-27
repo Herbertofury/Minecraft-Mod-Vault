@@ -373,7 +373,7 @@ armors.write_text(text)
 # ---------------------------------------------------------------------------
 guards = {
     effects_rel: ['getIdAsString()', 'ADD_MULTIPLIED_BASE', 'GENERIC_JUMP_STRENGTH'],
-    summons_rel: ['getIdAsString()', 'ADD_VALUE'],
+    summons_rel: ['getIdAsString()', 'EntityAttributeModifier.Operation.ADD_VALUE'],
     villagers_rel: ['BuyItemFactory'],
     entities_rel: ['.dimensions('],
     armors_rel: ['Registries.ARMOR_MATERIAL', 'new ArmorMaterial('],
