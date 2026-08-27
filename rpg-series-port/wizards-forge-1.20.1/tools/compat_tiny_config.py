@@ -39,7 +39,8 @@ elif new not in s:
 # Spell Engine is intentionally supplied as a local Forge mod JAR. Packaged Forge expands that mod's
 # META-INF/jars dependencies, but downstream Architectury Loom dev launches do not reliably recreate
 # the nested runtime classpath for files(...). Recreate only that dev-runtime visibility from the exact
-# local Spell Engine release bytes. This directory is runtimeOnly and never enters shadowBundle/remapJar.
+# local Spell Engine release bytes. MixinExtras remains a runtime mod so its own JIJ metadata activates;
+# legacy TinyConfig is a Forge runtime library so its classes are visible across mod module classloaders.
 marker = '// LOCAL_SPELL_ENGINE_JIJ_DEV_RUNTIME_BRIDGE'
 if marker not in s:
     bridge = r'''
@@ -78,15 +79,20 @@ def stageSpellEngineNestedRuntime = tasks.register('stageSpellEngineNestedRuntim
         if (!operationVisible) {
             throw new GradleException("Spell Engine nested MixinExtras runtime missing ${operationPath}")
         }
-        if (fileTree(spellEngineDevRuntime).matching { include '*TinyConfig-2.3.2.jar' }.isEmpty()) {
-            throw new GradleException('Spell Engine nested TinyConfig-2.3.2.jar was not staged')
+        def legacyTinyConfig = file("${spellEngineDevRuntime}/TinyConfig-2.3.2.jar")
+        def legacyConfigManager = 'net/tinyconfig/ConfigManager.class'
+        if (!legacyTinyConfig.exists() || zipTree(legacyTinyConfig).matching { include legacyConfigManager }.isEmpty()) {
+            throw new GradleException("Spell Engine nested TinyConfig 2.3.2 missing ${legacyConfigManager}")
         }
-        println '[Wizards] Spell Engine local JIJ dev-runtime gate green: MixinExtras Operation + TinyConfig 2.3.2 staged from exact release bytes.'
+        println '[Wizards] Spell Engine local JIJ dev-runtime gate green: MixinExtras Operation + legacy TinyConfig ConfigManager staged from exact release bytes.'
     }
 }
 
 dependencies {
-    runtimeOnly fileTree(dir: '../libs/dev-runtime', include: ['*.jar'])
+    // Keep the Forge wrapper as a runtime mod; Forge then activates its nested MixinExtras service JAR.
+    runtimeOnly fileTree(dir: '../libs/dev-runtime', include: ['mixinextras-forge-*.jar'])
+    // TinyConfig 2.3.2 is an implementation library used by Spell Power/Spell Engine, not a downstream mod.
+    forgeRuntimeLibrary files('../libs/dev-runtime/TinyConfig-2.3.2.jar')
 }
 
 tasks.matching { it.name in ['runServer', 'runClient'] }.configureEach {
@@ -109,20 +115,22 @@ if 'modId="tiny_config"' not in s:
 final_forge = forge.read_text()
 for required in (
     '// LOCAL_SPELL_ENGINE_JIJ_DEV_RUNTIME_BRIDGE',
-    "runtimeOnly fileTree(dir: '../libs/dev-runtime', include: ['*.jar'])",
+    "runtimeOnly fileTree(dir: '../libs/dev-runtime', include: ['mixinextras-forge-*.jar'])",
+    "forgeRuntimeLibrary files('../libs/dev-runtime/TinyConfig-2.3.2.jar')",
     "tasks.matching { it.name in ['runServer', 'runClient'] }",
     'stageSpellEngineNestedRuntime',
     'com/llamalad7/mixinextras/injector/wrapoperation/Operation.class',
-    '*TinyConfig-2.3.2.jar',
+    'net/tinyconfig/ConfigManager.class',
 ):
     if required not in final_forge:
         raise SystemExit(f'Wizards local Spell Engine JIJ bridge missing: {required}')
 for forbidden in (
+    "runtimeOnly fileTree(dir: '../libs/dev-runtime', include: ['*.jar'])",
     'com.github.ZsoltMolnarrr:TinyConfig:2.3.2',
     'mixinextras-forge:$rootProject.mixinextras_version',
     'forgeRuntimeLibrary spellEngineTinyConfig',
 ):
     if forbidden in final_forge:
-        raise SystemExit(f'unresolvable/redundant Maven dev-runtime bridge survived: {forbidden}')
+        raise SystemExit(f'unresolvable/redundant dev-runtime bridge survived: {forbidden}')
 
-print('Wizards TinyConfig compatibility layer applied: TinyConfig 3.1.0 foundation + local Spell Engine JIJ dev-runtime parity')
+print('Wizards TinyConfig compatibility layer applied: TinyConfig 3.1.0 foundation + classloader-correct local Spell Engine JIJ dev-runtime parity')
