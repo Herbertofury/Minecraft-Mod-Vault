@@ -48,7 +48,7 @@ for rel in project.get('source_files', []):
             found.append(record)
 
 if unknown:
-    print('[dependency-audit] unclassified dependency — investigate/download/convert before continuing', file=sys.stderr)
+    print('[dependency-audit] unclassified dependency - investigate/download/convert before continuing', file=sys.stderr)
     for item in unknown:
         print(f"  {item['file']}:{item['line']}: {item['coordinate']}", file=sys.stderr)
     raise SystemExit(2)
@@ -57,3 +57,46 @@ seen_ids = sorted({item['id'] for item in found})
 print(f'[dependency-audit] {project_key}: {len(found)} declarations classified; ids={",".join(seen_ids)}')
 for item in found:
     print(f"  {item['id']}: {item['coordinate']} -> {item['status']}")
+
+# Soft/runtime integrations are not Gradle dependencies, but they can still hide a
+# compatibility obligation. Scan exact current source for Platform.util().isModLoaded(...)
+# calls and require every discovered mod id to be classified in the same ledger.
+optional_entries = {entry['id']: entry for entry in project.get('optional_integrations', [])}
+optional_found = []
+optional_unknown = []
+constant_pattern = re.compile(r'\b(?:private\s+)?static\s+final\s+String\s+([A-Z0-9_]+)\s*=\s*"([a-z0-9_.-]+)"\s*;')
+call_pattern = re.compile(r'\bisModLoaded\(\s*(?:"([a-z0-9_.-]+)"|([A-Z0-9_]+))\s*\)')
+
+for rel in project.get('optional_source_files', []):
+    path = source_root / rel
+    if not path.is_file():
+        raise SystemExit(f'dependency audit optional source file missing: {path}')
+    text = path.read_text()
+    constants = {name: value for name, value in constant_pattern.findall(text)}
+    for match in call_pattern.finditer(text):
+        mod_id = match.group(1) or constants.get(match.group(2))
+        line_no = text.count('\n', 0, match.start()) + 1
+        if not mod_id:
+            optional_unknown.append({'file': rel, 'line': line_no, 'expression': match.group(0)})
+            continue
+        entry = optional_entries.get(mod_id)
+        record = {'file': rel, 'line': line_no, 'id': mod_id}
+        if entry is None:
+            optional_unknown.append(record)
+        else:
+            record['status'] = entry['status']
+            record['user_download_required'] = bool(entry.get('user_download_required', False))
+            optional_found.append(record)
+
+if optional_unknown:
+    print('[dependency-audit] unclassified optional runtime integration - investigate/download/convert before continuing', file=sys.stderr)
+    for item in optional_unknown:
+        detail = item.get('id') or item.get('expression')
+        print(f"  {item['file']}:{item['line']}: {detail}", file=sys.stderr)
+    raise SystemExit(3)
+
+optional_ids = sorted({item['id'] for item in optional_found})
+print(f'[dependency-audit] {project_key}: {len(optional_found)} optional runtime checks classified; ids={",".join(optional_ids)}')
+for mod_id in optional_ids:
+    entry = optional_entries[mod_id]
+    print(f"  optional {mod_id}: {entry['status']}; user_download_required={str(bool(entry.get('user_download_required', False))).lower()}")
