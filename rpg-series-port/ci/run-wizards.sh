@@ -79,6 +79,14 @@ for jar in "$STRUCTURE_COMMON" "$STRUCTURE_FORGE" "$RUNES_COMMON" "$RUNES_FORGE"
   unzip -tq "$jar"
 done
 
+# Runes is a graduated runtime foundation. Its mixin class, exact config resource and manifest
+# declaration must ship together; a compile-only success is not sufficient for downstream mods.
+unzip -p "$RUNES_FORGE" runes.mixins.json | grep -F '"package": "net.runes.mixin"' >/dev/null
+unzip -p "$RUNES_FORGE" runes.mixins.json | grep -F '"PlayerEntityMixin"' >/dev/null
+unzip -Z1 "$RUNES_FORGE" | grep -F 'net/runes/mixin/PlayerEntityMixin.class' >/dev/null
+unzip -p "$RUNES_FORGE" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'MixinConfigs: runes.mixins.json' >/dev/null
+echo '[Wizards] Runes runtime package gate green: mixin class/config/manifest are self-consistent.'
+
 python3 "$PORT/tools/prepare_port.py" "$WORK/wizards-base" "$WORK/wizards-target" "$GEN"
 python3 "$PORT/tools/compat_1_20_1.py" "$GEN"
 python3 "$PORT/tools/compat_api_1_20_1.py" "$GEN"
