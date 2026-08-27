@@ -25,13 +25,16 @@ JAR="$(pick_jar "$GEN/forge/build/libs")"
 FIRST_JAR_SHA="$(sha256sum "$JAR" | awk '{print $1}')"
 printf '%s  %s\n' "$FIRST_JAR_SHA" "$JAR" | tee "$PORT/wizards-first-build.sha256"
 
-# Every class in the release must target Java 17 (class-file major 61), not just one representative class.
+# Wizards-owned classes must target Java 17 exactly. Architectury may inject helper bytecode
+# compiled for an older Java release, which is valid on Java 17; reject anything newer than 17.
 python3 - "$JAR" <<'PY'
 from pathlib import Path
 import struct, sys, zipfile
 jar = Path(sys.argv[1])
-bad = []
-count = 0
+invalid = []
+newer_than_java17 = []
+wizards_not_java17 = []
+count = owned = 0
 with zipfile.ZipFile(jar) as zf:
     for name in zf.namelist():
         if not name.endswith('.class'):
@@ -39,16 +42,24 @@ with zipfile.ZipFile(jar) as zf:
         data = zf.read(name)
         count += 1
         if len(data) < 8 or data[:4] != b'\xca\xfe\xba\xbe':
-            bad.append((name, 'invalid-class-header'))
+            invalid.append(name)
             continue
         major = struct.unpack('>H', data[6:8])[0]
-        if major != 61:
-            bad.append((name, major))
-if count == 0:
-    raise SystemExit('[Wizards] release JAR contains no class files')
-if bad:
-    raise SystemExit('[Wizards] non-Java-17 class files: ' + ', '.join(f'{n}={m}' for n,m in bad[:30]))
-print(f'[Wizards] Java 17 bytecode gate passed for all {count} release classes (major 61).')
+        if major > 61:
+            newer_than_java17.append((name, major))
+        if name.startswith('net/wizards/'):
+            owned += 1
+            if major != 61:
+                wizards_not_java17.append((name, major))
+if count == 0 or owned == 0:
+    raise SystemExit(f'[Wizards] invalid release class inventory: total={count}, owned={owned}')
+if invalid:
+    raise SystemExit('[Wizards] invalid class headers: ' + ', '.join(invalid[:30]))
+if newer_than_java17:
+    raise SystemExit('[Wizards] classes newer than Java 17: ' + ', '.join(f'{n}={m}' for n,m in newer_than_java17[:30]))
+if wizards_not_java17:
+    raise SystemExit('[Wizards] Wizards-owned classes not Java 17 major 61: ' + ', '.join(f'{n}={m}' for n,m in wizards_not_java17[:30]))
+print(f'[Wizards] Java gate passed: {owned} Wizards-owned classes are major 61; all {count} packaged classes are Java-17-compatible (major <= 61).')
 PY
 
 # Current 3.1.1 entity animation/model sources must survive reconstruction; parse every generated JSON resource.
