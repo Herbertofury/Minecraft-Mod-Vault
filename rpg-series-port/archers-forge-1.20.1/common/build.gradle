@@ -2,32 +2,50 @@ architectury {
     common 'forge'
 }
 
-String requiredJar(String propertyName) {
+String requiredProperty(String propertyName) {
     def value = providers.gradleProperty(propertyName).orNull
     if (value == null || value.trim().isEmpty()) {
-        throw new GradleException("Missing -P${propertyName}=/absolute/path/to/packaged-mod.jar")
+        throw new GradleException("Missing -P${propertyName}=...")
     }
-    def file = rootProject.file(value)
-    if (!file.isFile()) {
-        throw new GradleException("${propertyName} does not exist: ${file}")
-    }
-    return file.absolutePath
+    return value.trim()
+}
+
+def abiRepo = rootProject.file(requiredProperty('archers_abi_repo'))
+def abiVersion = requiredProperty('archers_abi_version')
+if (!abiRepo.isDirectory()) {
+    throw new GradleException("archers_abi_repo does not exist: ${abiRepo}")
+}
+
+repositories {
+    // CI materializes the exact packaged Forge JARs into this commit-keyed Maven repo.
+    // Declaring them as mod dependencies makes Loom remap their Mojmap/SRG signatures
+    // into this common project's Yarn named namespace before javac sees them.
+    maven { url = abiRepo.toURI() }
 }
 
 def externalMods = [
-    requiredJar('bundle_api_jar'),
-    requiredJar('armor_model_api_jar'),
-    requiredJar('ranged_weapon_api_jar'),
-    requiredJar('structure_pool_api_jar'),
-    requiredJar('spell_power_jar'),
-    requiredJar('spell_engine_jar'),
-    requiredJar('tiny_config_jar'),
-    requiredJar('cloth_config_jar'),
-    requiredJar('player_animator_jar')
+    'bundle-api',
+    'armor-model-api',
+    'ranged-weapon-api',
+    'structure-pool-api',
+    'spell-power',
+    'spell-engine',
+    'tiny-config',
+    'cloth-config',
+    'player-animator'
 ]
 
 dependencies {
-    externalMods.each { modImplementation files(it) }
+    externalMods.each { artifact ->
+        modCompileOnly("local.archersabi:${artifact}:${abiVersion}") { transitive = false }
+    }
+
+    // Current Archers common source intentionally carries loader annotations and Sponge mixins.
+    // These are compile-time only here; the native Forge runtime supplies Mixin itself and no
+    // Fabric loader classes are packaged into Archers.
+    compileOnly 'net.fabricmc:fabric-loader:0.15.11'
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 def generatedJava = rootProject.file('generated/common/java')
