@@ -69,5 +69,60 @@ require_replace(
     "AutoFireHookItem 1.20.1 tooltip callback",
 )
 
+# 1.21 BuyItemFactory gained a configurable emerald payout. 1.20.1's built-in
+# BuyForOneEmeraldFactory cannot represent current Archers' 5/3/8 emerald payouts, so preserve
+# the exact current economy with an ordinary target-native TradeOffer factory. SellItemFactory's
+# 1.20.1 ItemStack overload retains the explicit 0.01 arrow price multiplier.
+villagers = java_root / "net/archers/village/ArcherVillagers.java"
+require_replace(
+    villagers,
+    "import net.minecraft.item.Items;\n",
+    "import net.minecraft.item.Item;\nimport net.minecraft.item.ItemStack;\nimport net.minecraft.item.Items;\n",
+    "ArcherVillagers trade imports",
+)
+require_replace(
+    villagers,
+    "import net.minecraft.village.TradeOffers;\n",
+    "import net.minecraft.village.TradeOffer;\nimport net.minecraft.village.TradeOffers;\n",
+    "ArcherVillagers TradeOffer import",
+)
+require_replace(
+    villagers,
+    "    public static void registerVillagers() {\n",
+    "    private static TradeOffers.Factory buyForEmeralds(Item item, int count, int maxUses, int experience, int emeralds) {\n"
+    "        return (entity, random) -> new TradeOffer(\n"
+    "                new ItemStack(item, count),\n"
+    "                new ItemStack(Items.EMERALD, emeralds),\n"
+    "                maxUses, experience, 0.05F);\n"
+    "    }\n\n"
+    "    public static void registerVillagers() {\n",
+    "ArcherVillagers target-native buy factory",
+)
+require_replace(
+    villagers,
+    "new TradeOffers.SellItemFactory(Items.ARROW, 2, 8, 128, 3, 0.01f)",
+    "new TradeOffers.SellItemFactory(new ItemStack(Items.ARROW), 2, 8, 128, 3, 0.01f)",
+    "ArcherVillagers arrow sell multiplier",
+)
+require_replace(
+    villagers,
+    "new TradeOffers.BuyItemFactory(Items.LEATHER, 8, 12, 6, 5)",
+    "buyForEmeralds(Items.LEATHER, 8, 12, 6, 5)",
+    "ArcherVillagers leather buy",
+)
+require_replace(
+    villagers,
+    "new TradeOffers.BuyItemFactory(Items.STRING, 6, 12, 8, 3)",
+    "buyForEmeralds(Items.STRING, 6, 12, 8, 3)",
+    "ArcherVillagers string buy",
+)
+require_replace(
+    villagers,
+    "new TradeOffers.BuyItemFactory(Items.REDSTONE, 12, 12, 5, 8)",
+    "buyForEmeralds(Items.REDSTONE, 12, 12, 5, 8)",
+    "ArcherVillagers redstone buy",
+)
+
 print("[Archers API transforms] workbench note instrument: NoteBlockInstrument.BASS -> Instrument.BASS")
 print("[Archers API transforms] workbench + auto-fire-hook tooltips: current text on native 1.20.1 callbacks")
+print("[Archers API transforms] villager trades: current counts/maxUses/xp/emerald payouts preserved on 1.20.1")
