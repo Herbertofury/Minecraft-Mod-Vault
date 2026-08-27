@@ -170,7 +170,7 @@ public class CustomBundleItem extends Item {
         CustomBundleContentsComponent contents = contents(entity.getStack());
         if (!contents.isEmpty()) {
             store(entity.getStack(), new CustomBundleContentsComponent.Builder(contents).clear().build());
-            ItemUsage.spawnItemContents(entity, contents.iterateCopy());
+            ItemUsage.spawnItemContents(entity, contents.stream());
         }
     }
 
