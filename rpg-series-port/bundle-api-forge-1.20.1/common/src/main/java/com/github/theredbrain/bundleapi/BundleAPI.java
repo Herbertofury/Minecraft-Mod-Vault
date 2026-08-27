@@ -35,12 +35,21 @@ public final class BundleAPI {
     }
 
     public static CustomBundleContentsComponent getContents(ItemStack owner) {
+        return getContents(owner, 1);
+    }
+
+    /**
+     * Reads current custom NBT, safely imports vanilla 1.20.1 bundle Items when
+     * custom data is absent, and otherwise supplies the owning item's configured
+     * capacity as the default. Reading never mutates the stack.
+     */
+    public static CustomBundleContentsComponent getContents(ItemStack owner, int defaultSizeMultiplier) {
+        int multiplier = Math.max(1, defaultSizeMultiplier);
         NbtCompound root = owner.getNbt();
         if (root == null) {
-            return CustomBundleContentsComponent.DEFAULT;
+            return new CustomBundleContentsComponent(multiplier);
         }
 
-        int multiplier = 1;
         NbtList encoded = null;
         if (root.contains(NBT_ROOT, NbtElement.COMPOUND_TYPE)) {
             NbtCompound api = root.getCompound(NBT_ROOT);
@@ -69,6 +78,11 @@ public final class BundleAPI {
         return builder.build();
     }
 
+    public static boolean hasCustomData(ItemStack owner) {
+        NbtCompound root = owner.getNbt();
+        return root != null && root.contains(NBT_ROOT, NbtElement.COMPOUND_TYPE);
+    }
+
     public static void setContents(ItemStack owner, CustomBundleContentsComponent contents) {
         NbtCompound root = owner.getOrCreateNbt();
         NbtCompound api = root.contains(NBT_ROOT, NbtElement.COMPOUND_TYPE)
@@ -86,7 +100,7 @@ public final class BundleAPI {
     }
 
     public static void initializeContents(ItemStack owner, int sizeMultiplier) {
-        CustomBundleContentsComponent existing = getContents(owner);
+        CustomBundleContentsComponent existing = getContents(owner, sizeMultiplier);
         setContents(owner, new CustomBundleContentsComponent.Builder(existing)
                 .size_multiplier(Math.max(1, sizeMultiplier))
                 .build());
