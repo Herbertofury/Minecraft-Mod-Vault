@@ -8,9 +8,18 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import org.apache.commons.lang3.math.Fraction;
 
 final class BundleAPISelfTest {
+    static final DeferredRegister<Item> TEST_ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, BundleAPI.MOD_ID);
+    static final RegistryObject<Item> TEST_NESTED_BUNDLE = TEST_ITEMS.register(
+            "self_test_nested_bundle",
+            () -> new CustomBundleItem(null, 1, new Item.Settings().maxCount(1))
+    );
+
     private BundleAPISelfTest() { }
 
     static void run() {
@@ -78,8 +87,7 @@ final class BundleAPISelfTest {
         hive.getOrCreateNbt().put("BlockEntityTag", blockEntity);
         require(CustomBundleContentsComponent.getOccupancy(hive, 12).equals(Fraction.ONE), "occupied beehive must consume full bundle occupancy");
 
-        CustomBundleItem nestedItem = new CustomBundleItem(null, 1, new Item.Settings().maxCount(1));
-        ItemStack nested = new ItemStack(nestedItem);
+        ItemStack nested = new ItemStack(TEST_NESTED_BUNDLE.get());
         CustomBundleContentsComponent.Builder nestedBuilder = CustomBundleContentsComponent.builder();
         nestedBuilder.add(new ItemStack(Items.ARROW, 1));
         BundleAPI.setContents(nested, nestedBuilder.build());
