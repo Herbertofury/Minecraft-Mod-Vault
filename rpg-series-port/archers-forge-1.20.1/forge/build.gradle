@@ -1,0 +1,58 @@
+plugins { id 'com.github.johnrengelman.shadow' }
+architectury { platformSetupLoomIde(); forge() }
+
+configurations {
+    common { canBeResolved = true; canBeConsumed = false }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+    shadowBundle { canBeResolved = true; canBeConsumed = false }
+}
+
+String optionalJar(String propertyName) {
+    def value = providers.gradleProperty(propertyName).orNull
+    if (value == null || value.trim().isEmpty()) return null
+    def file = rootProject.file(value)
+    if (!file.isFile()) throw new GradleException("${propertyName} does not exist: ${file}")
+    return file.absolutePath
+}
+
+dependencies {
+    forge "net.minecraftforge:forge:$rootProject.forge_version"
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle project(path: ':common', configuration: 'transformProductionForge')
+
+    def curios = optionalJar('curios_jar')
+    if (curios != null) modImplementation files(curios)
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'forge_version', rootProject.forge_version
+    inputs.property 'minecraft_version', rootProject.minecraft_version
+    inputs.property 'armor_model_api_version', rootProject.armor_model_api_version
+    inputs.property 'spell_engine_version', rootProject.spell_engine_version
+    inputs.property 'bundle_api_version', rootProject.bundle_api_version
+    inputs.property 'ranged_weapon_api_version', rootProject.ranged_weapon_api_version
+    filesMatching('META-INF/mods.toml') {
+        expand(
+            version: project.version,
+            forge_version: rootProject.forge_version,
+            minecraft_version: rootProject.minecraft_version,
+            armor_model_api_version: rootProject.armor_model_api_version,
+            spell_engine_version: rootProject.spell_engine_version,
+            bundle_api_version: rootProject.bundle_api_version,
+            ranged_weapon_api_version: rootProject.ranged_weapon_api_version
+        )
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = 'dev-shadow'
+}
+remapJar {
+    inputFile.set(shadowJar.archiveFile)
+    dependsOn(shadowJar)
+    archiveClassifier = ''
+}
