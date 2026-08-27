@@ -10,6 +10,69 @@ forge_java = root / 'forge/src/main/java/net/wizards/forge'
 client_dir = forge_java / 'client'
 client_dir.mkdir(parents=True, exist_ok=True)
 
+
+def replace_exact(path: Path, old: str, new: str, label: str) -> None:
+    if not path.is_file():
+        raise SystemExit(f'Wizards compatibility source missing for {label}: {path.relative_to(root)}')
+    text = path.read_text()
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'Wizards compatibility stale transform for {label}: expected 1 occurrence, found {count}')
+    path.write_text(text.replace(old, new, 1))
+
+
+# Forge 47 only opens the registry matching the active RegisterEvent. The current 3.1.1 NeoForge
+# entrypoint registers entities while the ITEM registry is active and registerItems() also touches the
+# ITEM_GROUP registry. NeoForge tolerates that path; Forge 47 correctly rejects it as a locked-registry
+# mutation. Split the common operations so every vanilla registry mutation runs in its own matching event.
+common_mod = root / 'common/src/main/java/net/wizards/WizardsMod.java'
+old_items = '''    public static void registerItems() {
+        Group.WIZARDS = new ItemGroup.Builder(ItemGroup.Row.TOP, 0)
+                .icon(() -> new ItemStack(WizardArmors.wizardRobeSet.head))
+                .displayName(Text.translatable("itemGroup.wizards.general"))
+                .build();
+        Registry.register(Registries.ITEM_GROUP, Group.KEY, Group.WIZARDS);
+        WizardBooks.register();
+        WizardWeapons.register(equipmentConfig.value.weapons);
+        WizardArmors.register(equipmentConfig.value.armor_sets);
+        equipmentConfig.save();
+    }
+'''
+new_items = '''    public static void registerItemGroup() {
+        Group.WIZARDS = new ItemGroup.Builder(ItemGroup.Row.TOP, 0)
+                .icon(() -> new ItemStack(WizardArmors.wizardRobeSet.head))
+                .displayName(Text.translatable("itemGroup.wizards.general"))
+                .build();
+        Registry.register(Registries.ITEM_GROUP, Group.KEY, Group.WIZARDS);
+    }
+
+    public static void registerItems() {
+        WizardBooks.register();
+        WizardWeapons.register(equipmentConfig.value.weapons);
+        WizardArmors.register(equipmentConfig.value.armor_sets);
+        equipmentConfig.save();
+    }
+'''
+replace_exact(common_mod, old_items, new_items, 'Forge registry phase split in WizardsMod.registerItems')
+
+forge_entry = forge_java / 'ForgeMod.java'
+old_registry_phase = '''        event.register(RegistryKeys.ITEM, reg -> {
+            WizardsMod.registerEntities();
+            WizardsMod.registerItems();
+        });
+'''
+new_registry_phase = '''        event.register(RegistryKeys.ENTITY_TYPE, reg -> {
+            WizardsMod.registerEntities();
+        });
+        event.register(RegistryKeys.ITEM, reg -> {
+            WizardsMod.registerItems();
+        });
+        event.register(RegistryKeys.ITEM_GROUP, reg -> {
+            WizardsMod.registerItemGroup();
+        });
+'''
+replace_exact(forge_entry, old_registry_phase, new_registry_phase, 'Forge ENTITY_TYPE/ITEM/ITEM_GROUP RegisterEvent split')
+
 old_client = client_dir / 'NeoForgeClientMod.java'
 new_client = client_dir / 'ForgeClientMod.java'
 if old_client.exists():
@@ -32,4 +95,4 @@ for path in (root / 'forge/src/main/java').rglob('*.java'):
 if leaks:
     raise SystemExit('NeoForge loader symbols survived Wizards Forge compatibility pass: ' + ', '.join(leaks))
 
-print('Wizards compatibility pass 1 applied: native Forge 47 client lifecycle/render/config wiring')
+print('Wizards compatibility pass 1 applied: Forge 47 registry-phase split + native client lifecycle/render/config wiring')
