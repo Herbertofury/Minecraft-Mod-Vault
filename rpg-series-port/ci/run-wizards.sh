@@ -7,7 +7,6 @@ WORK="${RUNNER_TEMP:-/tmp}/wizards-port"
 BASE_SHA=395ade75b50067c19f9b57a84c409bf962e09224
 TARGET_SHA=82fd3a0f48366e6e406b4e7ca4b6d827a3793fb9
 ARMOR_SHA=a664155a0aab3161cd7e4bf0c1f72512b4ec4949
-TINY_SHA=e20fc8ac72fde8274f0df72de2ebb81ffe6f8727
 
 rm -rf "$WORK" "$GEN"
 mkdir -p "$WORK"
@@ -21,12 +20,11 @@ clone_exact() {
   test "$(git -C "$dst" rev-parse HEAD)" = "$sha"
 }
 
-echo '[Wizards] Fetching exact Wizards pins + Armor Model API + TinyConfig 3.1.0 in parallel'
+echo '[Wizards] Fetching exact Wizards pins + Armor Model API in parallel'
 clone_exact ZsoltMolnarrr/Wizards "$BASE_SHA" "$WORK/wizards-base" & p1=$!
 clone_exact ZsoltMolnarrr/Wizards "$TARGET_SHA" "$WORK/wizards-target" & p2=$!
 clone_exact FabricExtras/ArmorModelAPI "$ARMOR_SHA" "$WORK/armor-target" & p3=$!
-clone_exact ZsoltMolnarrr/TinyConfig "$TINY_SHA" "$WORK/tiny-config-target" & p4=$!
-wait "$p1" "$p2" "$p3" "$p4"
+wait "$p1" "$p2" "$p3"
 
 echo '[Wizards] Auditing current upstream dependency declarations against the Forge 1.20.1 compatibility ledger'
 python3 "$ROOT/rpg-series-port/ci/audit-dependency-compat.py" \
@@ -48,9 +46,8 @@ ARMOR="$ROOT/rpg-series-port/armor-model-api-forge-1.20.1"
 python3 "$ARMOR/tools/prepare_port.py" "$WORK/armor-target" "$ARMOR/generated"
 gradle --no-daemon --stacktrace -p "$ARMOR/generated" :forge:remapJar
 
-echo '[Wizards] Building exact TinyConfig 3.1.0 API as a separate native Forge 1.20.1 foundation'
+echo '[Wizards] Reusing TinyConfig 3.1.0 foundation built with Spell Engine API parity'
 TINY="$ROOT/rpg-series-port/tiny-config-forge-1.20.1"
-bash "$ROOT/rpg-series-port/ci/build-tiny-config-foundation.sh" "$WORK/tiny-config-target"
 
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 SPELL_ENGINE_WORK="$ROOT/.spell-engine-build"

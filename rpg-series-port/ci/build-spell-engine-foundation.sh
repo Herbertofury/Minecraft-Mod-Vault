@@ -10,6 +10,7 @@ SPELL_POWER_BASE=681993d5f823aa96b1b24e21b145e89f46147f2d
 SPELL_POWER_TARGET=6fed879e796cbe82c43684d914a8fa99a99e8b12
 RANGED_BASE=d95ba51c2f5c35bc8d397057092ba6043b00b705
 RANGED_TARGET=c834f2699faefbdfcefa84f7f45708cd1a6bc55a
+TINY_SHA=e20fc8ac72fde8274f0df72de2ebb81ffe6f8727
 
 rm -rf "$UP" "$WORK"
 mkdir -p "$UP"
@@ -30,7 +31,8 @@ clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_BASE" "$UP/spell-power-1201" 
 clone_exact ZsoltMolnarrr/SpellPower "$SPELL_POWER_TARGET" "$UP/spell-power-160" & p4=$!
 clone_exact FabricExtras/RangedWeaponAPI "$RANGED_BASE" "$UP/ranged-1201" & p5=$!
 clone_exact FabricExtras/RangedWeaponAPI "$RANGED_TARGET" "$UP/ranged-234" & p6=$!
-wait "$p1" "$p2" "$p3" "$p4" "$p5" "$p6"
+clone_exact ZsoltMolnarrr/TinyConfig "$TINY_SHA" "$UP/tiny-config-310" & p7=$!
+wait "$p1" "$p2" "$p3" "$p4" "$p5" "$p6" "$p7"
 
 SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
 python3 "$SPELL_POWER/tools/prepare_upstream_source.py" "$UP/spell-power-1201" "$UP/spell-power-160" "$SPELL_POWER/common"
@@ -48,10 +50,26 @@ RANGED_FORGE_JAR="$(find "$RANGED/forge/build/libs" -maxdepth 1 -type f -name '*
 test -f "$RANGED_COMMON_JAR" -a -f "$RANGED_FORGE_JAR"
 unzip -tq "$RANGED_FORGE_JAR"
 
+# Spell Engine 1.10.2's public summoned-config API is authored against TinyConfig 3.1.0. Build the
+# already-proven native 1.20.1 foundation here so the API parity pass compiles against real separate
+# dependency JARs. Legacy TinyConfig 2.3.2 remains internal to the older hybrid config paths for now.
+TINY="$ROOT/rpg-series-port/tiny-config-forge-1.20.1"
+bash "$ROOT/rpg-series-port/ci/build-tiny-config-foundation.sh" "$UP/tiny-config-310"
+TINY_CONFIG_COMMON_JAR="$(find "$TINY/generated/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
+TINY_CONFIG_FORGE_JAR="$(find "$TINY/generated/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
+test -f "$TINY_CONFIG_COMMON_JAR" -a -f "$TINY_CONFIG_FORGE_JAR"
+unzip -tq "$TINY_CONFIG_COMMON_JAR"
+unzip -tq "$TINY_CONFIG_FORGE_JAR"
+unzip -Z1 "$TINY_CONFIG_COMMON_JAR" | grep -F 'net/tiny_config/versioning/VersionableConfig.class' >/dev/null
+unzip -p "$TINY_CONFIG_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="tiny_config"' >/dev/null
+
 export SPELL_POWER_COMMON_JAR RANGED_COMMON_JAR SPELL_POWER_FORGE_JAR RANGED_FORGE_JAR
 unset SPELL_POWER_SOURCE_DIRS RANGED_SOURCE_DIRS || true
 
 python3 "$PORT/tools/prepare_spell_engine.py" "$UP/spell-engine-1201" "$UP/spell-engine-1102" "$WORK"
+mkdir -p "$WORK/libs"
+cp "$TINY_CONFIG_COMMON_JAR" "$WORK/libs/tiny-config-common.jar"
+cp "$TINY_CONFIG_FORGE_JAR" "$WORK/libs/tiny-config-forge.jar"
 python3 "$PORT/tools/compat_pass_1.py" "$WORK"
 for part in a1 a2 b1 b2 c d; do python3 "$PORT/tools/compat_pass_2${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 python3 "$PORT/tools/compat_pass_3.py" "$WORK" "$UP/spell-engine-1201"
@@ -61,6 +79,7 @@ for part in a b c d e f; do python3 "$PORT/tools/compat_pass_5${part}.py" "$WORK
 python3 "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python3 "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
 for part in b c d e f g h i; do python3 "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
+python3 "$PORT/tools/compat_pass_6j.py" "$WORK" "$UP/spell-engine-1201"
 
 # Preserve the same anti-source-injection boundary as the graduated verifier.
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
@@ -69,6 +88,10 @@ if grep -R -nE 'SPELL_POWER_SOURCE_DIRS|RANGED_SOURCE_DIRS|addExternalCompileSou
   echo '[Spell Engine foundation] dependency source injection leaked into generated build' >&2
   exit 1
 fi
+grep -F 'public class SummonedEntityConfig extends VersionableConfig' "$WORK/common/src/main/java/net/spell_engine/api/spell/summon/SummonedEntityConfig.java" >/dev/null
+grep -F "compileOnly files('../libs/tiny-config-common.jar')" "$WORK/common/build.gradle" >/dev/null
+grep -F "modImplementation files('../libs/tiny-config-forge.jar')" "$WORK/forge/build.gradle" >/dev/null
+grep -F 'modId="tiny_config"' "$WORK/forge/src/main/resources/META-INF/mods.toml" >/dev/null
 
 gradle --no-daemon --stacktrace -p "$WORK" :forge:build
 JAR="$(find "$WORK/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | sort | head -n1)"
@@ -85,5 +108,10 @@ if unzip -Z1 "$OUT_JAR" | grep -Ei '^META-INF/jars/.*(spell.?power|ranged.?weapo
   echo '[Spell Engine foundation] separate RPG dependency JAR embedded into Spell Engine' >&2
   exit 1
 fi
-unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"'
-echo '[Spell Engine foundation] deterministic build/package boundary green; runtime replay intentionally skipped for downstream lane.'
+if unzip -Z1 "$OUT_JAR" | grep -q '^net/tiny_config/'; then
+  echo '[Spell Engine foundation] TinyConfig 3.1.0 classes leaked into Spell Engine release' >&2
+  exit 1
+fi
+unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"' >/dev/null
+unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="tiny_config"' >/dev/null
+echo '[Spell Engine foundation] deterministic build/package boundary green; TinyConfig 3.1.0 API parity restored; runtime replay intentionally skipped for downstream lane.'
