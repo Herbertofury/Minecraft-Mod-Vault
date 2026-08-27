@@ -91,7 +91,7 @@ public final class CustomBundleContentsComponent {
 
         private int getMaxAllowed(ItemStack stack) {
             Fraction remaining = Fraction.ONE.subtract(occupancy());
-            Fraction each = getOccupancy(stack, sizeMultiplier);
+            Fraction each = CustomBundleContentsComponent.getOccupancy(stack, sizeMultiplier);
             if (each.compareTo(Fraction.ZERO) <= 0 || remaining.compareTo(Fraction.ZERO) <= 0) return 0;
             return Math.max(0, remaining.divideBy(each).intValue());
         }
