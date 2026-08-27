@@ -64,6 +64,8 @@ native capture + authoritative log assertions
 
 Full Mojang external asset objects are required when sound/resource completeness is under test. For visual-only model/texture QA, a verified mapped client JAR can be sufficient only when the harness explicitly proves the needed vanilla texture resources and reports missing external sound objects as a warning rather than pretending the cache is complete.
 
+On Windows, use the bundled `scripts/Prewarm-Minecraft-Client-Assets.ps1` beside `mmv-devkit-windows-amd64-v2.3.0.exe` to resolve Mojang 1.20.1 metadata, download and SHA-1 verify the full external asset cache, re-verify it offline, and optionally split a ZIP into 85 MiB Drive-safe parts.
+
 ## Conversion and port discipline
 
 Do not equate "builds on the target version" with "ported." For a full conversion:
