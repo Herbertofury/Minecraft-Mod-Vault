@@ -31,24 +31,21 @@ jobs:
           import minecraft_launcher_lib
           mc='/tmp/mc'
           minecraft_launcher_lib.install.install_minecraft_version('1.20.1', mc)
-          # Forge installer expects a launcher profile file to exist.
           p=os.path.join(mc,'launcher_profiles.json')
           if not os.path.exists(p):
               with open(p,'w',encoding='utf-8') as f:
                   json.dump({'profiles':{},'settings':{},'version':3},f)
           PY
-          curl -fL --retry 4 --retry-delay 2 \
-            -o /tmp/forge-installer.jar \
+          curl -fL --retry 4 --retry-delay 2 -o /tmp/forge-installer.jar \
             'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
           java -jar /tmp/forge-installer.jar --installClient "$MC"
-          printf 'Installed versions:\n'
           find "$MC/versions" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort
       - name: Generate portable offline launch command
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os, shlex
+          import json, os
           import minecraft_launcher_lib
           mc='/tmp/mc'
           versions=sorted(os.listdir(os.path.join(mc,'versions')))
@@ -70,28 +67,42 @@ jobs:
           os.makedirs(out,exist_ok=True)
           with open(out+'/version.txt','w') as f: f.write(version+'\n')
           with open(out+'/command.json','w') as f: json.dump(portable,f,indent=2)
-          with open(out+'/command.sh','w') as f:
-              f.write('#!/usr/bin/env bash\nset -e\nMC_DIR="${1:?Minecraft runtime dir}"\nexec ')
-              f.write(' '.join(shlex.quote(x) for x in portable).replace("'${MC_DIR}'",'"${MC_DIR}"').replace("'${MC_DIR}/",'"${MC_DIR}/'))
-              f.write('\n')
           print('Forge version:',version)
           print('Command args:',len(cmd))
           PY
-      - name: Trim non-runtime cache and archive
+      - name: Archive and split client runtime
         shell: bash
         run: |
           set -euo pipefail
           rm -rf /tmp/mc/webcache* /tmp/mc/logs /tmp/mc/crash-reports /tmp/mc/saves /tmp/mc/mods /tmp/mc/config
           du -sh /tmp/mc
           tar -C /tmp -czf /tmp/forge-1.20.1-47.4.23-client-runtime.tar.gz mc
-          sha256sum /tmp/forge-1.20.1-47.4.23-client-runtime.tar.gz > /tmp/client-runtime-SHA256SUMS.txt
-          ls -lh /tmp/forge-1.20.1-47.4.23-client-runtime.tar.gz
+          mkdir -p /tmp/client-runtime-parts
+          split -b 350M -d -a 2 /tmp/forge-1.20.1-47.4.23-client-runtime.tar.gz /tmp/client-runtime-parts/client-runtime.part-
+          sha256sum /tmp/forge-1.20.1-47.4.23-client-runtime.tar.gz > /tmp/client-runtime-parts/WHOLE-SHA256SUMS.txt
+          sha256sum /tmp/client-runtime-parts/client-runtime.part-* > /tmp/client-runtime-parts/PART-SHA256SUMS.txt
+          ls -lh /tmp/client-runtime-parts
       - uses: actions/upload-artifact@v4
         with:
-          name: forge-1.20.1-47.4.23-client-runtime
+          name: forge-client-runtime-part-00
           path: |
-            /tmp/forge-1.20.1-47.4.23-client-runtime.tar.gz
-            /tmp/client-runtime-SHA256SUMS.txt
+            /tmp/client-runtime-parts/client-runtime.part-00
+            /tmp/client-runtime-parts/WHOLE-SHA256SUMS.txt
+            /tmp/client-runtime-parts/PART-SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-client-runtime-part-01
+          path: /tmp/client-runtime-parts/client-runtime.part-01
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-client-runtime-part-02
+          path: /tmp/client-runtime-parts/client-runtime.part-02
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
