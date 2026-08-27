@@ -9,12 +9,12 @@ configurations {
     shadowBundle { canBeResolved = true; canBeConsumed = false }
 }
 
-String optionalJar(String propertyName) {
+File requiredJar(String propertyName) {
     def value = providers.gradleProperty(propertyName).orNull
-    if (value == null || value.trim().isEmpty()) return null
-    def file = rootProject.file(value)
+    if (value == null || value.trim().isEmpty()) throw new GradleException("Missing -P${propertyName}=...")
+    def file = rootProject.file(value.trim())
     if (!file.isFile()) throw new GradleException("${propertyName} does not exist: ${file}")
-    return file.absolutePath
+    return file
 }
 
 dependencies {
@@ -22,8 +22,20 @@ dependencies {
     common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionForge')
 
-    def curios = optionalJar('curios_jar')
-    if (curios != null) modImplementation files(curios)
+    // Independent native-Forge ABI gate. These are the exact separately packaged release JARs;
+    // Loom remaps their SRG/Mojmap production namespace for this Forge module only.
+    [
+        requiredJar('bundle_api_forge_jar'),
+        requiredJar('armor_model_api_forge_jar'),
+        requiredJar('ranged_weapon_api_forge_jar'),
+        requiredJar('structure_pool_api_forge_jar'),
+        requiredJar('spell_power_forge_jar'),
+        requiredJar('spell_engine_forge_jar'),
+        requiredJar('tiny_config_forge_jar'),
+        requiredJar('cloth_config_forge_jar'),
+        requiredJar('player_animator_forge_jar'),
+        requiredJar('curios_jar')
+    ].each { jar -> modCompileOnly files(jar) }
 }
 
 processResources {
