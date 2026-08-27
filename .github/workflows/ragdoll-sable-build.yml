@@ -82,7 +82,7 @@ jobs:
           ''', encoding='utf-8')
                   print(f'PRESTAGED local.target:{artifact}:{version} sha256={actual}')
           PY
-      - name: Rebase Forge patch to 47.4.23 and repair local dependency mapping
+      - name: Rebase Forge patch to 47.4.23 and repair build graph
         working-directory: sable
         shell: bash
         run: |
@@ -149,11 +149,32 @@ jobs:
           if marker not in text:
               raise SystemExit('target artifact logger marker not found')
           text = text.replace(marker, stage_maven, 1)
+
+          graph_fix = r'''
+
+          // CI/Gradle 8.14 correctness: these verification tasks consume classes after
+          // syncMixinRefmap mutates the generated refmap/class output. Make that producer
+          // relationship explicit instead of relying on compileJava.finalizedBy ordering.
+          [
+              'verifySubLevelEntityCollisionBoundary',
+              'verifyBasicSubLevelRenderLifecycle',
+              'verifySableSpawnCommandBoundary',
+              'verifyRapierPackagedArtifact',
+              'verifyRapierProductionNamespace',
+              'verifyCompanionProductionNamespace',
+              'verifyProductionMinecraftAccessBoundary'
+          ].each { verificationTask ->
+              tasks.named(verificationTask) {
+                  dependsOn tasks.named('syncMixinRefmap')
+              }
+          }
+          '''
+          text += graph_fix
           path.write_text(text, encoding='utf-8')
           PY
           grep '^forge_version=' gradle.properties
           grep '^org.gradle.parallel=' gradle.properties
-          grep -n "targetModpackRepository" forge/build.gradle | head -n 12
+          grep -n "targetModpackRepository\|verifySubLevelEntityCollisionBoundary" forge/build.gradle | tail -n 16
           chmod +x gradlew
       - name: Build Companion sequentially
         working-directory: sable
@@ -189,7 +210,7 @@ jobs:
             'source=6dd48142a62347f1454559b546cbaa63eca648ac' \
             'forge=47.4.23' \
             'create_sha256=6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0' \
-            'ci_patch=prestage-local-maven+sequential-forgegradle' \
+            'ci_patch=prestage-local-maven+sequential-forgegradle+explicit-refmap-verification-deps' \
             > export/PROVENANCE.txt
       - uses: actions/upload-artifact@v4
         with:
