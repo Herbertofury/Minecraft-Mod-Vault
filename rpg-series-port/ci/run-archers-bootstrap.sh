@@ -3,10 +3,51 @@ set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 PORT="$ROOT/rpg-series-port/archers-forge-1.20.1"
 TMP="${RUNNER_TEMP:-/tmp}/archers-bootstrap"
+ABI_MANIFEST="$PORT/archers-abi.sha256"
 rm -rf "$TMP"; mkdir -p "$TMP"
+: > "$ABI_MANIFEST"
 
-pick_release_jar() { find "$1" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' ! -name '*transformProduction*' | sort | head -n1; }
-pick_common_jar() { find "$1" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*transformProduction*' ! -name '*javadoc*' | sort | head -n1; }
+resolve_jar() {
+  local label="$1" dir="$2" name_glob="$3"
+  local -a candidates=()
+  if [[ ! -d "$dir" ]]; then
+    echo "[Archers ABI] $label directory missing: $dir" >&2
+    return 1
+  fi
+  mapfile -t candidates < <(find "$dir" -maxdepth 1 -type f -name "$name_glob" \
+    ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' ! -name '*transformProduction*' -print | sort)
+  if (( ${#candidates[@]} != 1 )); then
+    echo "[Archers ABI] $label expected exactly one $name_glob release candidate, found ${#candidates[@]} in $dir" >&2
+    find "$dir" -maxdepth 1 -type f -name '*.jar' -printf '[Archers ABI] candidate: %f\n' | sort >&2 || true
+    return 1
+  fi
+  echo "[Archers ABI] resolved $label -> ${candidates[0]}" >&2
+  printf '%s\n' "${candidates[0]}"
+}
+
+validate_jar() {
+  local label="$1" jar="$2"
+  if [[ -z "$jar" || ! -f "$jar" ]]; then
+    echo "[Archers ABI] $label missing: ${jar:-<empty>}" >&2
+    return 1
+  fi
+  if ! unzip -tq "$jar" >/dev/null; then
+    echo "[Archers ABI] $label is not a valid JAR/ZIP: $jar" >&2
+    return 1
+  fi
+  local hash
+  hash="$(sha256sum "$jar" | awk '{print $1}')"
+  printf '%s  %s\n' "$hash" "$jar" >> "$ABI_MANIFEST"
+  echo "[Archers ABI] validated $label sha256=$hash"
+}
+
+download_jar() {
+  local label="$1" url="$2" out="$3"
+  echo "[Archers ABI] downloading $label"
+  curl --retry 2 --retry-delay 1 --retry-connrefused -fsSL "$url" -o "$out"
+  validate_jar "$label" "$out"
+}
+
 clone_exact() {
   local repo="$1" sha="$2" dst="$3"
   git init -q "$dst"
@@ -15,60 +56,62 @@ clone_exact() {
   git -C "$dst" checkout -q --detach FETCH_HEAD
   test "$(git -C "$dst" rev-parse HEAD)" = "$sha"
 }
-check_jar() { test -n "$1" && test -f "$1" && unzip -tq "$1" >/dev/null; }
 
 echo '[Archers] Reconstructing proven RPG foundations (build/package only)'
 bash "$ROOT/rpg-series-port/ci/build-spell-engine-foundation.sh"
 
+RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
+SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
+TINY="$ROOT/rpg-series-port/tiny-config-forge-1.20.1/generated"
+SPELL_ENGINE_BUILD="$ROOT/.spell-engine-build"
+RANGED_COMMON="$(resolve_jar 'Ranged Weapon API common' "$RANGED/common/build/libs" '*-common-*.jar')"
+RANGED_FORGE="$(resolve_jar 'Ranged Weapon API Forge' "$RANGED/forge/build/libs" '*-forge-*.jar')"
+SPELL_POWER_COMMON="$(resolve_jar 'Spell Power common' "$SPELL_POWER/common/build/libs" '*-common-*.jar')"
+SPELL_POWER_FORGE="$(resolve_jar 'Spell Power Forge' "$SPELL_POWER/forge/build/libs" '*-forge-*.jar')"
+TINY_COMMON="$(resolve_jar 'TinyConfig common' "$TINY/common/build/libs" '*-common-*.jar')"
+TINY_FORGE="$(resolve_jar 'TinyConfig Forge' "$TINY/forge/build/libs" '*-forge-*.jar')"
+SPELL_ENGINE_COMMON="$(resolve_jar 'Spell Engine common' "$SPELL_ENGINE_BUILD/common/build/libs" '*-common-*.jar')"
+SPELL_ENGINE_FORGE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell_engine-forge-1.10.2+1.20.1.jar"
+validate_jar 'Ranged Weapon API common' "$RANGED_COMMON"
+validate_jar 'Ranged Weapon API Forge' "$RANGED_FORGE"
+validate_jar 'Spell Power common' "$SPELL_POWER_COMMON"
+validate_jar 'Spell Power Forge' "$SPELL_POWER_FORGE"
+validate_jar 'TinyConfig common' "$TINY_COMMON"
+validate_jar 'TinyConfig Forge' "$TINY_FORGE"
+validate_jar 'Spell Engine common' "$SPELL_ENGINE_COMMON"
+validate_jar 'Spell Engine Forge' "$SPELL_ENGINE_FORGE"
+
 STRUCTURE="$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1"
 gradle --no-daemon --stacktrace -p "$STRUCTURE" :common:jar :forge:build
-STRUCTURE_COMMON="$(pick_common_jar "$STRUCTURE/common/build/libs")"
-STRUCTURE_FORGE="$(pick_release_jar "$STRUCTURE/forge/build/libs")"
+STRUCTURE_COMMON="$(resolve_jar 'Structure Pool API common' "$STRUCTURE/common/build/libs" '*-common-*.jar')"
+STRUCTURE_FORGE="$(resolve_jar 'Structure Pool API Forge' "$STRUCTURE/forge/build/libs" '*-forge-*.jar')"
+validate_jar 'Structure Pool API common' "$STRUCTURE_COMMON"
+validate_jar 'Structure Pool API Forge' "$STRUCTURE_FORGE"
 
 BUNDLE="$ROOT/rpg-series-port/bundle-api-forge-1.20.1"
 gradle --no-daemon --stacktrace -p "$BUNDLE" :common:jar :forge:remapJar
-BUNDLE_COMMON="$(pick_common_jar "$BUNDLE/common/build/libs")"
-BUNDLE_FORGE="$(pick_release_jar "$BUNDLE/forge/build/libs")"
+BUNDLE_COMMON="$(resolve_jar 'Bundle API common' "$BUNDLE/common/build/libs" '*-common-*.jar')"
+BUNDLE_FORGE="$(resolve_jar 'Bundle API Forge' "$BUNDLE/forge/build/libs" '*-forge-*.jar')"
+validate_jar 'Bundle API common' "$BUNDLE_COMMON"
+validate_jar 'Bundle API Forge' "$BUNDLE_FORGE"
 
 ARMOR="$ROOT/rpg-series-port/armor-model-api-forge-1.20.1"
 ARMOR_SHA=a664155a0aab3161cd7e4bf0c1f72512b4ec4949
 clone_exact FabricExtras/ArmorModelAPI "$ARMOR_SHA" "$TMP/armor-target"
 python3 "$ARMOR/tools/prepare_port.py" "$TMP/armor-target" "$ARMOR/generated"
 gradle --no-daemon --stacktrace -p "$ARMOR/generated" :common:jar :forge:remapJar
-ARMOR_COMMON="$(pick_common_jar "$ARMOR/generated/common/build/libs")"
-ARMOR_FORGE="$(pick_release_jar "$ARMOR/generated/forge/build/libs")"
+ARMOR_COMMON="$(resolve_jar 'Armor Model API common' "$ARMOR/generated/common/build/libs" '*-common-*.jar')"
+ARMOR_FORGE="$(resolve_jar 'Armor Model API Forge' "$ARMOR/generated/forge/build/libs" '*-forge-*.jar')"
+validate_jar 'Armor Model API common' "$ARMOR_COMMON"
+validate_jar 'Armor Model API Forge' "$ARMOR_FORGE"
 
-RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
-SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
-TINY="$ROOT/rpg-series-port/tiny-config-forge-1.20.1/generated"
-SPELL_ENGINE_BUILD="$ROOT/.spell-engine-build"
-RANGED_COMMON="$(pick_common_jar "$RANGED/common/build/libs")"
-RANGED_FORGE="$(pick_release_jar "$RANGED/forge/build/libs")"
-SPELL_POWER_COMMON="$(pick_common_jar "$SPELL_POWER/common/build/libs")"
-SPELL_POWER_FORGE="$(pick_release_jar "$SPELL_POWER/forge/build/libs")"
-TINY_COMMON="$(pick_common_jar "$TINY/common/build/libs")"
-TINY_FORGE="$(pick_release_jar "$TINY/forge/build/libs")"
-SPELL_ENGINE_COMMON="$(pick_common_jar "$SPELL_ENGINE_BUILD/common/build/libs")"
-SPELL_ENGINE_FORGE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell_engine-forge-1.10.2+1.20.1.jar"
-
-# Exact external Forge runtime/loader artifacts. Common compiles against their Fabric/intermediary
-# counterparts through Loom; the Forge module independently checks these packaged Forge ABIs.
 mkdir -p "$TMP/ext"
-curl -fsSL 'https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config-forge/11.1.136/cloth-config-forge-11.1.136.jar' -o "$TMP/ext/cloth-config-forge-11.1.136.jar"
-curl -fsSL 'https://maven.kosmx.dev/dev/kosmx/player-anim/player-animation-lib-forge/1.0.2+1.19.4/player-animation-lib-forge-1.0.2+1.19.4.jar' -o "$TMP/ext/player-animation-lib-forge-1.0.2+1.19.4.jar"
-curl -fsSL 'https://maven.theillusivec4.top/top/theillusivec4/curios/curios-forge/5.14.1+1.20.1/curios-forge-5.14.1+1.20.1.jar' -o "$TMP/ext/curios-forge-5.14.1+1.20.1.jar"
 CLOTH_FORGE="$TMP/ext/cloth-config-forge-11.1.136.jar"
 PLAYER_FORGE="$TMP/ext/player-animation-lib-forge-1.0.2+1.19.4.jar"
 CURIOS_FORGE="$TMP/ext/curios-forge-5.14.1+1.20.1.jar"
-
-COMMON_JARS=("$BUNDLE_COMMON" "$ARMOR_COMMON" "$RANGED_COMMON" "$STRUCTURE_COMMON" "$SPELL_POWER_COMMON" "$SPELL_ENGINE_COMMON" "$TINY_COMMON")
-FORGE_JARS=("$BUNDLE_FORGE" "$ARMOR_FORGE" "$RANGED_FORGE" "$STRUCTURE_FORGE" "$SPELL_POWER_FORGE" "$SPELL_ENGINE_FORGE" "$TINY_FORGE" "$CLOTH_FORGE" "$PLAYER_FORGE" "$CURIOS_FORGE")
-for jar in "${COMMON_JARS[@]}" "${FORGE_JARS[@]}"; do check_jar "$jar"; done
-
-echo '[Archers ABI] common named artifacts:'
-for jar in "${COMMON_JARS[@]}"; do sha256sum "$jar"; done
-echo '[Archers ABI] packaged Forge artifacts:'
-for jar in "${FORGE_JARS[@]}"; do sha256sum "$jar"; done
+download_jar 'Cloth Config Forge 11.1.136' 'https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config-forge/11.1.136/cloth-config-forge-11.1.136.jar' "$CLOTH_FORGE"
+download_jar 'Player Animator Forge 1.0.2+1.19.4' 'https://maven.kosmx.dev/dev/kosmx/player-anim/player-animation-lib-forge/1.0.2+1.19.4/player-animation-lib-forge-1.0.2+1.19.4.jar' "$PLAYER_FORGE"
+download_jar 'Curios Forge 5.14.1+1.20.1' 'https://maven.theillusivec4.top/top/theillusivec4/curios/curios-forge/5.14.1+1.20.1/curios-forge-5.14.1+1.20.1.jar' "$CURIOS_FORGE"
 
 echo '[Archers] Materializing exact current 3.1.1 content + explicit 1.20.1 transforms'
 bash "$PORT/materialize_port.sh"
@@ -114,8 +157,8 @@ gradle --no-daemon --stacktrace -p "$PORT" :forge:compileJava "${ARGS[@]}"
 
 echo '[Archers] Remapped package boundary'
 gradle --no-daemon --stacktrace -p "$PORT" :forge:remapJar "${ARGS[@]}"
-JAR="$(pick_release_jar "$PORT/forge/build/libs")"
-check_jar "$JAR"
+JAR="$(resolve_jar 'Archers Forge release' "$PORT/forge/build/libs" '*-forge-*.jar')"
+validate_jar 'Archers Forge release' "$JAR"
 unzip -p "$JAR" META-INF/mods.toml | grep -F 'modId="archers"' >/dev/null
 if unzip -Z1 "$JAR" | grep -E '^(com/github/theredbrain/bundleapi/|net/spell_engine/|net/spell_power/|net/fabric_extras/ranged_weapon/|net/fabric_extras/structure_pool/|net/rpg_foundation/armor_api/|net/tiny_config/)'; then
   echo '[Archers] external dependency classes leaked into Archers release JAR' >&2
