@@ -37,6 +37,9 @@ jobs:
       - name: Fix structurally inherited Enum ABI verifier blind spot
         shell: bash
         run: python3 sable-source-export-trigger/patch-sable-enum-abi.py
+      - name: Include Forge-added APIs in production access verification
+        shell: bash
+        run: python3 sable-source-export-trigger/patch-sable-forge-access.py
       - name: Build and verify Sable M9.19 on Forge 47.4.23
         shell: bash
         run: bash sable-source-export-trigger/build-sable-m9.19.sh
