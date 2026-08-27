@@ -34,7 +34,7 @@
       "dependencies": [
         {"id": "fabric_loader", "classification": "common_source_compile_only", "status": "not_native_forge_runtime", "upstream_tokens": ["net.fabricmc:fabric-loader"], "user_download_required": false},
         {"id": "fabric_api", "classification": "fabric_source_platform_only", "status": "removed_from_native_forge_target", "upstream_tokens": ["net.fabricmc.fabric-api:fabric-api"], "user_download_required": false},
-        {"id": "player_animator", "classification": "existing_forge_1.20.1", "status": "pinned_1.0.2-rc1+1.20", "upstream_tokens": ["dev.kosmx.player-anim"], "user_download_required": false},
+        {"id": "player_animator", "classification": "existing_forge_1.20.1", "status": "pinned_1.0.2+1.19.4_proven_by_spell_engine_1.20.1_substrate", "upstream_tokens": ["dev.kosmx.player-anim"], "user_download_required": false},
         {"id": "cloth_config", "classification": "existing_forge_1.20.1", "status": "pinned_11.1.136", "upstream_tokens": ["me.shedaniel.cloth"], "user_download_required": false},
         {"id": "armor_model_api", "classification": "converted_foundation", "status": "graduated", "upstream_tokens": ["maven.modrinth:armor-model-api"], "user_download_required": false},
         {"id": "tiny_config", "classification": "converted_foundation", "status": "build_package_green_runtime_pending", "upstream_tokens": ["maven.modrinth:tiny-config"], "user_download_required": false},
