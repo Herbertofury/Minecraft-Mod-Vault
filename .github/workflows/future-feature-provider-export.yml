@@ -23,11 +23,19 @@ jobs:
             -o export/justtrialspawners-1.20.1-1.2.1.jar \
             'https://edge.forgecdn.net/files/8128/046/justtrialspawners-1.20.1-1.2.1.jar'
           curl -fL --retry 4 --retry-delay 2 \
+            -o export/architectury-9.2.14-forge.jar \
+            'https://edge.forgecdn.net/files/5137/938/architectury-9.2.14-forge.jar'
+          curl -fL --retry 4 --retry-delay 2 \
+            -o export/ftb-library-forge-2001.2.13.jar \
+            'https://edge.forgecdn.net/files/8226/927/ftb-library-forge-2001.2.13.jar'
+          curl -fL --retry 4 --retry-delay 2 \
             -o export/VanillaBackport-forge-1.20.1-1.1.7.10.jar \
             'https://edge.forgecdn.net/files/8229/712/VanillaBackport-forge-1.20.1-1.1.7.10.jar'
           printf '%s\n' \
             'justtrialspawners project=1509987 file=8128046 version=1.2.1 source_commit=8abe70784fb0b91ed8675e97ea491e002a9bd3d4' \
-            'vanillabackport file=8229712 version=1.1.7.10' \
+            'architectury project=419699 file=5137938 version=9.2.14' \
+            'ftb-library project=404465 file=8226927 version=2001.2.13' \
+            'vanillabackport file=8229712 version=1.1.7.10 (capability inspection only; wind charge absent)' \
             > export/PROVENANCE.txt
           sha256sum export/*.jar > export/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
