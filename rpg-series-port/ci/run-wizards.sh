@@ -87,6 +87,7 @@ echo '[Wizards] Runes runtime package gate green: mixin class/config/manifest ar
 python3 "$PORT/tools/prepare_port.py" "$WORK/wizards-base" "$WORK/wizards-target" "$GEN"
 python3 "$PORT/tools/compat_1_20_1.py" "$GEN"
 python3 "$PORT/tools/compat_api_1_20_1.py" "$GEN"
+python3 "$PORT/tools/compat_trade_access.py" "$GEN"
 python3 "$PORT/tools/compat_tiny_config.py" "$GEN"
 mkdir -p "$GEN/libs"
 cp "$ARMOR_COMMON" "$GEN/libs/armor-model-api-common.jar"
@@ -124,6 +125,10 @@ if grep -R -nE 'sourceSets.*(spell|runes|armor|structure|tiny)|srcDirs.*(spell|r
 fi
 if grep -R -n 'maven.modrinth:tiny-config' "$GEN/common/build.gradle" "$GEN/forge/build.gradle"; then
   echo '[Wizards] unresolved external TinyConfig coordinate survived local foundation staging' >&2
+  exit 2
+fi
+if grep -E 'TradeOffers\.(SellItemFactory|SellEnchantedToolFactory)' "$GEN/common/src/main/java/net/wizards/villager/WizardVillagers.java"; then
+  echo '[Wizards] runtime-inaccessible vanilla villager trade implementation survived compatibility passes' >&2
   exit 2
 fi
 
