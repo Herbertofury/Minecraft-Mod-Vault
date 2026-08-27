@@ -30,4 +30,16 @@ dependencies {
     externalMods.each { modImplementation files(it) }
 }
 
-sourceSets.main.resources.srcDir 'src/main/generated'
+def generatedJava = rootProject.file('generated/common/java')
+def generatedResources = rootProject.file('generated/common/resources')
+sourceSets.main.java.setSrcDirs([generatedJava])
+sourceSets.main.resources.setSrcDirs([generatedResources])
+
+tasks.register('materializeCurrentArchers', Exec) {
+    workingDir rootProject.projectDir
+    commandLine 'bash', rootProject.file('materialize_port.sh').absolutePath
+    outputs.dir generatedJava
+    outputs.dir generatedResources
+}
+tasks.named('compileJava').configure { dependsOn 'materializeCurrentArchers' }
+tasks.named('processResources').configure { dependsOn 'materializeCurrentArchers' }
