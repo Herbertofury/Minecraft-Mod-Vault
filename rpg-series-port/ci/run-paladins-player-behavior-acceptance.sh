@@ -23,7 +23,8 @@ cleanup(){
 }
 trap cleanup EXIT
 wait_marker(){
-  local marker="$1" timeout_seconds="$2" label="$3" deadline=$((SECONDS + timeout_seconds))
+  local marker="$1" timeout_seconds="$2" label="$3"
+  local deadline=$((SECONDS + timeout_seconds))
   local fatal='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Exception in thread "Render thread"|The game crashed|Failed to load datapacks|Missing or unsupported mandatory dependencies|Failed to start the minecraft server|Exception in server tick loop|Incompatible FML modded server|mismatched mod channel|Connection refused'
   while (( SECONDS < deadline )); do
     if grep -Eiq "$fatal" "$CLIENT_LOG" "$CLIENT_LATEST" "$SERVER_LOG" "$SERVER_LATEST" 2>/dev/null; then
