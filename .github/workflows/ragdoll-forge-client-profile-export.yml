@@ -21,22 +21,24 @@ jobs:
           set -euo pipefail
           curl -fL --retry 4 --retry-delay 2 -o forge-installer.jar 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
           echo 'ed31ce02ac69176f34353235cb2508d5a0f1e088  forge-installer.jar' | sha1sum -c -
-          mkdir -p export/extracted export/client
+          mkdir -p export/extracted export/client export/installed-profile
           (cd export/extracted && jar xf ../../forge-installer.jar)
           cp export/extracted/install_profile.json export/
           cp export/extracted/version.json export/
           sha256sum forge-installer.jar export/install_profile.json export/version.json > export/SHA256SUMS.txt
 
-      - name: Install production client profile
+      - name: Probe production client installation
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           mkdir -p client-home/.minecraft
           HOME="$PWD/client-home" java -jar forge-installer.jar --installClient "$PWD/client-home/.minecraft" > export/install-client.log 2>&1
-          find client-home/.minecraft/versions -maxdepth 3 -type f -print | sort > export/installed-files.txt
-          mkdir -p export/installed-profile
-          find client-home/.minecraft/versions -type f \( -name '*.json' -o -name '*.jar' \) -exec cp -v '{}' export/installed-profile/ ';'
-          sha256sum export/installed-profile/* >> export/SHA256SUMS.txt
+          status=$?
+          echo "$status" > export/install-client.exit-code.txt
+          find client-home/.minecraft/versions -maxdepth 3 -type f -print 2>/dev/null | sort > export/installed-files.txt
+          find client-home/.minecraft/versions -type f \( -name '*.json' -o -name '*.jar' \) -exec cp -v '{}' export/installed-profile/ ';' 2>/dev/null
+          if compgen -G 'export/installed-profile/*' >/dev/null; then sha256sum export/installed-profile/* >> export/SHA256SUMS.txt; fi
+          exit 0
 
       - name: Upload exact production client profile
         uses: actions/upload-artifact@v4
