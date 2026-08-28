@@ -15,9 +15,8 @@ ensure_option(){
   fi
 }
 
-# Minecraft 1.20.x puts the first-run accessibility onboarding screen in front of
-# Quick Play when options.txt is absent/uninitialized. Under headless CI that leaves
-# a healthy LWJGL client parked forever before --quickPlayMultiplayer executes.
+# Keep vanilla first-run blockers disabled even though the deterministic QA wrapper
+# now dispatches Minecraft's own ConnectScreen directly after client initialization.
 ensure_option onboardAccessibility false
 ensure_option skipMultiplayerWarning true
 ensure_option joinedFirstServer true
@@ -29,4 +28,4 @@ grep -Fxq 'joinedFirstServer:true' "$OPTIONS"
 grep -Fxq 'pauseOnLostFocus:false' "$OPTIONS"
 echo '[Paladins player QA] FIRST_RUN_QUICKPLAY_PREFLIGHT_PASS: accessibility onboarding and multiplayer first-run blockers disabled in Forge dev-client options.'
 
-exec bash "$ROOT/rpg-series-port/ci/run-paladins-player-behavior-acceptance.sh"
+exec bash "$ROOT/rpg-series-port/ci/run-paladins-player-autoconnect-wrapper.sh"
