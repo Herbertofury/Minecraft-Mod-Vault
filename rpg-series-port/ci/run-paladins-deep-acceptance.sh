@@ -2,5 +2,7 @@
 set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 bash "$ROOT/rpg-series-port/ci/run-paladins-acceptance.sh"
-bash "$ROOT/rpg-series-port/ci/run-paladins-behavior-acceptance.sh"
-echo '[Paladins deep acceptance] BASELINE_PLUS_SERVER_BEHAVIOR_PASS; integrated-player Judgement STUN remains the final behavior-specific gate before graduation.'
+bash "$ROOT/rpg-series-port/ci/run-paladins-release-certification.sh"
+bash "$ROOT/rpg-series-port/ci/run-paladins-server-behavior-v2.sh"
+bash "$ROOT/rpg-series-port/ci/run-paladins-player-behavior-acceptance.sh"
+echo '[Paladins deep acceptance] FULL_DEEP_BEHAVIOR_PASS: baseline native runtime matrix, cross-run exact release/source identity, certified packaged-server Priest/Levitate semantics, and real integrated-player Divine Protection + Judgement/STUN controls all passed.'
