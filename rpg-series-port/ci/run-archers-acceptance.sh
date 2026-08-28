@@ -40,6 +40,12 @@ stop_tree() {
   wait "$root" 2>/dev/null || true
 }
 
+collect_run_files() {
+  local smoke="$1" run_dir="$2"
+  printf '%s\n' "$smoke"
+  find "$run_dir" -type f -path '*/logs/latest.log' -print 2>/dev/null | head -n1 || true
+}
+
 echo '[Archers acceptance] Rebuild exact package boundary first'
 bash "$ROOT/rpg-series-port/ci/run-archers-bootstrap.sh"
 
@@ -116,21 +122,28 @@ SECOND_SHA="$(sha256sum "$ARCHERS_JAR" | awk '{print $1}')"
 [[ "$FIRST_SHA" = "$SECOND_SHA" ]] || { echo "[Archers acceptance] non-deterministic release: $FIRST_SHA != $SECOND_SHA" >&2; exit 3; }
 printf '%s  %s\n' "$SECOND_SHA" "$ARCHERS_JAR" | tee "$PORT/archers-deterministic.sha256"
 
+FATAL='ARCHERS_SELF_TEST_FAILED|MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Missing or unsupported mandatory dependencies|Exception in server tick loop|The game crashed|Attempted to load class .* for invalid dist DEDICATED_SERVER'
+
 echo '[Archers acceptance] Real Forge dev-server + Archers semantic self-test'
 rm -rf "$PORT/forge/run/logs"; mkdir -p "$PORT/forge/run"; printf 'eula=true\n' > "$PORT/forge/run/eula.txt"
 SERVER_SMOKE="$PORT/archers-server-smoke.log"; : > "$SERVER_SMOKE"
 set +e
-timeout --signal=TERM --kill-after=10s 180s env ARCHERS_SELF_TEST=1 \
-  gradle --no-daemon -p "$PORT" :forge:runServer "${ARGS[@]}" > "$SERVER_SMOKE" 2>&1
-SERVER_STATUS=$?
+env ARCHERS_SELF_TEST=1 gradle --no-daemon -p "$PORT" :forge:runServer "${ARGS[@]}" > "$SERVER_SMOKE" 2>&1 & SERVER_PID=$!
 set -e
-SERVER_LOG=$(find "$PORT/forge/run" -type f -path '*/logs/latest.log' | head -n1 || true)
-SERVER_FILES=("$SERVER_SMOKE"); [[ -n "$SERVER_LOG" ]] && SERVER_FILES+=("$SERVER_LOG")
-FATAL='ARCHERS_SELF_TEST_FAILED|MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Missing or unsupported mandatory dependencies|Exception in server tick loop|The game crashed|Attempted to load class .* for invalid dist DEDICATED_SERVER'
+SERVER_DEADLINE=$((SECONDS+180)); SERVER_READY=0; SERVER_SELFTEST=0
+while kill -0 "$SERVER_PID" 2>/dev/null && (( SECONDS < SERVER_DEADLINE )); do
+  mapfile -t SERVER_FILES < <(collect_run_files "$SERVER_SMOKE" "$PORT/forge/run")
+  if grep -Eiq "$FATAL" "${SERVER_FILES[@]}"; then stop_tree "$SERVER_PID"; cat "${SERVER_FILES[@]}"; exit 4; fi
+  grep -Ehq 'Done \([0-9.]+s\)!' "${SERVER_FILES[@]}" && SERVER_READY=1 || true
+  grep -Fhq 'ARCHERS_SELF_TEST_PASS' "${SERVER_FILES[@]}" && SERVER_SELFTEST=1 || true
+  [[ "$SERVER_READY" = 1 && "$SERVER_SELFTEST" = 1 ]] && break
+  sleep 2
+done
+if kill -0 "$SERVER_PID" 2>/dev/null; then stop_tree "$SERVER_PID"; fi
+mapfile -t SERVER_FILES < <(collect_run_files "$SERVER_SMOKE" "$PORT/forge/run")
 if grep -Eiq "$FATAL" "${SERVER_FILES[@]}"; then cat "${SERVER_FILES[@]}"; exit 4; fi
-if ! grep -Fq 'ARCHERS_SELF_TEST_PASS' "${SERVER_FILES[@]}"; then cat "${SERVER_FILES[@]}"; echo '[Archers acceptance] semantic self-test marker missing' >&2; exit 4; fi
-if [[ -z "$SERVER_LOG" ]] || ! grep -Eq 'Done \([0-9.]+s\)!' "$SERVER_LOG"; then
-  cat "${SERVER_FILES[@]}"; echo "[Archers acceptance] dev server did not reach ready state (status=$SERVER_STATUS)" >&2; exit 4
+if [[ "$SERVER_READY" != 1 || "$SERVER_SELFTEST" != 1 ]]; then
+  cat "${SERVER_FILES[@]}"; echo "[Archers acceptance] dev server proof incomplete: ready=$SERVER_READY selftest=$SERVER_SELFTEST" >&2; exit 4
 fi
 echo '[Archers acceptance] Dev server reached ready state and semantic self-test passed.'
 
@@ -139,22 +152,27 @@ rm -rf "$PORT/forge/run/logs"; mkdir -p "$PORT/forge/run/config"
 printf 'earlyWindowControl = false\n' > "$PORT/forge/run/config/fml.toml"
 CLIENT_SMOKE="$PORT/archers-client-smoke.log"; : > "$CLIENT_SMOKE"
 set +e
-timeout --signal=TERM --kill-after=10s 180s env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe \
+env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe \
   xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +extension RENDER -noreset' \
-  gradle --no-daemon -p "$PORT" :forge:runClient "${ARGS[@]}" </dev/null > "$CLIENT_SMOKE" 2>&1
-CLIENT_STATUS=$?
+  gradle --no-daemon -p "$PORT" :forge:runClient "${ARGS[@]}" </dev/null > "$CLIENT_SMOKE" 2>&1 & CLIENT_PID=$!
 set -e
-CLIENT_LOG=$(find "$PORT/forge/run" -type f -path '*/logs/latest.log' | head -n1 || true)
-CLIENT_FILES=("$CLIENT_SMOKE"); [[ -n "$CLIENT_LOG" ]] && CLIENT_FILES+=("$CLIENT_LOG")
+CLIENT_DEADLINE=$((SECONDS+180)); CLIENT_RESOURCE=0; CLIENT_LWJGL=0
 FATAL_CLIENT='MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|The game crashed whilst initializing game|Exception in thread "Render thread"|Failed to initialize graphics window|Timed out trying to setup the Game Window|Could not initialize GLFW|Missing or unsupported mandatory dependencies|archers_spirit.*(Exception|Error)|Direwolf.*(Exception|Error)'
+while kill -0 "$CLIENT_PID" 2>/dev/null && (( SECONDS < CLIENT_DEADLINE )); do
+  mapfile -t CLIENT_FILES < <(collect_run_files "$CLIENT_SMOKE" "$PORT/forge/run")
+  if grep -Eiq "$FATAL_CLIENT" "${CLIENT_FILES[@]}"; then stop_tree "$CLIENT_PID"; cat "${CLIENT_FILES[@]}"; exit 5; fi
+  grep -Fhq 'Reloading ResourceManager' "${CLIENT_FILES[@]}" && CLIENT_RESOURCE=1 || true
+  grep -Fhq 'Backend library: LWJGL' "${CLIENT_FILES[@]}" && CLIENT_LWJGL=1 || true
+  [[ "$CLIENT_RESOURCE" = 1 && "$CLIENT_LWJGL" = 1 ]] && break
+  sleep 2
+done
+if kill -0 "$CLIENT_PID" 2>/dev/null; then stop_tree "$CLIENT_PID"; fi
+mapfile -t CLIENT_FILES < <(collect_run_files "$CLIENT_SMOKE" "$PORT/forge/run")
 if grep -Eiq "$FATAL_CLIENT" "${CLIENT_FILES[@]}"; then cat "${CLIENT_FILES[@]}"; exit 5; fi
-if [[ -n "$CLIENT_LOG" ]] && grep -Fq 'Reloading ResourceManager' "$CLIENT_LOG" && grep -Fq 'Backend library: LWJGL' "$CLIENT_LOG"; then
-  echo '[Archers acceptance] Headless client reached post-bootstrap resource/render runtime.'
-elif [[ "$CLIENT_STATUS" -ne 124 && "$CLIENT_STATUS" -ne 143 ]]; then
-  cat "${CLIENT_FILES[@]}"; echo "[Archers acceptance] client exited before bootstrap evidence: $CLIENT_STATUS" >&2; exit 5
-else
-  cat "${CLIENT_FILES[@]}"; echo '[Archers acceptance] client timed out before proven post-bootstrap state' >&2; exit 5
+if [[ "$CLIENT_RESOURCE" != 1 || "$CLIENT_LWJGL" != 1 ]]; then
+  cat "${CLIENT_FILES[@]}"; echo "[Archers acceptance] client proof incomplete: resource=$CLIENT_RESOURCE lwjgl=$CLIENT_LWJGL" >&2; exit 5
 fi
+echo '[Archers acceptance] Headless client reached post-bootstrap resource/render runtime.'
 
 echo '[Archers acceptance] Fresh official Forge 47.4.23 packaged-server gate'
 FRESH="$PORT/.fresh-archers-forge-server"
@@ -191,10 +209,10 @@ while kill -0 "$PID" 2>/dev/null && (( SECONDS < DEADLINE )); do
   if grep -Eiq "$FATAL" "$PACKAGE_LOG"; then stop_tree "$PID"; cat "$PACKAGE_LOG"; exit 6; fi
   grep -Eq 'Done \([0-9.]+s\)!' "$PACKAGE_LOG" && READY=1 || true
   grep -Fq 'ARCHERS_SELF_TEST_PASS' "$PACKAGE_LOG" && SELFTEST=1 || true
-  if [[ "$READY" = 1 && "$SELFTEST" = 1 ]]; then break; fi
+  [[ "$READY" = 1 && "$SELFTEST" = 1 ]] && break
   sleep 2
 done
-stop_tree "$PID"
+if kill -0 "$PID" 2>/dev/null; then stop_tree "$PID"; fi
 if [[ "$READY" != 1 || "$SELFTEST" != 1 ]]; then cat "$PACKAGE_LOG"; echo "[Archers acceptance] fresh server proof incomplete: ready=$READY selftest=$SELFTEST" >&2; exit 6; fi
 if grep -Eiq "$FATAL" "$PACKAGE_LOG"; then cat "$PACKAGE_LOG"; exit 6; fi
 echo '[Archers acceptance] Fresh packaged Forge server reached ready state with byte-identical Archers JAR and semantic self-test green.'
