@@ -30,6 +30,20 @@ python3 "$ROOT/apply_1201_api_wave2.py" "$GENERATED/common/java" "$GENERATED/com
 python3 "$ROOT/apply_1201_runtime_transforms.py" "$GENERATED/common/java"
 python3 "$ROOT/apply_1201_forge_registration.py" "$GENERATED/common/java"
 
+if grep -R -nE '(^|[^A-Za-z0-9_.])Registry\.register(Reference)?\(' "$GENERATED/common/java"; then
+  echo '[Archers materialize] unbridged vanilla registry mutation survived native Forge registration transform' >&2
+  exit 2
+fi
+grep -F 'ArcherBlocks.registerBlocks();' "$GENERATED/common/java/net/archers/ArchersMod.java" >/dev/null
+grep -F 'public static void registerItemGroup()' "$GENERATED/common/java/net/archers/ArchersMod.java" >/dev/null
+grep -F 'public static void registerItems()' "$GENERATED/common/java/net/archers/block/ArcherBlocks.java" >/dev/null
+if grep -nF 'Registry.register(' "$ROOT/forge/src/main/java/net/archers/forge/ForgeMod.java"; then
+  echo '[Archers materialize] Forge bridge bypasses RegisterEvent helper' >&2
+  exit 2
+fi
+grep -F 'RegistryKeys.ENTITY_TYPE' "$ROOT/forge/src/main/java/net/archers/forge/ForgeMod.java" >/dev/null
+grep -F 'RegistrationBridge.withRegistrar' "$ROOT/forge/src/main/java/net/archers/forge/ForgeMod.java" >/dev/null
+
 (
   cd "$GENERATED"
   find common -type f -print0 | sort -z | xargs -0 sha256sum > CURRENT_PORT_INPUTS.sha256
