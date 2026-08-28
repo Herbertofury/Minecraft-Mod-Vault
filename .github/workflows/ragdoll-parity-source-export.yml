@@ -1,0 +1,35 @@
+name: Ragdoll parity source export
+
+on:
+  push:
+    branches: [ragdoll-recovery]
+    paths:
+      - '.github/workflows/ragdoll-parity-source-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact published source lineages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          CORE_SHA=9ec919f58611b30046581d28747068d5576d0510
+          SABLE_SHA=17d29f5b99d50e3cc13b536b23f9181ade99f14f
+          curl -fL --retry 3 "https://github.com/Leo-T22/sable-player-ragdoll/archive/${CORE_SHA}.zip" -o out/sable-player-ragdoll-0.7.5-source.zip
+          curl -fL --retry 3 "https://github.com/ryanhcode/sable/archive/${SABLE_SHA}.zip" -o out/sable-2.0.3-source.zip
+          sha256sum out/*.zip | tee out/SHA256SUMS.txt
+          printf 'sable_player_ragdoll_source=%s\n' "$CORE_SHA" > out/PROVENANCE.txt
+          printf 'sable_source=%s\n' "$SABLE_SHA" >> out/PROVENANCE.txt
+
+      - name: Upload exact source snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-upstream-parity-sources
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
