@@ -21,7 +21,10 @@ cleanup() {
 trap cleanup EXIT
 
 wait_marker() {
-  local marker="$1" timeout="$2" label="$3" deadline=$((SECONDS+timeout))
+  local marker="$1"
+  local timeout_seconds="$2"
+  local label="$3"
+  local deadline=$((SECONDS + timeout_seconds))
   local fatal='ModLoadingException|Failed to create mod instance|Failed to start the minecraft server|NoClassDefFoundError|ClassNotFoundException|MixinApplyError|InvalidMixinException|MixinTransformerError|Registry is already frozen|Can not register to a locked registry|Missing or unsupported mandatory dependencies|Exception in server tick loop|The game crashed'
   while (( SECONDS < deadline )); do
     if grep -Eiq "$fatal" "$LOG" "$LATEST" 2>/dev/null; then
