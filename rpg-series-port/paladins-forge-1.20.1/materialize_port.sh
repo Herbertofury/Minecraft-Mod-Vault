@@ -51,6 +51,8 @@ python3 "$ROOT/apply_1201_forge_registration.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat.py" "$OUT/common/java"
 python3 "$ROOT/normalize_1201_compat_comments.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat_batch2.py" "$OUT/common/java"
+python3 "$ROOT/apply_1201_api_compat_batch3.py" "$OUT/common/java"
+python3 "$ROOT/apply_1201_api_compat_batch3_network.py" "$OUT/common/java"
 
 # Registration transform acceptance: zero direct vanilla mutations, explicit split lifecycle hooks.
 if grep -R -nE '(^|[^A-Za-z0-9_.])Registry\.register(Reference)?\(' "$OUT/common/java"; then
