@@ -21,7 +21,10 @@ cleanup() {
 trap cleanup EXIT
 
 wait_marker() {
-  local marker="$1" timeout="$2" label="$3" deadline=$((SECONDS+timeout))
+  local marker="$1"
+  local timeout_seconds="$2"
+  local label="$3"
+  local deadline=$((SECONDS + timeout_seconds))
   local fatal='ModLoadingException|Failed to create mod instance|Failed to start the minecraft server|NoClassDefFoundError|ClassNotFoundException|MixinApplyError|InvalidMixinException|MixinTransformerError|Registry is already frozen|Can not register to a locked registry|Missing or unsupported mandatory dependencies|Exception in server tick loop|The game crashed'
   while (( SECONDS < deadline )); do
     if grep -Eiq "$fatal" "$LOG" "$LATEST" 2>/dev/null; then
@@ -59,8 +62,6 @@ ACTUAL_SHA="$(sha256sum "$PAL_JAR" | awk '{print $1}')"
 [[ "$ACTUAL_SHA" = "$EXPECTED_SHA" ]] || {
   echo "[Paladins behavior] packaged release identity drifted: expected=$EXPECTED_SHA actual=$ACTUAL_SHA" >&2; exit 1; }
 
-# Judgement cannot be honestly action-tested without a real player. Keep a fail-closed wiring assertion here;
-# integrated-player STUN remains a distinct graduation gate instead of being simulated by a mob command.
 grep -F 'ActionImpairing.configure(JUDGEMENT.effect, EntityActionsAllowed.STUN);' \
   "$PORT/generated/common/java/net/paladins/effect/PaladinEffects.java" >/dev/null
 echo '[Paladins behavior] JUDGEMENT_STUN_WIRING_STATIC_PASS (player action gate still required)'
@@ -74,13 +75,11 @@ exec 9<> "$FIFO"
 wait_marker 'Done (' 180 'server readiness'
 echo '[Paladins behavior] exact packaged server ready; executing deterministic game-thread assertions.'
 
-# Keep the fixture deterministic and non-destructive.
 send_cmd 'gamerule doMobSpawning false'
 send_cmd 'gamerule doMobLoot false'
 send_cmd 'scoreboard objectives add palqa dummy'
 send_cmd 'kill @e[tag=palqa]'
 
-# Priest Absorption: amplifier 1 must grant exactly 4.0 absorption hearts, then remove exactly that grant.
 send_cmd 'summon minecraft:cow 0 100 0 {Tags:["palqa","palqa_priest"],NoAI:1b,Silent:1b,PersistenceRequired:1b}'
 send_cmd 'effect give @e[tag=palqa_priest,limit=1] paladins:priest_absorption 30 1 true'
 send_cmd 'execute store result score priest_on palqa run data get entity @e[tag=palqa_priest,limit=1] AbsorptionAmount 10'
@@ -89,7 +88,6 @@ send_cmd 'effect clear @e[tag=palqa_priest,limit=1] paladins:priest_absorption'
 send_cmd 'execute store result score priest_off palqa run data get entity @e[tag=palqa_priest,limit=1] AbsorptionAmount 10'
 send_cmd 'execute if score priest_off palqa matches 0 run say PALADINS_BEHAVIOR_PRIEST_REMOVE_PASS'
 
-# Divine Protection: one stack must fully intercept generic damage and be consumed.
 send_cmd 'summon minecraft:cow 5 100 0 {Tags:["palqa","palqa_divine"],NoAI:1b,Silent:1b,PersistenceRequired:1b}'
 send_cmd 'effect give @e[tag=palqa_divine,limit=1] paladins:divine_protection 30 0 true'
 send_cmd 'damage @e[tag=palqa_divine,limit=1] 5 minecraft:generic'
@@ -97,7 +95,6 @@ send_cmd 'execute store result score divine_hp palqa run data get entity @e[tag=
 send_cmd 'execute store success score divine_left palqa run effect clear @e[tag=palqa_divine,limit=1] paladins:divine_protection'
 send_cmd 'execute if score divine_hp palqa matches 100 if score divine_left palqa matches 0 run say PALADINS_BEHAVIOR_DIVINE_BLOCK_CONSUME_PASS'
 
-# A two-charge instance must still block the first hit but remain present at one lower stack.
 send_cmd 'summon minecraft:cow 7 100 0 {Tags:["palqa","palqa_divine2"],NoAI:1b,Silent:1b,PersistenceRequired:1b}'
 send_cmd 'effect give @e[tag=palqa_divine2,limit=1] paladins:divine_protection 30 1 true'
 send_cmd 'damage @e[tag=palqa_divine2,limit=1] 5 minecraft:generic'
@@ -105,7 +102,6 @@ send_cmd 'execute store result score divine2_hp palqa run data get entity @e[tag
 send_cmd 'execute store success score divine2_left palqa run effect clear @e[tag=palqa_divine2,limit=1] paladins:divine_protection'
 send_cmd 'execute if score divine2_hp palqa matches 100 if score divine2_left palqa matches 1 run say PALADINS_BEHAVIOR_DIVINE_DECREMENT_PASS'
 
-# Levitate: compare identical falling cows, then prove final-tick handoff to vanilla Slow Falling.
 send_cmd 'summon minecraft:cow 10 100 0 {Tags:["palqa","palqa_control"],NoAI:1b,Silent:1b,PersistenceRequired:1b}'
 send_cmd 'summon minecraft:cow 12 100 0 {Tags:["palqa","palqa_lev"],NoAI:1b,Silent:1b,PersistenceRequired:1b}'
 send_cmd 'effect give @e[tag=palqa_lev,limit=1] paladins:levitate 1 0 true'
