@@ -1,0 +1,57 @@
+name: Ragdoll Forge Server Runtime
+
+on:
+  push:
+    branches: [ ragdoll-recovery ]
+    paths: [ '.github/workflows/ragdoll-forge-server-runtime.yml' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download and verify Forge installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
+          curl -fL --retry 4 --retry-delay 2 -o forge-installer.jar "$url"
+          echo 'ed31ce02ac69176f34353235cb2508d5a0f1e088  forge-installer.jar' | sha1sum -c -
+      - name: Install production Forge server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p server
+          java -jar forge-installer.jar --installServer server
+          test -f server/libraries/net/minecraftforge/forge/1.20.1-47.4.23/unix_args.txt
+          printf 'eula=true\n' > server/eula.txt
+          printf 'online-mode=false\nserver-port=0\nlevel-name=world\n' > server/server.properties
+          printf '%s\n' \
+            'minecraft=1.20.1' \
+            'forge=47.4.23' \
+            'java=17' \
+            'installer_sha1=ed31ce02ac69176f34353235cb2508d5a0f1e088' \
+            > server/RUNTIME-PROVENANCE.txt
+      - name: Package deterministic runtime snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          find server -type f -print0 | sort -z | xargs -0 sha256sum > server/RUNTIME-SHA256SUMS.txt
+          tar --sort=name --mtime='UTC 2020-01-01' --owner=0 --group=0 --numeric-owner -czf forge-1.20.1-47.4.23-server-runtime.tar.gz server
+          sha256sum forge-1.20.1-47.4.23-server-runtime.tar.gz > forge-1.20.1-47.4.23-server-runtime.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-server-runtime
+          path: |
+            forge-1.20.1-47.4.23-server-runtime.tar.gz
+            forge-1.20.1-47.4.23-server-runtime.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
