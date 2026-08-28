@@ -21,6 +21,11 @@ wait "$p1" "$p2"
 test "$(git -C "$UP/current" rev-parse HEAD^{tree})" = "$SHIELD_API_CURRENT_TREE"
 python3 "$PORT/tools/prepare_upstream_source.py" "$UP/legacy" "$UP/current" "$PORT/common"
 
+# Forge Loom must be selected in the Forge subproject before any expensive Gradle work.
+# Keep this as a cheap regression gate because Architectury otherwise fails during project evaluation.
+test -f "$PORT/forge/gradle.properties"
+grep -Fx 'loom.platform=forge' "$PORT/forge/gradle.properties" >/dev/null
+
 GEN="$PORT/common/src/generatedUpstream"
 test -f "$GEN/java/net/fabric_extras/shield_api/item/CustomShieldItem.java"
 test -f "$GEN/java/net/fabric_extras/shield_api/mixin/entity/player/PlayerEntityMixin.java"
