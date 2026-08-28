@@ -111,17 +111,21 @@ fetch_archive "$CURRENT_COMMIT" "$CURRENT_REF" current
 fetch_archive "$HIST_COMMIT" "$HIST_REF" historical
 verify_snapshot "$CURRENT_REF" "$CURRENT_GRADLE_BLOB" "$CURRENT_VERSION" "$CURRENT_MC" "$CURRENT_YARN" current
 verify_snapshot "$HIST_REF" "$HIST_GRADLE_BLOB" "$HIST_VERSION" "$HIST_MC" "$HIST_YARN" historical
+[[ -d "$CURRENT_REF/common/src/main/generated" ]] || fail 'current 3.1.1 generated data missing'
+[[ -f "$CURRENT_REF/common/src/main/generated/data/rogues/spell/last_stand.json" ]] || fail 'current 3.1.1 Last Stand generated spell data missing'
 
 rm -rf "$MATERIALIZED"
-mkdir -p "$MATERIALIZED/common/src/main/java" "$MATERIALIZED/common/src/main/resources"
+mkdir -p "$MATERIALIZED/common/src/main/java" "$MATERIALIZED/common/src/main/resources" "$MATERIALIZED/common/src/main/generated"
 cp -a "$CURRENT_REF/common/src/main/java/." "$MATERIALIZED/common/src/main/java/"
 cp -a "$CURRENT_REF/common/src/main/resources/." "$MATERIALIZED/common/src/main/resources/"
+cp -a "$CURRENT_REF/common/src/main/generated/." "$MATERIALIZED/common/src/main/generated/"
 for path in common/build.gradle common/gradle.properties build.gradle gradle.properties settings.gradle LICENSE; do
   if [[ -f "$CURRENT_REF/$path" ]]; then
     mkdir -p "$MATERIALIZED/$(dirname "$path")"
     cp -a "$CURRENT_REF/$path" "$MATERIALIZED/$path"
   fi
 done
+[[ -f "$MATERIALIZED/common/src/main/generated/data/rogues/spell/last_stand.json" ]] || fail 'materialized-current silently dropped generated spell data'
 
 if find "$MATERIALIZED" -type f -exec grep -Il '' {} + 2>/dev/null | xargs -r grep -Fl "$HIST_COMMIT" >/dev/null; then
   fail 'historical commit material leaked into current materialization'
@@ -155,6 +159,7 @@ historical_yarn=$HIST_YARN
 historical_reference_manifest_sha256=$HIST_REF_SHA
 materialized_current_manifest_sha256=$CURRENT_MANIFEST_SHA
 materialized_current_file_count=$CURRENT_FILE_COUNT
+materialized_current_includes_generated=true
 historical_overlay=false
 EOF
 
@@ -164,5 +169,5 @@ cmp -s "$MANIFEST" "$SECOND" || fail 'materialized-current manifest changed with
 
 echo "[Rogues source prep] CURRENT_AUTHORITY_PASS commit=$CURRENT_COMMIT tree=$CURRENT_TREE blob=$CURRENT_GRADLE_BLOB"
 echo "[Rogues source prep] HISTORICAL_SUBSTRATE_PASS commit=$HIST_COMMIT tree=$HIST_TREE blob=$HIST_GRADLE_BLOB"
-echo "[Rogues source prep] MATERIALIZED_CURRENT_PASS files=$CURRENT_FILE_COUNT manifest=$CURRENT_MANIFEST_SHA"
+echo "[Rogues source prep] MATERIALIZED_CURRENT_PASS files=$CURRENT_FILE_COUNT manifest=$CURRENT_MANIFEST_SHA generated=true"
 echo '[Rogues source prep] HISTORICAL_SEPARATION_PASS: historical 1.20.1 reference remains isolated under .upstream and never overlays current 3.1.1 source.'
