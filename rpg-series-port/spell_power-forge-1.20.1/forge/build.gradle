@@ -15,17 +15,26 @@ configurations {
     developmentForge.extendsFrom common
     shadowBundle { canBeResolved = true; canBeConsumed = false }
 }
+
+File requiredJar(String propertyName) {
+    def value = providers.gradleProperty(propertyName).orNull
+    if (value == null || value.trim().isEmpty()) throw new GradleException("Missing -P${propertyName}=...")
+    def file = rootProject.file(value.trim())
+    if (!file.isFile()) throw new GradleException("${propertyName} does not exist: ${file}")
+    return file
+}
+
 dependencies {
     forge "net.minecraftforge:forge:$rootProject.forge_version"
     common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionForge')
 
-    // Jar-in-jar for release builds, plus explicit Forge dev-runtime wiring.
-    // Architectury Loom does not reliably expose included plain libraries to
-    // the Forge module layer during runServer/runClient (architectury-loom#201).
-    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
-    include tinyConfig
-    forgeRuntimeLibrary tinyConfig
+    // TinyConfig 3.1.0 remains its own mod at both development and release boundaries.
+    // Userdev needs the exact Forge artifact visible to the module layer, but it must never be
+    // included/shaded into Spell Power.
+    def tinyConfigForge = requiredJar('tiny_config_forge_jar')
+    modCompileOnly files(tinyConfigForge)
+    modRuntimeOnly files(tinyConfigForge)
 }
 processResources {
     inputs.property 'version', project.version
