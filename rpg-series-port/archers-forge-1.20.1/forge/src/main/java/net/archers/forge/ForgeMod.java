@@ -57,10 +57,10 @@ public final class ForgeMod {
 
     private static void buildTabContents(BuildCreativeModeTabContentsEvent event) {
         if (!event.getTabKey().equals(Group.KEY)) return;
-        for (var entry : Misc.ENTRIES) event.accept(entry.item());
-        for (var entry : ArcherBlocks.all) event.accept(entry.item());
+        for (var entry : Misc.ENTRIES) event.accept(() -> entry.item());
+        for (var entry : ArcherBlocks.all) event.accept(() -> entry.item());
         if (ModList.get().isLoaded("bundleapi")) {
-            for (var entry : Quivers.entries) event.accept(entry.item());
+            for (var entry : Quivers.entries) event.accept(() -> entry.item());
         }
     }
 
