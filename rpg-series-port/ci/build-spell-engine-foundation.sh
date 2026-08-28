@@ -80,6 +80,7 @@ python3 "$PORT/tools/compat_pass_6a.py" "$WORK" "$UP/spell-engine-1201"
 python3 "$PORT/tools/compat_pass_6a1.py" "$WORK" "$UP/spell-engine-1201"
 for part in b c d e f g h i; do python3 "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done
 python3 "$PORT/tools/compat_pass_6j.py" "$WORK" "$UP/spell-engine-1201"
+python3 "$PORT/tools/compat_pass_6k.py" "$WORK" "$UP/spell-engine-1201"
 
 # Preserve the same anti-source-injection boundary as the graduated verifier.
 test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
@@ -91,6 +92,7 @@ fi
 grep -F 'public class SummonedEntityConfig extends VersionableConfig' "$WORK/common/src/main/java/net/spell_engine/api/spell/summon/SummonedEntityConfig.java" >/dev/null
 grep -F "compileOnly files('../libs/tiny-config-common.jar')" "$WORK/common/build.gradle" >/dev/null
 grep -F "modImplementation files('../libs/tiny-config-forge.jar')" "$WORK/forge/build.gradle" >/dev/null
+grep -F 'implementation(include("io.github.llamalad7:mixinextras-forge:$rootProject.mixinextras_version"))' "$WORK/forge/build.gradle" >/dev/null
 grep -F 'modId="tiny_config"' "$WORK/forge/src/main/resources/META-INF/mods.toml" >/dev/null
 
 gradle --no-daemon --stacktrace -p "$WORK" :forge:build
@@ -112,6 +114,10 @@ if unzip -Z1 "$OUT_JAR" | grep -q '^net/tiny_config/'; then
   echo '[Spell Engine foundation] TinyConfig 3.1.0 classes leaked into Spell Engine release' >&2
   exit 1
 fi
+if ! unzip -Z1 "$OUT_JAR" | grep -Ei '^META-INF/jars/.*mixinextras.*\.jar$' >/dev/null; then
+  echo '[Spell Engine foundation] pinned MixinExtras Forge runtime was not embedded at its owning Spell Engine boundary' >&2
+  exit 1
+fi
 unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"' >/dev/null
 unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="tiny_config"' >/dev/null
-echo '[Spell Engine foundation] deterministic build/package boundary green; TinyConfig 3.1.0 API parity restored; runtime replay intentionally skipped for downstream lane.'
+echo '[Spell Engine foundation] deterministic build/package boundary green; TinyConfig 3.1.0 API parity restored; MixinExtras 0.4.1 Forge runtime embedded; runtime replay intentionally skipped for downstream lane.'
