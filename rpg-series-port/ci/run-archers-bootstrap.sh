@@ -15,7 +15,7 @@ resolve_jar() {
     return 1
   fi
   mapfile -t candidates < <(find "$dir" -maxdepth 1 -type f -name "$name_glob" \
-    ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' ! -name '*transformProduction*' -print | sort)
+    ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' -print | sort)
   if (( ${#candidates[@]} != 1 )); then
     echo "[Archers ABI] $label expected exactly one $name_glob release candidate, found ${#candidates[@]} in $dir" >&2
     find "$dir" -maxdepth 1 -type f -name '*.jar' -printf '[Archers ABI] candidate: %f\n' | sort >&2 || true
