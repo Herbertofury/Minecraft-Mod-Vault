@@ -48,6 +48,7 @@ grep -Fx 'minecraft_version=1.20.1' "$LEGACY/gradle.properties" >/dev/null
 
 bash "$ROOT/prepare_sources.sh" "$CURRENT" "$LEGACY" "$OUT"
 python3 "$ROOT/apply_1201_forge_registration.py" "$OUT/common/java"
+python3 "$ROOT/apply_1201_api_compat.py" "$OUT/common/java"
 
 # Registration transform acceptance: zero direct vanilla mutations, explicit split lifecycle hooks.
 if grep -R -nE '(^|[^A-Za-z0-9_.])Registry\.register(Reference)?\(' "$OUT/common/java"; then
@@ -59,6 +60,10 @@ grep -F 'public static void registerItems()' "$OUT/common/java/net/paladins/bloc
 grep -F 'public static void registerBlockItems()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
 grep -F 'public static void registerItemGroup()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
 grep -F 'public static void registerEntities()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
+if grep -R -nF 'Identifier.of(' "$OUT/common/java"; then
+  echo '[Paladins materialize] 1.21 Identifier.of API survived 1.20.1 compatibility pass' >&2
+  exit 2
+fi
 
 manifest() {
   local tree="$1" out="$2"
@@ -76,4 +81,4 @@ printf '[Paladins source prep] current=%s tree=%s files=%s\n' \
   "$PALADINS_CURRENT_SHA" "$PALADINS_CURRENT_TREE" "$(wc -l < "$UP/current-$PALADINS_CURRENT_SHA.files.sha256" | tr -d ' ')"
 printf '[Paladins source prep] legacy=%s tree=%s files=%s\n' \
   "$PALADINS_LEGACY_1201_SHA" "$PALADINS_LEGACY_1201_TREE" "$(wc -l < "$UP/legacy-$PALADINS_LEGACY_1201_SHA.files.sha256" | tr -d ' ')"
-echo '[Paladins source prep] exact two-pin snapshots verified; current feature authority staged with native Forge registration ownership; legacy remains API/mapping substrate only.'
+echo '[Paladins source prep] exact two-pin snapshots verified; current feature authority staged with native Forge registration ownership and exact 1.20.1 API syntax translations; legacy remains API/mapping substrate only.'
