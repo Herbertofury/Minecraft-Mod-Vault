@@ -47,6 +47,18 @@ grep -Fx 'minecraft_version=1.21.1' "$CURRENT/gradle.properties" >/dev/null
 grep -Fx 'minecraft_version=1.20.1' "$LEGACY/gradle.properties" >/dev/null
 
 bash "$ROOT/prepare_sources.sh" "$CURRENT" "$LEGACY" "$OUT"
+python3 "$ROOT/apply_1201_forge_registration.py" "$OUT/common/java"
+
+# Registration transform acceptance: zero direct vanilla mutations, explicit split lifecycle hooks.
+if grep -R -nE '(^|[^A-Za-z0-9_.])Registry\.register(Reference)?\(' "$OUT/common/java"; then
+  echo '[Paladins materialize] unbridged vanilla registry mutation survived native Forge transform' >&2
+  exit 2
+fi
+grep -F 'public static void registerBlocks()' "$OUT/common/java/net/paladins/block/PaladinBlocks.java" >/dev/null
+grep -F 'public static void registerItems()' "$OUT/common/java/net/paladins/block/PaladinBlocks.java" >/dev/null
+grep -F 'public static void registerBlockItems()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
+grep -F 'public static void registerItemGroup()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
+grep -F 'public static void registerEntities()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
 
 manifest() {
   local tree="$1" out="$2"
@@ -55,8 +67,13 @@ manifest() {
 manifest "$CURRENT" "$UP/current-$PALADINS_CURRENT_SHA.files.sha256"
 manifest "$LEGACY" "$UP/legacy-$PALADINS_LEGACY_1201_SHA.files.sha256"
 
+(
+  cd "$OUT"
+  find common -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > CURRENT_PORT_OUTPUTS.sha256
+)
+
 printf '[Paladins source prep] current=%s tree=%s files=%s\n' \
   "$PALADINS_CURRENT_SHA" "$PALADINS_CURRENT_TREE" "$(wc -l < "$UP/current-$PALADINS_CURRENT_SHA.files.sha256" | tr -d ' ')"
 printf '[Paladins source prep] legacy=%s tree=%s files=%s\n' \
   "$PALADINS_LEGACY_1201_SHA" "$PALADINS_LEGACY_1201_TREE" "$(wc -l < "$UP/legacy-$PALADINS_LEGACY_1201_SHA.files.sha256" | tr -d ' ')"
-echo '[Paladins source prep] exact two-pin source snapshots verified; current remains feature authority, legacy mapping/API substrate only.'
+echo '[Paladins source prep] exact two-pin snapshots verified; current feature authority staged with native Forge registration ownership; legacy remains API/mapping substrate only.'
