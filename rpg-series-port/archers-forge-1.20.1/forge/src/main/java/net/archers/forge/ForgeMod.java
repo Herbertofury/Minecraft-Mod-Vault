@@ -13,6 +13,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.world.poi.PointOfInterestType;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.village.VillagerTradesEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModList;
@@ -31,6 +32,7 @@ public final class ForgeMod {
         modBus.addListener(ForgeMod::buildTabContents);
         modBus.addListener(ForgeMod::commonSetup);
         MinecraftForge.EVENT_BUS.addListener(ForgeMod::onVillagerTrades);
+        MinecraftForge.EVENT_BUS.addListener(ForgeMod::onServerStarted);
     }
 
     private static void commonSetup(FMLCommonSetupEvent event) {
@@ -70,5 +72,9 @@ public final class ForgeMod {
             var tierList = event.getTrades().get(tier.intValue());
             if (tierList != null) tierList.addAll(factories);
         });
+    }
+
+    private static void onServerStarted(ServerStartedEvent event) {
+        ArchersCiSelfTest.runIfRequested();
     }
 }
