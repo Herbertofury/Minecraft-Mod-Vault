@@ -100,9 +100,10 @@ for part in b c d e f g h i; do python3 "$PORT/tools/compat_pass_6${part}.py" "$
 python3 "$PORT/tools/compat_pass_6j.py" "$WORK" "$UP/spell-engine-1201"
 python3 "$PORT/tools/compat_pass_6k.py" "$WORK" "$UP/spell-engine-1201"
 python3 "$PORT/tools/compat_pass_6l.py" "$WORK" "$UP/spell-engine-1201"
+python3 "$PORT/tools/compat_pass_6m.py" "$WORK"
 
-# Preserve the anti-source-injection boundary and make the TinyConfig 3 migration a permanent invariant.
-test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 345
+# Preserve the anti-source-injection boundary, TinyConfig 3 migration, and native registration seam.
+test "$(find "$WORK/common/src/main/java" -name '*.java' | wc -l)" -ge 346
 test -f "$WORK/forge/src/main/resources/META-INF/mods.toml"
 if grep -R -nE 'SPELL_POWER_SOURCE_DIRS|RANGED_SOURCE_DIRS|addExternalCompileSources' "$WORK/common/build.gradle" "$WORK/forge/build.gradle"; then
   echo '[Spell Engine foundation] dependency source injection leaked into generated build' >&2
@@ -118,6 +119,14 @@ grep -F "compileOnly files('../libs/tiny-config-common.jar')" "$WORK/common/buil
 grep -F "modImplementation files('../libs/tiny-config-forge.jar')" "$WORK/forge/build.gradle" >/dev/null
 grep -F 'implementation(include("io.github.llamalad7:mixinextras-forge:$rootProject.mixinextras_version"))' "$WORK/forge/build.gradle" >/dev/null
 grep -F 'modId="tiny_config"' "$WORK/forge/src/main/resources/META-INF/mods.toml" >/dev/null
+test -f "$WORK/common/src/main/java/net/spell_engine/compat/registry/RegistrationBridge.java"
+for f in \
+  "$WORK/common/src/main/java/net/spell_engine/rpg_series/item/Weapon.java" \
+  "$WORK/common/src/main/java/net/spell_engine/rpg_series/item/RangedWeapon.java" \
+  "$WORK/common/src/main/java/net/spell_engine/rpg_series/item/Armor.java" \
+  "$WORK/common/src/main/java/net/spell_engine/api/effect/Effects.java"; do
+  grep -F 'RegistrationBridge.' "$f" >/dev/null || { echo "[Spell Engine foundation] native registry bridge missing from $f" >&2; exit 1; }
+done
 
 gradle --no-daemon --stacktrace -p "$WORK" :forge:build
 JAR="$(find "$WORK/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | sort | head -n1)"
@@ -146,6 +155,10 @@ if ! unzip -Z1 "$OUT_JAR" | grep -Ei '^META-INF/jars/.*mixinextras.*\.jar$' >/de
   echo '[Spell Engine foundation] pinned MixinExtras Forge runtime was not embedded at its owning Spell Engine boundary' >&2
   exit 1
 fi
+if ! unzip -Z1 "$OUT_JAR" | grep -F 'net/spell_engine/compat/registry/RegistrationBridge.class' >/dev/null; then
+  echo '[Spell Engine foundation] native registration bridge missing from release JAR' >&2
+  exit 1
+fi
 unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="spell_power"' >/dev/null
 unzip -p "$OUT_JAR" META-INF/mods.toml | grep -F 'modId="tiny_config"' >/dev/null
-echo '[Spell Engine foundation] deterministic build/package boundary green; TinyConfig 3.1.0 runtime package migration enforced; MixinExtras 0.4.1 Forge runtime embedded; runtime replay intentionally skipped for downstream lane.'
+echo '[Spell Engine foundation] deterministic build/package boundary green; TinyConfig 3.1.0 runtime package migration enforced; MixinExtras 0.4.1 Forge runtime embedded; native Forge registry seam packaged; runtime replay intentionally skipped for downstream lane.'
