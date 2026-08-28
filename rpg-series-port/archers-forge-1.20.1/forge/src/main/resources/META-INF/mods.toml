@@ -58,6 +58,7 @@ side="BOTH"
 [[dependencies.archers]]
 modId="curios"
 mandatory=false
+versionRange="[${curios_version},)"
 ordering="AFTER"
 side="BOTH"
 
