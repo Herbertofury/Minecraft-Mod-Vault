@@ -1,8 +1,9 @@
 name: DevKit Art Acquisition
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - automation/devkit-art-acquisition-20260828
     paths:
       - '.github/workflows/devkit-art-acquisition.yml'
 
