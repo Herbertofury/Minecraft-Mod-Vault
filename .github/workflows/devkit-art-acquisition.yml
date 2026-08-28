@@ -43,21 +43,23 @@ jobs:
           echo "$repo" > "out/$slug/REPOSITORY.txt"
           echo "$default_branch" > "out/$slug/DEFAULT_BRANCH.txt"
 
+          # Complete repository history and refs in portable form.
           git clone --mirror "https://github.com/$repo.git" "work/$slug.git"
           git -C "work/$slug.git" bundle create "../../out/$slug/${slug}-ALL-REFS.bundle" --all
           git -C "work/$slug.git" show-ref > "out/$slug/ALL-REFS.txt"
 
+          # Current default branch source, with submodules/LFS materialized where possible.
           git clone --branch "$default_branch" --recurse-submodules "https://github.com/$repo.git" "work/$slug-default"
           if command -v git-lfs >/dev/null 2>&1; then
             git -C "work/$slug-default" lfs install --local || true
             git -C "work/$slug-default" lfs pull || true
           fi
-          commit="$(git -C "work/$slug-default" rev-parse HEAD)"
-          echo "$commit" > "out/$slug/DEFAULT-BRANCH-COMMIT.txt"
+          git -C "work/$slug-default" rev-parse HEAD > "out/$slug/DEFAULT-BRANCH-COMMIT.txt"
           git -C "work/$slug-default" submodule status --recursive > "out/$slug/SUBMODULES.txt" || true
           rm -rf "work/$slug-default/.git"
           (cd "work" && zip -q -r "../out/$slug/${slug}-${default_branch}-source.zip" "$slug-default")
 
+          # Explicit main snapshot when main exists but is not the default branch.
           if [ "$default_branch" != "main" ] && git -C "work/$slug.git" show-ref --verify --quiet refs/heads/main; then
             git clone --branch main --recurse-submodules "https://github.com/$repo.git" "work/$slug-main"
             git -C "work/$slug-main" lfs pull || true
@@ -66,6 +68,7 @@ jobs:
             (cd "work" && zip -q -r "../out/$slug/${slug}-main-source.zip" "$slug-main")
           fi
 
+          # Latest tag snapshot when tags exist.
           latest_tag="$(git -C "work/$slug.git" tag --sort=-version:refname | head -n 1 || true)"
           if [ -n "$latest_tag" ]; then
             printf '%s\n' "$latest_tag" > "out/$slug/LATEST-TAG.txt"
@@ -77,10 +80,12 @@ jobs:
             (cd "work" && zip -q -r "../out/$slug/${slug}-${safe_tag}-source.zip" "$slug-tag")
           fi
 
+          # Latest GitHub Release metadata plus every attached release asset.
           if gh release view --repo "$repo" --json tagName,name,publishedAt,url > "out/$slug/LATEST-RELEASE.json" 2>/dev/null; then
             mkdir -p "out/$slug/release-assets"
-            gh release download --repo "$repo" --dir "out/$slug/release-assets" || true
+            gh release download --repo "$repo" --pattern '*' --dir "out/$slug/release-assets" || true
           else
+            rm -f "out/$slug/LATEST-RELEASE.json"
             printf '%s\n' 'No GitHub Release found at acquisition time.' > "out/$slug/NO-GITHUB-RELEASE.txt"
           fi
 
@@ -88,8 +93,13 @@ jobs:
             if [ -f "work/$slug-default/$f" ]; then cp "work/$slug-default/$f" "out/$slug/PROVENANCE-$f"; fi
           done
 
-          find "out/$slug" -type f -print0 | sort -z | xargs -0 sha256sum > "out/$slug/SHA256SUMS.txt"
-          find "out/$slug" -maxdepth 2 -type f -printf '%P\t%s bytes\n' | sort > "out/$slug/CONTENTS.txt"
+          # Write manifests atomically so they do not self-hash/self-list.
+          checksum_tmp="$(mktemp)"
+          find "out/$slug" -type f ! -name SHA256SUMS.txt ! -name CONTENTS.txt -print0 | sort -z | xargs -0 sha256sum > "$checksum_tmp"
+          mv "$checksum_tmp" "out/$slug/SHA256SUMS.txt"
+          contents_tmp="$(mktemp)"
+          find "out/$slug" -maxdepth 2 -type f ! -name CONTENTS.txt -printf '%P\t%s bytes\n' | sort > "$contents_tmp"
+          mv "$contents_tmp" "out/$slug/CONTENTS.txt"
 
       - name: Upload repository acquisition artifact
         uses: actions/upload-artifact@v4
