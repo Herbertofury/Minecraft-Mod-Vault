@@ -120,9 +120,8 @@ def main() -> None:
         die("failed to normalize PlatformMethods self-name")
     compressor = zlib.compressobj(6, zlib.DEFLATED, -15)
     compressed = compressor.compress(normalized) + compressor.flush()
-    if len(compressed) != platform.compress_size:
-        die(f"PlatformMethods compressed size changed: {len(compressed)} != {platform.compress_size}")
     crc = zlib.crc32(normalized) & 0xFFFFFFFF
+    delta = len(compressed) - platform.compress_size
 
     buf = bytearray(raw)
     off = platform.header_offset
@@ -132,31 +131,57 @@ def main() -> None:
     if sig != 0x04034B50 or method != zipfile.ZIP_DEFLATED or not (flag & 8) or any((lcrc, lcs, lus)):
         die("unexpected PlatformMethods local ZIP header layout")
     data_start = off + 30 + name_len + extra_len
-    buf[data_start:data_start + platform.compress_size] = compressed
-
-    descriptor = data_start + platform.compress_size
-    if bytes(buf[descriptor:descriptor + 4]) != b"PK\x07\x08":
+    old_descriptor = data_start + platform.compress_size
+    if bytes(buf[old_descriptor:old_descriptor + 4]) != b"PK\x07\x08":
         die("PlatformMethods data descriptor signature changed")
-    _sig, old_crc, comp_size, file_size = struct.unpack_from("<IIII", buf, descriptor)
-    if old_crc != platform.CRC or comp_size != platform.compress_size or file_size != platform.file_size:
+    _sig, old_crc, old_comp_size, old_file_size = struct.unpack_from("<IIII", buf, old_descriptor)
+    if old_crc != platform.CRC or old_comp_size != platform.compress_size or old_file_size != platform.file_size:
         die("PlatformMethods data descriptor metadata changed")
-    struct.pack_into("<I", buf, descriptor + 4, crc)
+
+    # Replace the raw DEFLATE stream. The certified token may compress to a different length
+    # than this run's ephemeral token, so all following ZIP offsets are adjusted deliberately.
+    buf[data_start:data_start + platform.compress_size] = compressed
+    descriptor = old_descriptor + delta
+    if bytes(buf[descriptor:descriptor + 4]) != b"PK\x07\x08":
+        die("PlatformMethods descriptor did not shift with compressed stream")
+    struct.pack_into("<III", buf, descriptor + 4, crc, len(compressed), len(normalized))
+
+    eocd = buf.rfind(b"PK\x05\x06")
+    if eocd < 0:
+        die("ZIP end-of-central-directory record missing")
+    disk, cd_disk, entries_disk, entries_total, cd_size, old_cd_offset, comment_len = struct.unpack_from(
+        "<HHHHIIH", buf, eocd + 4
+    )
+    if disk or cd_disk or entries_disk != entries_total or entries_total != len(infos) or comment_len:
+        die("unexpected multi-disk/commented ZIP layout")
+    central_start = old_cd_offset + delta
+    if bytes(buf[central_start:central_start + 4]) != b"PK\x01\x02":
+        die("central directory did not shift as expected")
 
     old_name = platform.filename.encode()
     central_hits = 0
-    pos = 0
-    while True:
-        central = buf.find(b"PK\x01\x02", pos)
-        if central < 0:
-            break
-        name_len, extra_len, comment_len = struct.unpack_from("<HHH", buf, central + 28)
-        name = bytes(buf[central + 46:central + 46 + name_len])
+    record_count = 0
+    pos = central_start
+    central_end = central_start + cd_size
+    while pos < central_end:
+        if bytes(buf[pos:pos + 4]) != b"PK\x01\x02":
+            die(f"invalid central-directory signature at offset {pos}")
+        name_len, extra_len, record_comment_len = struct.unpack_from("<HHH", buf, pos + 28)
+        name = bytes(buf[pos + 46:pos + 46 + name_len])
+        local_offset = struct.unpack_from("<I", buf, pos + 42)[0]
         if name == old_name:
-            struct.pack_into("<I", buf, central + 16, crc)
+            struct.pack_into("<III", buf, pos + 16, crc, len(compressed), len(normalized))
             central_hits += 1
-        pos = central + 46 + name_len + extra_len + comment_len
-    if central_hits != 1:
-        die(f"expected one PlatformMethods central-directory record, found {central_hits}")
+        if local_offset > platform.header_offset:
+            struct.pack_into("<I", buf, pos + 42, local_offset + delta)
+        pos += 46 + name_len + extra_len + record_comment_len
+        record_count += 1
+    if pos != central_end or record_count != len(infos) or central_hits != 1:
+        die(
+            f"central-directory walk mismatch: end={pos == central_end} records={record_count}/{len(infos)} "
+            f"platform={central_hits}"
+        )
+    struct.pack_into("<I", buf, eocd + 16, central_start)
 
     literal_hits = bytes(buf).count(token)
     if literal_hits != 4:
@@ -172,7 +197,10 @@ def main() -> None:
     result_sha = sha(bytes(buf))
     if result_sha != CERT_SHA256:
         die(f"canonicalized bytes are not certified run-188 JAR: {result_sha} != {CERT_SHA256}")
-    print(f"[Shield certification] canonicalized generated namespace {token.decode()} -> {CERT_TOKEN.decode()}")
+    print(
+        f"[Shield certification] canonicalized generated namespace {token.decode()} -> {CERT_TOKEN.decode()} "
+        f"(PlatformMethods deflate delta {delta:+d})"
+    )
     print(f"[Shield certification] exact run-188 bytes proven: {CERT_SHA256}")
 
 
