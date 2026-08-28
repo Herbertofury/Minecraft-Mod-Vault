@@ -50,67 +50,40 @@ jobs:
           set -euo pipefail
           mkdir -p asset-export/assets/indexes asset-export/assets/objects
           python3 - <<'PY'
-          import concurrent.futures, hashlib, json, os, pathlib, urllib.request
-
+          import concurrent.futures, hashlib, json, pathlib, urllib.request
           root = pathlib.Path('asset-export/assets')
           root.mkdir(parents=True, exist_ok=True)
-
           def fetch_json(url):
-              with urllib.request.urlopen(url, timeout=30) as r:
-                  return json.load(r)
-
+              with urllib.request.urlopen(url, timeout=30) as r: return json.load(r)
           manifest_url = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
           manifest = fetch_json(manifest_url)
           version = next(v for v in manifest['versions'] if v['id'] == '1.20.1')
           version_json = fetch_json(version['url'])
           pathlib.Path('asset-export/MINECRAFT-1.20.1-VERSION.json').write_text(json.dumps(version_json, indent=2, sort_keys=True) + '\n')
-
           idx = version_json['assetIndex']
-          with urllib.request.urlopen(idx['url'], timeout=30) as r:
-              index_bytes = r.read()
+          with urllib.request.urlopen(idx['url'], timeout=30) as r: index_bytes = r.read()
           got = hashlib.sha1(index_bytes).hexdigest()
-          if got != idx['sha1']:
-              raise SystemExit(f'asset index sha1 mismatch: {got} != {idx["sha1"]}')
-          index_path = root / 'indexes' / f"{idx['id']}.json"
-          index_path.write_bytes(index_bytes)
+          if got != idx['sha1']: raise SystemExit(f'asset index sha1 mismatch: {got} != {idx["sha1"]}')
+          (root / 'indexes' / f"{idx['id']}.json").write_bytes(index_bytes)
           index = json.loads(index_bytes)
-
           hashes = sorted({meta['hash'] for meta in index['objects'].values()})
-
           def one(h):
               dest = root / 'objects' / h[:2] / h
               dest.parent.mkdir(parents=True, exist_ok=True)
-              if dest.exists() and hashlib.sha1(dest.read_bytes()).hexdigest() == h:
-                  return dest.stat().st_size
+              if dest.exists() and hashlib.sha1(dest.read_bytes()).hexdigest() == h: return dest.stat().st_size
               url = f'https://resources.download.minecraft.net/{h[:2]}/{h}'
               last = None
               for _ in range(4):
                   try:
-                      with urllib.request.urlopen(url, timeout=45) as r:
-                          data = r.read()
-                      if hashlib.sha1(data).hexdigest() != h:
-                          raise RuntimeError('sha1 mismatch')
-                      dest.write_bytes(data)
-                      return len(data)
-                  except Exception as e:
-                      last = e
+                      with urllib.request.urlopen(url, timeout=45) as r: data = r.read()
+                      if hashlib.sha1(data).hexdigest() != h: raise RuntimeError('sha1 mismatch')
+                      dest.write_bytes(data); return len(data)
+                  except Exception as e: last = e
               raise RuntimeError(f'failed {h}: {last}')
-
           total = 0
           with concurrent.futures.ThreadPoolExecutor(max_workers=24) as ex:
-              for size in ex.map(one, hashes):
-                  total += size
-
-          provenance = {
-              'minecraft': '1.20.1',
-              'version_manifest_url': manifest_url,
-              'version_metadata_url': version['url'],
-              'asset_index_id': idx['id'],
-              'asset_index_url': idx['url'],
-              'asset_index_sha1': idx['sha1'],
-              'unique_objects': len(hashes),
-              'object_bytes': total,
-          }
+              for size in ex.map(one, hashes): total += size
+          provenance = {'minecraft':'1.20.1','version_manifest_url':manifest_url,'version_metadata_url':version['url'],'asset_index_id':idx['id'],'asset_index_url':idx['url'],'asset_index_sha1':idx['sha1'],'unique_objects':len(hashes),'object_bytes':total}
           pathlib.Path('asset-export/PROVENANCE.json').write_text(json.dumps(provenance, indent=2, sort_keys=True) + '\n')
           print(json.dumps(provenance, indent=2, sort_keys=True))
           PY
@@ -118,11 +91,41 @@ jobs:
           test -s asset-export/assets/indexes/5.json
           test "$(find asset-export/assets/objects -type f | wc -l)" -gt 1000
 
-      - name: Upload exact client assets
+      - name: Package and split assets below connector ceiling
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p asset-parts
+          tar -cf asset-parts/minecraft-1.20.1-client-assets.tar asset-export
+          sha256sum asset-parts/minecraft-1.20.1-client-assets.tar > asset-parts/WHOLE-SHA256.txt
+          split -b 400M -d -a 2 asset-parts/minecraft-1.20.1-client-assets.tar asset-parts/minecraft-1.20.1-client-assets.tar.part-
+          rm asset-parts/minecraft-1.20.1-client-assets.tar
+          sha256sum asset-parts/minecraft-1.20.1-client-assets.tar.part-* > asset-parts/PARTS-SHA256.txt
+          test -f asset-parts/minecraft-1.20.1-client-assets.tar.part-00
+          test -f asset-parts/minecraft-1.20.1-client-assets.tar.part-01
+          test ! -f asset-parts/minecraft-1.20.1-client-assets.tar.part-02
+
+      - name: Upload client assets part 00
         uses: actions/upload-artifact@v4
         with:
-          name: minecraft-1.20.1-client-assets
-          path: asset-export
-          if-no-files-found: error
+          name: minecraft-1.20.1-client-assets-part-00
+          path: asset-parts/minecraft-1.20.1-client-assets.tar.part-00
           compression-level: 0
+          retention-days: 14
+
+      - name: Upload client assets part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-client-assets-part-01
+          path: asset-parts/minecraft-1.20.1-client-assets.tar.part-01
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload client assets manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-client-assets-manifests
+          path: |
+            asset-parts/WHOLE-SHA256.txt
+            asset-parts/PARTS-SHA256.txt
           retention-days: 14
