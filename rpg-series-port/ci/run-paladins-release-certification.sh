@@ -39,13 +39,15 @@ python3 - "$PORT" "$SOURCE_ZIP" <<'PY'
 from pathlib import Path
 import stat, sys, zipfile
 src = Path(sys.argv[1]).resolve(); out = Path(sys.argv[2]).resolve()
-skip = {'.gradle', 'build', 'run', 'runs', '.git', '.upstream'}
+skip = {'.gradle', 'build', 'run', 'runs', '.git', '.upstream', '.fresh-paladins-forge-server'}
 files=[]
 for path in src.rglob('*'):
     rel=path.relative_to(src)
     if any(part in skip for part in rel.parts):
         continue
     if len(rel.parts) == 1 and rel.name.startswith('paladins') and rel.suffix == '.sha256':
+        continue
+    if len(rel.parts) == 1 and rel.name.endswith('-smoke.log'):
         continue
     if path.is_file():
         files.append((rel.as_posix(), path))
@@ -56,7 +58,7 @@ with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) a
         zf.writestr(info,path.read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
 PY
 unzip -tq "$SOURCE_ZIP" >/dev/null
-if unzip -Z1 "$SOURCE_ZIP" | grep -E '(^|/)(\.gradle|build|run|runs|\.upstream)/|^paladins.*\.sha256$' >/dev/null; then
+if unzip -Z1 "$SOURCE_ZIP" | grep -E '(^|/)(\.gradle|build|run|runs|\.upstream|\.fresh-paladins-forge-server)/|^paladins.*\.sha256$|^[^/]*-smoke\.log$' >/dev/null; then
   echo '[Paladins certification] generated/cache/runtime material leaked into certified source archive' >&2
   exit 1
 fi
