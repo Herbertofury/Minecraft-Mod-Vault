@@ -54,6 +54,47 @@ Prefer the already-graduated 1.20.1 foundations in this project where their publ
 - Exact target-era 1.20.1 branch: `cdcf7ffdcffb31a1dd8c36ba7a27cf312b0e8e71`, Shield API `1.0.1`, Yarn `1.20.1+build.10`.
 - Port the exact 2.1.0 public behavior to target-native Forge 1.20.1, using the 1.20.1 branch only as mapping/runtime substrate. Do not substitute historical 1.0.1 wholesale and do not silently upgrade Paladins to Shield API 2.2.0.
 
+## Shield API 2.1.0 -> 1.20.1 translation contract
+
+Source-proven behavior must win over historical implementation details.
+
+### CustomShieldItem attribute surface
+
+Shield API 2.1.0 stores a mutable supplier of `AttributeModifiersComponent`, takes `List<Pair<RegistryEntry<EntityAttribute>, EntityAttributeModifier>>`, and emits each supplied modifier for `AttributeModifierSlot.HAND`.
+
+The 1.20.1 substrate exposes the same conceptual contract through `Multimap<EntityAttribute, EntityAttributeModifier>` and `getAttributeModifiers(EquipmentSlot)`, with shield modifiers returned for `EquipmentSlot.OFFHAND`.
+
+Target rule:
+
+- Preserve the exact caller-supplied modifier list and the public `setAttributeModifiers(...)` mutation contract from 2.1.0.
+- Translate registry entries to the raw 1.20.1 `EntityAttribute` surface and build an immutable multimap.
+- Return that translated modifier set through the target-native equipment-slot API; do not invent data components on 1.20.1.
+- Preserve repair ingredient behavior and `CustomShieldItem.instances` registration.
+- Translate `RegistryEntry<SoundEvent>` to target-era raw `SoundEvent` without changing fallback-to-super semantics.
+
+### Shield durability hook
+
+Shield API 2.1.0 injects `PlayerEntity.damageShield` at HEAD and, for `CustomShieldItem`, increments the USED stat server-side, applies `1 + floor(amount)` durability damage when amount >= 3, clears the correct hand on break, and plays the shield break sound.
+
+Target rule:
+
+- Use the 1.20.1 `ItemStack.damage(int, LivingEntity, Consumer<LivingEntity>)` / `sendToolBreakStatus(hand)` callback signature from the historical substrate.
+- Preserve every 2.1.0 semantic branch and threshold. The callback/signature is the compatibility seam; behavior is not.
+
+### Shield disable behavior — current semantics are authoritative
+
+This is an explicit anti-regression gate.
+
+- Shield API 2.1.0 injects `disableShield` at HEAD and unconditionally sets a 100-tick cooldown on every registered `CustomShieldItem`.
+- Historical Shield API 1.0.1 injects target-era `disableShield(boolean sprinting)` at TAIL and uses Efficiency + sprinting probability, then clears the active item and sends BREAK_SHIELD status.
+
+Target rule:
+
+- Adapt only the method descriptor to 1.20.1 (`disableShield(boolean sprinting)` as required by the target mapping).
+- Preserve 2.1.0 behavior: every invocation must apply a 100-tick cooldown to all `CustomShieldItem.instances`.
+- Do **not** restore the historical probability calculation, Efficiency dependency, conditional clearActiveItem, or BREAK_SHIELD status side effects merely because they compile on 1.20.1.
+- Acceptance must include a deterministic runtime assertion proving this current behavior, including a non-sprinting invocation where the old implementation could have skipped the cooldown.
+
 ## Acceptance policy
 
 Mirror the Archers discipline:
@@ -65,8 +106,9 @@ Mirror the Archers discipline:
 5. No dependency shading that changes runtime ownership.
 6. Java 17, metadata, leakage, content-count, and deterministic-byte gates.
 7. Real Forge dedicated server + headless/native client acceptance with separate dependency JARs.
-8. Semantic Paladins runtime self-tests for shields, armor, weapons/spells, effects/entities if present, villagers/POIs/trades if present, configs, Curios integration, recipes/tags/data, and current-only features.
-9. Fresh official Forge 47.4.23 packaged-server replay with the exact release JAR.
-10. Persist source/evidence/release artifacts to both GitHub and canonical Google Drive before graduation.
+8. Semantic Shield API runtime tests before Paladins is allowed to consume it: custom shield construction, mutable attribute replacement, repair ingredient behavior, equip-sound fallback/custom behavior, >=3 damage durability path, hand clearing on break, stat increment, and unconditional 100-tick disable cooldown.
+9. Semantic Paladins runtime self-tests for shields, armor, weapons/spells, effects/entities if present, villagers/POIs/trades if present, configs, Curios integration, recipes/tags/data, and current-only features.
+10. Fresh official Forge 47.4.23 packaged-server replay with the exact release JAR.
+11. Persist source/evidence/release artifacts to both GitHub and canonical Google Drive before graduation.
 
 Archers graduation remains the gate before this lane becomes canonical.
