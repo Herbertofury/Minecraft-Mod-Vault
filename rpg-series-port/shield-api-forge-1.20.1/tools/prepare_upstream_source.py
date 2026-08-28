@@ -80,45 +80,21 @@ public class CustomShieldItem extends ShieldItem {
 }
 ''', encoding='utf-8')
 
-# Mixin classes are merged into their target and are deliberately invalid for direct runtime
-# classloading. Keep the 1.20.1 ItemStack.damage callback in an ordinary runtime class so javac
-# does not emit an invokedynamic bootstrap handle owned by PlayerEntityMixin.
-callback=gj/'net/fabric_extras/shield_api/internal/ShieldDamageCallbacks.java'
-callback.parent.mkdir(parents=True, exist_ok=True)
-callback.write_text('''package net.fabric_extras.shield_api.internal;
-
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.Hand;
-
-import java.util.function.Consumer;
-
-public final class ShieldDamageCallbacks {
-    private ShieldDamageCallbacks() { }
-
-    public static Consumer<LivingEntity> sendToolBreakStatus(Hand hand) {
-        return entity -> entity.sendToolBreakStatus(hand);
-    }
-}
-''', encoding='utf-8')
-
-# Descriptor-only backport of PlayerEntity hooks. Behavioral branches remain exactly 2.1.0:
-# server-side USED stat; >=3 durability path; correct-hand break handling; unconditional 100t cooldown.
+# Forge 47.4.x already widens vanilla Player#damageShield/hurtCurrentlyUsedShield from
+# Items.SHIELD to any ItemStack that can perform ToolActions.SHIELD_BLOCK. ShieldItem supplies
+# DEFAULT_SHIELD_ACTIONS, so every CustomShieldItem naturally receives the vanilla stat,
+# durability, break callback, hand clearing, and break sound path. Keeping the Fabric-origin
+# damageShield mixin on Forge would double-award ITEM_USED and double-damage the shield.
+# Preserve only the current Shield API behavior Forge does not provide itself: unconditional
+# 100-tick cooldown application to every CustomShieldItem when a shield is disabled.
 player=gj/'net/fabric_extras/shield_api/mixin/entity/player/PlayerEntityMixin.java'
 player.write_text('''package net.fabric_extras.shield_api.mixin.entity.player;
 
-import net.fabric_extras.shield_api.internal.ShieldDamageCallbacks;
 import net.fabric_extras.shield_api.item.CustomShieldItem;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.stat.Stat;
-import net.minecraft.stat.Stats;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -128,28 +104,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin extends LivingEntity {
-    @Shadow public abstract void incrementStat(Stat<?> stat);
     @Shadow public abstract ItemCooldownManager getItemCooldownManager();
 
     protected PlayerEntityMixin(EntityType<? extends LivingEntity> type, World world) { super(type, world); }
-
-    @Inject(method = "damageShield", at = @At("HEAD"))
-    protected void shield_api$damageShield(float amount, CallbackInfo ci) {
-        if (this.activeItemStack.getItem() instanceof CustomShieldItem customShieldItem) {
-            if (!this.getWorld().isClient) this.incrementStat(Stats.USED.getOrCreateStat(customShieldItem));
-            if (amount >= 3.0F) {
-                int damage = 1 + MathHelper.floor(amount);
-                Hand hand = this.getActiveHand();
-                this.activeItemStack.damage(damage, this, ShieldDamageCallbacks.sendToolBreakStatus(hand));
-                if (this.activeItemStack.isEmpty()) {
-                    this.equipStack(hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND, ItemStack.EMPTY);
-                    this.activeItemStack = ItemStack.EMPTY;
-                    this.playSound(SoundEvents.ITEM_SHIELD_BREAK, 0.8F,
-                            0.8F + this.getWorld().random.nextFloat() * 0.4F);
-                }
-            }
-        }
-    }
 
     @Inject(method = "disableShield", at = @At("HEAD"))
     public void shield_api$disableShield(boolean sprinting, CallbackInfo ci) {
@@ -188,14 +145,16 @@ mixins.write_text(json.dumps(config,indent=2)+"\n",encoding='utf-8')
 for name in ('fabric.mod.json','neoforge.mods.toml'):
     (gr/name).unlink(missing_ok=True)
 
-# Assert anti-regression behavior and the ModLauncher-safe mixin bytecode shape directly.
+# Assert target-native ownership and current Shield API behavior directly.
 pt=player.read_text(encoding='utf-8')
-assert '@At("HEAD")' in pt and 'set(customShieldItem, 100)' in pt
+assert 'shield_api$damageShield' not in pt
+assert 'Stats.USED' not in pt and 'activeItemStack' not in pt
+assert '@Inject(method = "disableShield", at = @At("HEAD"))' in pt
+assert 'set(customShieldItem, 100)' in pt
 assert 'EnchantmentHelper' not in pt and 'BREAK_SHIELD' not in pt and 'nextFloat() <' not in pt
 assert '->' not in pt and '::' not in pt
-assert 'ShieldDamageCallbacks.sendToolBreakStatus(hand)' in pt
-assert callback.exists() and 'sendToolBreakStatus(hand)' in callback.read_text(encoding='utf-8')
 ct=custom.read_text(encoding='utf-8')
+assert 'extends ShieldItem' in ct
 assert 'EquipmentSlot.OFFHAND' in ct and 'setAttributeModifiers' in ct and 'instances.add(this)' in ct
 assert not axe.exists()
 mc=json.loads(mixins.read_text(encoding='utf-8'))
@@ -208,4 +167,4 @@ count=0
 for p in gr.rglob('*.json'):
     with p.open('r',encoding='utf-8') as fh: json.load(fh)
     count += 1
-print(f'[Shield API] exact 2.1.0 current behavior materialized on 1.20.1 signatures; validated {count} JSON resources; mixin lambda moved to runtime helper; post-1.20.1 Axe hook omitted; client mixins dist-safe')
+print(f'[Shield API] exact 2.1.0 contract materialized on Forge 1.20.1: native SHIELD_BLOCK owns stat/durability once; 100t all-custom cooldown preserved; validated {count} JSON resources; post-1.20.1 Axe hook omitted; client mixins dist-safe')
