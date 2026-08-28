@@ -11,7 +11,7 @@ import net.spell_power.api.enchantment.Enchantments_SpellPower;
 import net.spell_power.api.enchantment.Enchantments_SpellPowerMechanics;
 import net.spell_power.config.AttributesConfig;
 import net.spell_power.config.EnchantmentsConfig;
-import net.tinyconfig.ConfigManager;
+import net.tiny_config.ConfigManager;
 
 public final class SpellPowerMod {
     public static final String ID = "spell_power";
