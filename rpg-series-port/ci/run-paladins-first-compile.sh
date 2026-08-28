@@ -46,13 +46,17 @@ clone_exact() {
   [[ "$(git -C "$dst" rev-parse HEAD)" = "$sha" ]]
 }
 
-# The verifier must execute the exact checked-out commit, never a stale sibling ref.
-if [[ -n "${GITHUB_SHA:-}" ]]; then
-  [[ "$(git -C "$ROOT" rev-parse HEAD)" = "$GITHUB_SHA" ]] || {
-    echo "[Paladins] checkout mismatch: HEAD=$(git -C "$ROOT" rev-parse HEAD) GITHUB_SHA=$GITHUB_SHA" >&2
+# The workflow explicitly checks out the exact pull-request head. GitHub's GITHUB_SHA on
+# pull_request events is the synthetic merge commit, so comparing HEAD to GITHUB_SHA there
+# is incorrect. Preserve strict equality on push/other events and log the immutable PR head.
+CHECKOUT_HEAD="$(git -C "$ROOT" rev-parse HEAD)"
+if [[ "${GITHUB_EVENT_NAME:-}" != "pull_request" && -n "${GITHUB_SHA:-}" ]]; then
+  [[ "$CHECKOUT_HEAD" = "$GITHUB_SHA" ]] || {
+    echo "[Paladins] checkout mismatch: HEAD=$CHECKOUT_HEAD GITHUB_SHA=$GITHUB_SHA event=${GITHUB_EVENT_NAME:-unknown}" >&2
     exit 2
   }
 fi
+echo "[Paladins] exact checkout HEAD=$CHECKOUT_HEAD event=${GITHUB_EVENT_NAME:-unknown}"
 
 echo '[Paladins] Reconstructing exact separate foundations'
 bash "$ROOT/rpg-series-port/ci/build-shield-api-foundation.sh"
