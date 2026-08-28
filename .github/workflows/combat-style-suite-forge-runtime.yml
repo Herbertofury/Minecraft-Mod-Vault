@@ -1,0 +1,155 @@
+name: Combat Style Suite Portable Forge Runtime
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/combat-style-suite-forge-runtime.yml'
+      - 'combat-style-suite-5way-qa/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-runtime:
+    if: startsWith(github.head_ref, 'combat-style-suite-5way-qa-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Forge 1.20.1 47.4.23 MDK and exact upstream stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-forge-runtime"
+          MDK="$ROOT/mdk"
+          export GRADLE_USER_HOME="$ROOT/gradle-home"
+          mkdir -p "$MDK" "$GRADLE_USER_HOME"
+
+          curl -fL --retry 5 --retry-all-errors --connect-timeout 20 --max-time 300 \
+            'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-mdk.zip' \
+            -o "$ROOT/forge-mdk.zip"
+          unzip -q "$ROOT/forge-mdk.zip" -d "$MDK"
+          chmod +x "$MDK/gradlew"
+          mkdir -p "$MDK/run/mods"
+
+          fetch_url() {
+            local url="$1" out="$2"
+            echo "FETCH $out"
+            curl -fL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 300 \
+              -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "$url" -o "$MDK/run/mods/$out"
+            test -s "$MDK/run/mods/$out"
+          }
+          modrinth_version() {
+            local id="$1" out="$2" json url
+            json="$(curl -fsSL --retry 4 -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "https://api.modrinth.com/v2/version/$id")"
+            url="$(jq -r '.files[] | select(.primary == true) | .url' <<<"$json" | head -1)"
+            [ -n "$url" ] && fetch_url "$url" "$out"
+          }
+          modrinth_latest() {
+            local project="$1" regex="$2" out="$3" api json chosen url
+            api="https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%221.20.1%22%5D&loaders=%5B%22forge%22%5D"
+            json="$(curl -fsSL --retry 4 -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "$api")"
+            chosen="$(jq -r --arg re "$regex" '[.[] | select(.version_number | test($re; "i"))][0].id // empty' <<<"$json")"
+            [ -n "$chosen" ] || chosen="$(jq -r '.[0].id // empty' <<<"$json")"
+            [ -n "$chosen" ]
+            url="$(curl -fsSL -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "https://api.modrinth.com/v2/version/$chosen" | jq -r '.files[] | select(.primary == true) | .url' | head -1)"
+            [ -n "$url" ] && fetch_url "$url" "$out"
+          }
+
+          fetch_url 'https://mediafilez.forgecdn.net/files/8049/910/epic-fight-20.14.17-mc1.20.1-forge.jar' 'epic-fight-20.14.17-mc1.20.1-forge.jar'
+          modrinth_version 'rnhiaw3t' 'bettercombat-forge-1.9.0+1.20.1.jar'
+          modrinth_version 'Zqooxsd2' 'ysm-2.6.5-forge+mc1.20.1-release.jar'
+          modrinth_version 'RC3kKPlO' 'punchy-2.7d-forge-1.20.1.jar'
+          fetch_url 'https://mediafilez.forgecdn.net/files/8141/310/tacz-1.20.1-1.1.8-hotfix.jar' 'tacz-1.20.1-1.1.8-hotfix.jar'
+          modrinth_latest 'playeranimator' '1\\.0\\.2.*1\\.20' 'player-animation-lib-forge-1.0.2-rc1+1.20.jar'
+          modrinth_latest 'cloth-config' '^11\\.1\\.' 'cloth-config-forge-1.20.1.jar'
+          modrinth_latest 'spark' '^1\\.10\\.53' 'spark-1.10.53-forge.jar'
+          modrinth_latest 'observable' '^4\\.4\\.2' 'observable-4.4.2-forge.jar'
+          modrinth_latest 'architectury-api' '^9\\.' 'architectury-forge-1.20.1.jar'
+          modrinth_latest 'kotlin-for-forge' '.*' 'kotlin-for-forge-1.20.1.jar'
+
+          cd "$MDK/run/mods"
+          echo '69566cf70ae2d91d3f2564c608f014c87e290cef6215c2a27719851165485f73  epic-fight-20.14.17-mc1.20.1-forge.jar' | sha256sum -c -
+          echo '49c69dccf2c641246b4e3deca81ebac21f0ee119e81fc713b838b8e33569eea1  bettercombat-forge-1.9.0+1.20.1.jar' | sha256sum -c -
+          echo '25b5e902b96f4c298690208f8b433cbc31737c23f87590354dbd86f00207bc8f  ysm-2.6.5-forge+mc1.20.1-release.jar' | sha256sum -c -
+          echo '27234cac35eda3b2c16cd9b7a594534f4d417065c40810307a09c1ecaf9225aa  punchy-2.7d-forge-1.20.1.jar' | sha256sum -c -
+          echo '9ed8ada1283ed7a793a70cc1b51c4a340f367ce84707e1a7b8cf21ee3d288d77  tacz-1.20.1-1.1.8-hotfix.jar' | sha256sum -c -
+          sha256sum *.jar | sort -k2 > "$ROOT/UPSTREAM-SHA256SUMS.txt"
+
+      - name: Warm and launch real Forge client baseline under Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-forge-runtime"
+          MDK="$ROOT/mdk"
+          export GRADLE_USER_HOME="$ROOT/gradle-home"
+          export LIBGL_ALWAYS_SOFTWARE=1
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils >/dev/null
+          cd "$MDK"
+
+          # First compile/prepare all userdev, natives, assets and mappings.
+          ./gradlew --no-daemon --stacktrace classes prepareRuns > "$ROOT/prepare.log" 2>&1
+
+          # Real GPU-path client launch. Reaching the main client loop is the acceptance boundary;
+          # timeout ends the unattended baseline after caches/assets have been exercised.
+          set +e
+          timeout 180s xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' \
+            ./gradlew --no-daemon --stacktrace runClient > "$ROOT/baseline-client.log" 2>&1
+          rc=$?
+          set -e
+          echo "baseline_exit=$rc" | tee "$ROOT/baseline-exit.txt"
+          test "$rc" -eq 124 -o "$rc" -eq 0
+
+          LOG="$MDK/run/logs/latest.log"
+          test -s "$LOG"
+          cp "$LOG" "$ROOT/latest-baseline.log"
+          grep -Eiq 'epicfight|epic fight' "$LOG"
+          grep -Eiq 'bettercombat|better combat' "$LOG"
+          grep -Eiq 'yes_steve_model|yes steve model|ysm' "$LOG"
+          grep -Eiq 'punchy' "$LOG"
+          grep -Eiq 'tacz|timeless' "$LOG"
+          grep -Eiq 'spark' "$LOG"
+          grep -Eiq 'observable' "$LOG"
+          if grep -Eiq 'Crash Report|ModLoadingException|Failed to create mod instance|Mixin apply failed' "$LOG"; then
+            echo 'Baseline client log contains release-blocking load failure' >&2
+            tail -300 "$LOG" >&2
+            exit 1
+          fi
+
+      - name: Seal portable offline runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-forge-runtime"
+          rm -rf "$ROOT/mdk/run/crash-reports" "$ROOT/gradle-home/daemon" || true
+          cat > "$ROOT/OFFLINE-RUNTIME.txt" <<'EOF'
+          Prepared by GitHub Actions for Combat Style Suite 5.0 native QA.
+          Minecraft: 1.20.1
+          Forge: 47.4.23
+          Java: 17
+          Upstream stack: Epic Fight 20.14.17, Better Combat 1.9.0 Forge, YSM 2.6.5 Forge, Punchy 2.7d Forge, TaCZ 1.1.8-hotfix
+          Profilers: spark 1.10.53, Observable 4.4.2 + dependencies
+          The Suite JARs are intentionally NOT included; local QA adds the exact candidate after artifact retrieval.
+          EOF
+          cd "$RUNNER_TEMP"
+          tar --zstd -cf combat-style-suite-forge-offline-runtime.tar.zst css5-forge-runtime
+          sha256sum combat-style-suite-forge-offline-runtime.tar.zst > combat-style-suite-forge-offline-runtime.tar.zst.sha256
+          ls -lh combat-style-suite-forge-offline-runtime.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-forge-offline-runtime
+          path: |
+            ${{ runner.temp }}/combat-style-suite-forge-offline-runtime.tar.zst
+            ${{ runner.temp }}/combat-style-suite-forge-offline-runtime.tar.zst.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
