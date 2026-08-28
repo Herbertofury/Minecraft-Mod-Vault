@@ -77,4 +77,14 @@ remapJar {
     inputFile.set(shadowJar.archiveFile)
     dependsOn(shadowJar)
     archiveClassifier = ''
+    doLast {
+        def releaseJar = archiveFile.get().asFile
+        def forbidden = zipTree(releaseJar).matching {
+            include 'com/llamalad7/mixinextras/**'
+            include 'META-INF/jars/*mixinextras*.jar'
+        }.files
+        if (!forbidden.isEmpty()) {
+            throw new GradleException("Userdev-only MixinExtras leaked into Archers release: ${forbidden}")
+        }
+    }
 }
