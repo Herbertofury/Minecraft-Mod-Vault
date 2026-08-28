@@ -1,0 +1,104 @@
+name: Combat Style Suite 5-Way Runtime Corpus
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/combat-style-suite-5way-deps.yml'
+      - 'combat-style-suite-5way-qa/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-runtime-corpus:
+    if: startsWith(github.head_ref, 'combat-style-suite-5way-qa-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch exact core and profiler runtime corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/css5-runtime"
+          mkdir -p "$OUT/mods"
+
+          fetch_url() {
+            local url="$1" out="$2"
+            echo "FETCH $out <- $url"
+            curl -fL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 300 \
+              -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "$url" -o "$OUT/mods/$out"
+            test -s "$OUT/mods/$out"
+          }
+
+          modrinth_version() {
+            local version_id="$1" expected_name="$2"
+            local json url name
+            json="$(curl -fsSL --retry 4 -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "https://api.modrinth.com/v2/version/$version_id")"
+            url="$(jq -r '.files[] | select(.primary == true) | .url' <<<"$json" | head -1)"
+            name="$(jq -r '.files[] | select(.primary == true) | .filename' <<<"$json" | head -1)"
+            [ -n "$url" ] && [ "$url" != null ]
+            echo "Modrinth $version_id primary=$name"
+            fetch_url "$url" "$expected_name"
+          }
+
+          modrinth_latest() {
+            local project="$1" regex="$2" out="$3"
+            local api json url chosen
+            api="https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%221.20.1%22%5D&loaders=%5B%22forge%22%5D"
+            json="$(curl -fsSL --retry 4 -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "$api")"
+            chosen="$(jq -r --arg re "$regex" '[.[] | select(.version_number | test($re; "i"))][0].id // empty' <<<"$json")"
+            if [ -z "$chosen" ]; then chosen="$(jq -r '.[0].id // empty' <<<"$json")"; fi
+            [ -n "$chosen" ]
+            url="$(curl -fsSL -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' "https://api.modrinth.com/v2/version/$chosen" | jq -r '.files[] | select(.primary == true) | .url' | head -1)"
+            [ -n "$url" ] && [ "$url" != null ]
+            echo "Modrinth $project selected=$chosen regex=$regex"
+            fetch_url "$url" "$out"
+          }
+
+          # Core five-way stack: exact pinned 1.20.1 artifacts.
+          fetch_url 'https://mediafilez.forgecdn.net/files/8049/910/epic-fight-20.14.17-mc1.20.1-forge.jar' 'epic-fight-20.14.17-mc1.20.1-forge.jar'
+          modrinth_version 'rnhiaw3t' 'bettercombat-forge-1.9.0+1.20.1.jar'
+          modrinth_version 'Zqooxsd2' 'ysm-2.6.5-forge+mc1.20.1-release.jar'
+          modrinth_version 'RC3kKPlO' 'punchy-2.7d-forge-1.20.1.jar'
+          fetch_url 'https://mediafilez.forgecdn.net/files/8141/310/tacz-1.20.1-1.1.8-hotfix.jar' 'tacz-1.20.1-1.1.8-hotfix.jar'
+
+          # Required support libraries and requested profiling/observability stack.
+          modrinth_latest 'playeranimator' '1\\.0\\.2.*1\\.20' 'player-animation-lib-forge-1.0.2-rc1+1.20.jar'
+          modrinth_latest 'cloth-config' '^11\\.1\\.' 'cloth-config-forge-1.20.1.jar'
+          modrinth_latest 'spark' '^1\\.10\\.53' 'spark-1.10.53-forge.jar'
+          modrinth_latest 'observable' '^4\\.4\\.2' 'observable-4.4.2-forge.jar'
+          modrinth_latest 'architectury-api' '^9\\.' 'architectury-forge-1.20.1.jar'
+          modrinth_latest 'kotlin-for-forge' '.*' 'kotlin-for-forge-1.20.1.jar'
+
+          # Four previously sealed Combat Style Suite baselines must remain byte-identical.
+          cd "$OUT/mods"
+          echo '69566cf70ae2d91d3f2564c608f014c87e290cef6215c2a27719851165485f73  epic-fight-20.14.17-mc1.20.1-forge.jar' | sha256sum -c -
+          echo '49c69dccf2c641246b4e3deca81ebac21f0ee119e81fc713b838b8e33569eea1  bettercombat-forge-1.9.0+1.20.1.jar' | sha256sum -c -
+          echo '25b5e902b96f4c298690208f8b433cbc31737c23f87590354dbd86f00207bc8f  ysm-2.6.5-forge+mc1.20.1-release.jar' | sha256sum -c -
+          echo '180347c82d6b738cdb8bc5aef2f84f1a34781d20e3aea03a28f3ad84ff82ec76  punchy-2.7d-forge-1.20.1.jar' | sha256sum -c -
+
+          sha256sum *.jar | sort -k2 > ../SHA256SUMS.txt
+          python3 - <<'PY'
+          import json, pathlib, zipfile
+          root=pathlib.Path("$OUT")
+          rows=[]
+          for p in sorted((root/'mods').glob('*.jar')):
+              mods=[]
+              try:
+                  with zipfile.ZipFile(p) as z:
+                      for n in ('META-INF/mods.toml','fabric.mod.json'):
+                          if n in z.namelist(): mods.append(n)
+              except Exception as e: mods.append('ERROR:'+repr(e))
+              rows.append({'file':p.name,'size':p.stat().st_size,'metadata':mods})
+          (root/'corpus.json').write_text(json.dumps(rows,indent=2)+'\n')
+          PY
+          ls -lh "$OUT/mods" | tee "$OUT/files.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-5way-runtime-corpus
+          path: ${{ runner.temp }}/css5-runtime
+          if-no-files-found: error
+          retention-days: 7
