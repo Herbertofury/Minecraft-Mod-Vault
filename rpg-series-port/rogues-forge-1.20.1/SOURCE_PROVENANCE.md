@@ -12,10 +12,14 @@ Repository: `ZsoltMolnarrr/Rogues`
 - Root tree: `c6fac5d7c80807b41668274843c9732762d7cb03`
 - `gradle.properties` blob: `5f264bbbaea8f43b53badb4eb6af24549b6211cf`
 - `common` tree: `6f21ea7f91c0af664fe77b92d9fc136857878d57`
-- `common/src` tree: `ba3110c62b9901f9f6a729a0c660e0ea10b72d91`
+- `common/src` tree: `ab33a47e89a46fc2c7bad26539e6bb3b2e5b95ca`
+- `common/src/main` tree: `f889df40388170e9e278fccb8ffbbe0066ee378c`
+- generated assets tree: `6d6ef7e3febaf886f308f61805ebb11ab681468b`
+- generated data tree: `8260801839ef1e8adcc5642d28acdd1d3421838a`
+- current generated Last Stand spell blob: `8c266eeb644b908590b2a72bf9b98cb9cd89e31e`
 - Yarn declaration: `1.21.1+build.3`
 
-All intended Rogues 3.1.1 content and behavior originate here unless a target-native translation is required by Minecraft/Forge 1.20.1.
+All intended Rogues 3.1.1 Java, resources, and generated data originate here unless a target-native translation is required by Minecraft/Forge 1.20.1. The current generated tree is source authority, not disposable build output: it contains current spell definitions such as `rogues:last_stand` and must be materialized with the Java/resources tree.
 
 ## Historical Minecraft 1.20.1 substrate
 
@@ -36,6 +40,8 @@ Repository: `ZsoltMolnarrr/Rogues`
 
 The two `gradle.properties` blob IDs above were re-verified directly from the immutable commits before this clean prep was restored. The current file also contains properties with optional whitespace around `=`, so source-prep validation must parse property keys/values rather than require one exact spacing style.
 
+The current `common/src` subtree was also re-derived directly from the immutable commit after an older prep note was found to contain a stale/non-resolving value. The hashes in this ledger are the corrected values and must supersede that older note.
+
 This historical tree is an API, mapping, and target-semantics substrate only. It must never replace the newer 3.1.1 feature set merely because old code compiles more easily.
 
 ## Materialization contract
@@ -47,10 +53,11 @@ A source-preparation step is valid only when it:
 3. verifies the exact `gradle.properties` Git blob and required version/Minecraft/Yarn values;
 4. tolerates harmless whitespace around Gradle property separators without weakening value checks;
 5. keeps the current 3.1.1 tree and historical 1.20.1 tree physically distinct;
-6. places historical source under an `.upstream`/reference-only location and never overlays it wholesale onto generated current source;
-7. records deterministic provenance for every materialized authority;
-8. fails if any immutable pin changes unexpectedly;
-9. excludes Git metadata, caches, build outputs, generated runtime worlds/logs, and mutable download metadata from deterministic source packages.
+6. materializes current `common/src/main/java`, `common/src/main/resources`, **and** `common/src/main/generated` data rather than treating current generated spell/data definitions as disposable;
+7. places historical source under an `.upstream`/reference-only location and never overlays it wholesale onto generated current source;
+8. records deterministic provenance for every materialized authority;
+9. fails if any immutable pin changes unexpectedly or if the current generated Last Stand definition disappears;
+10. excludes Git metadata, caches, build outputs, generated runtime worlds/logs, and mutable download metadata from deterministic source packages.
 
 ## Semantic authority rule
 
@@ -63,10 +70,10 @@ High-value semantics already identified for explicit preservation include:
 - NET_TRAP knockback immunity;
 - STEALTH visibility/tint and removal triggers;
 - CHARGE cadence;
-- LAST_STAND current fortification behavior;
+- LAST_STAND current five-channel-tick fortification behavior and generated spell definition;
 - arms-merchant POI/profession and all current trade tiers/economics;
 - configured vanilla Strength modifier rebalance.
 
 ## Runtime authority
 
-These hashes establish source identity only. They do not establish a successful port. Graduation still requires exact-head compile/package gates plus real Forge dev-server, native client, fresh official packaged-server, and representative game-thread / real-player behavioral evidence as defined in `PORT_CONTRACT.md`.
+These hashes establish source identity only. They do not establish a successful port. Graduation still requires exact-head compile/package gates plus real Forge dev-server, native client, fresh official packaged-server, and representative game-thread / real-player behavioral evidence as defined in `PORT_CONTRACT.md` and `RUNTIME_QA_CONTRACT.md`.
