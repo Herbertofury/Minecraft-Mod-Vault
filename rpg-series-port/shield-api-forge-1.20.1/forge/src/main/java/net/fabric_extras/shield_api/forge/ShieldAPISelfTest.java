@@ -7,16 +7,16 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.ItemCooldownManager;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.recipe.Ingredient;
-import net.minecraft.stat.Stat;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.stat.Stats;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Pair;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -78,29 +78,33 @@ final class ShieldAPISelfTest {
         require(mutated.size() == 1, "mutated offhand armor modifier missing");
         require(Math.abs(mutated.iterator().next().getValue() - 2.0D) < 0.000001D, "setAttributeModifiers did not replace value");
 
-        TestPlayer player = new TestPlayer(
+        TestServerPlayer player = new TestServerPlayer(
+                event.getServer(),
                 event.getServer().getOverworld(),
                 new GameProfile(UUID.fromString("00000000-0000-0000-0000-000000000211"), "ShieldApiSelfTest")
         );
 
-        // The old 1.20.1 Shield API could probabilistically skip this when non-sprinting.
+        // Historical 1.20.1 Shield API could probabilistically skip this when non-sprinting.
         // Current 2.1.0 semantics are unconditional and exactly 100 ticks.
         player.disableShield(false);
         require(player.trackingCooldown.calls > 0, "disableShield(false) did not touch custom shield cooldowns");
         require(player.trackingCooldown.lastItem == shield, "disableShield(false) did not target the registered custom shield");
         require(player.trackingCooldown.lastDuration == 100, "disableShield(false) cooldown was not exactly 100 ticks");
 
+        var usedStat = Stats.USED.getOrCreateStat(shield);
         ItemStack damaged = new ItemStack(shield);
         player.setStackInHand(Hand.OFF_HAND, damaged);
         player.setCurrentHand(Hand.OFF_HAND);
-        int statsBefore = player.usedStatCalls;
+        require(player.getActiveItem().getItem() == shield, "custom shield did not become active offhand item");
+
+        int statsBefore = player.getStatHandler().getStat(usedStat);
         player.invokeDamageShield(2.0F);
-        require(player.usedStatCalls == statsBefore + 1, "damageShield <3 did not increment USED stat");
+        require(player.getStatHandler().getStat(usedStat) == statsBefore + 1, "damageShield <3 did not increment real USED stat");
         require(damaged.getDamage() == 0, "damageShield <3 damaged the shield");
 
-        statsBefore = player.usedStatCalls;
+        statsBefore = player.getStatHandler().getStat(usedStat);
         player.invokeDamageShield(3.0F);
-        require(player.usedStatCalls == statsBefore + 1, "damageShield >=3 did not increment USED stat");
+        require(player.getStatHandler().getStat(usedStat) == statsBefore + 1, "damageShield >=3 did not increment real USED stat");
         require(player.getStackInHand(Hand.OFF_HAND).isEmpty(), "breaking custom shield did not clear offhand");
         require(player.getActiveItem().isEmpty(), "breaking custom shield did not clear active item");
     }
@@ -123,12 +127,11 @@ final class ShieldAPISelfTest {
         }
     }
 
-    private static final class TestPlayer extends PlayerEntity {
+    private static final class TestServerPlayer extends ServerPlayerEntity {
         private TrackingCooldownManager trackingCooldown;
-        int usedStatCalls;
 
-        TestPlayer(World world, GameProfile profile) {
-            super(world, BlockPos.ORIGIN, 0.0F, profile);
+        TestServerPlayer(MinecraftServer server, ServerWorld world, GameProfile profile) {
+            super(server, world, profile);
             require(this.trackingCooldown != null, "tracking cooldown manager was not created");
         }
 
@@ -136,21 +139,6 @@ final class ShieldAPISelfTest {
         protected ItemCooldownManager createCooldownManager() {
             this.trackingCooldown = new TrackingCooldownManager();
             return this.trackingCooldown;
-        }
-
-        @Override
-        public boolean isSpectator() {
-            return false;
-        }
-
-        @Override
-        public boolean isCreative() {
-            return false;
-        }
-
-        @Override
-        public void incrementStat(Stat<?> stat) {
-            usedStatCalls++;
         }
 
         void invokeDamageShield(float amount) {
