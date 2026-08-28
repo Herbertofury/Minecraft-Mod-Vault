@@ -18,18 +18,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
+          CORE_BASE_SHA=e7ddd59d4411a16bccbda42fb849cb1bf6d2f8b1
           CORE_SHA=9ec919f58611b30046581d28747068d5576d0510
           SABLE_SHA=17d29f5b99d50e3cc13b536b23f9181ade99f14f
+          curl -fL --retry 3 "https://github.com/Leo-T22/sable-player-ragdoll/archive/${CORE_BASE_SHA}.zip" -o out/sable-player-ragdoll-0.7.2-source.zip
           curl -fL --retry 3 "https://github.com/Leo-T22/sable-player-ragdoll/archive/${CORE_SHA}.zip" -o out/sable-player-ragdoll-0.7.5-source.zip
           curl -fL --retry 3 "https://github.com/ryanhcode/sable/archive/${SABLE_SHA}.zip" -o out/sable-2.0.3-source.zip
           sha256sum out/*.zip | tee out/SHA256SUMS.txt
-          printf 'sable_player_ragdoll_source=%s\n' "$CORE_SHA" > out/PROVENANCE.txt
+          printf 'sable_player_ragdoll_base_source=%s\n' "$CORE_BASE_SHA" > out/PROVENANCE.txt
+          printf 'sable_player_ragdoll_source=%s\n' "$CORE_SHA" >> out/PROVENANCE.txt
           printf 'sable_source=%s\n' "$SABLE_SHA" >> out/PROVENANCE.txt
 
       - name: Upload exact source snapshots
         uses: actions/upload-artifact@v4
         with:
-          name: ragdoll-upstream-parity-sources
+          name: ragdoll-upstream-parity-sources-v2
           path: out/
           if-no-files-found: error
           retention-days: 30
