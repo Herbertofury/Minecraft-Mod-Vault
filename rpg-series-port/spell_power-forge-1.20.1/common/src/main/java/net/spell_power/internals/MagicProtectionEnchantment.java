@@ -9,7 +9,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
-import net.tinyconfig.models.EnchantmentConfig;
+import net.tiny_config.models.EnchantmentConfig;
 
 public class MagicProtectionEnchantment extends ProtectionEnchantment {
     private static final TagKey<DamageType> IS_MAGIC =

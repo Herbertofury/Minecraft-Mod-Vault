@@ -8,7 +8,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.spell_power.config.EnchantmentsConfig;
-import net.tinyconfig.models.EnchantmentConfig;
+import net.tiny_config.models.EnchantmentConfig;
 import org.jetbrains.annotations.Nullable;
 
 public class AmplifierEnchantment extends Enchantment {

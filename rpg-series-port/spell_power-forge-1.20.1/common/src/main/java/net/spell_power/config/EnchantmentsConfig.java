@@ -2,8 +2,8 @@ package net.spell_power.config;
 
 import net.spell_power.api.enchantment.Enchantments_SpellPower;
 import net.spell_power.api.enchantment.Enchantments_SpellPowerMechanics;
-import net.tinyconfig.models.EnchantmentConfig;
-import net.tinyconfig.versioning.VersionableConfig;
+import net.tiny_config.models.EnchantmentConfig;
+import net.tiny_config.versioning.VersionableConfig;
 
 public class EnchantmentsConfig extends VersionableConfig {
     /** Kept for source/config compatibility; 1.6 slot behavior is enforced explicitly. */
