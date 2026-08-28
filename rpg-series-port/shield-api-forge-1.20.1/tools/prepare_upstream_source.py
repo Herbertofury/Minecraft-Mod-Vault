@@ -142,19 +142,45 @@ client=gj/'net/fabric_extras/shield_api/client/ShieldAPIClient.java'
 text=client.read_text(encoding='utf-8').replace('Identifier.of("blocking")', 'new Identifier("blocking")')
 client.write_text(text, encoding='utf-8')
 
+# AxeItem.shouldCancelStripAttempt was introduced after 1.20.1. In 1.20.1 even the
+# vanilla shield has no equivalent strip-cancel hook, so retaining the 1.21 mixin would
+# be both an invalid target and behaviorally wrong for the target vanilla baseline.
+axe=gj/'net/fabric_extras/shield_api/mixin/item/AxeItemMixin.java'
+axe.unlink(missing_ok=True)
+
+# The modern Architectury mixin config assumes Java 21 and places a MinecraftClient
+# target in the common mixin list. Translate those loader/runtime details without
+# changing client behavior: Java 17 target, and client-only mixins stay client-only.
+mixins=gr/'shield_api.mixins.json'
+config=json.loads(mixins.read_text(encoding='utf-8'))
+config['compatibilityLevel']='JAVA_17'
+common_mixins=[m for m in config.get('mixins',[]) if m not in ('item.AxeItemMixin','client.MinecraftClientMixin')]
+client_mixins=list(config.get('client',[]))
+if 'client.MinecraftClientMixin' not in client_mixins:
+    client_mixins.insert(0,'client.MinecraftClientMixin')
+config['mixins']=common_mixins
+config['client']=client_mixins
+mixins.write_text(json.dumps(config,indent=2)+"\n",encoding='utf-8')
+
 # No loader metadata from upstream is allowed to bleed into the common ABI.
 for name in ('fabric.mod.json','neoforge.mods.toml'):
     (gr/name).unlink(missing_ok=True)
 
-# Assert the anti-regression behavior directly in generated source.
+# Assert the anti-regression behavior directly in generated source/resources.
 pt=player.read_text(encoding='utf-8')
 assert '@At("HEAD")' in pt and 'set(customShieldItem, 100)' in pt
 assert 'EnchantmentHelper' not in pt and 'BREAK_SHIELD' not in pt and 'nextFloat() <' not in pt
 ct=custom.read_text(encoding='utf-8')
 assert 'EquipmentSlot.OFFHAND' in ct and 'setAttributeModifiers' in ct and 'instances.add(this)' in ct
+assert not axe.exists()
+mc=json.loads(mixins.read_text(encoding='utf-8'))
+assert mc['compatibilityLevel']=='JAVA_17'
+assert 'item.AxeItemMixin' not in mc.get('mixins',[])
+assert 'client.MinecraftClientMixin' not in mc.get('mixins',[])
+assert 'client.MinecraftClientMixin' in mc.get('client',[])
 
 count=0
 for p in gr.rglob('*.json'):
     with p.open('r',encoding='utf-8') as fh: json.load(fh)
     count += 1
-print(f'[Shield API] exact 2.1.0 current source materialized on 1.20.1 signatures; validated {count} JSON resources')
+print(f'[Shield API] exact 2.1.0 current behavior materialized on 1.20.1 signatures; validated {count} JSON resources; post-1.20.1 Axe hook omitted; client mixins dist-safe')
