@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 PORT="$ROOT/rpg-series-port/paladins-forge-1.20.1"
+TMP="${RUNNER_TEMP:-/tmp}/paladins-first-compile"
 RUN="$PORT/forge/run"
 BASE_WORLD="$RUN/world"
 QA_WORLD="$RUN/saves/Paladins-Player-QA"
@@ -26,8 +27,63 @@ wait_marker(){
   done
   tail -n 500 "$CLIENT_LOG" "$LATEST" 2>/dev/null || true; echo "[Paladins player QA] timed out waiting for $label marker: $marker" >&2; return 1
 }
+pick_jar(){
+  local dir="$1" glob="$2"
+  local -a jars=()
+  mapfile -t jars < <(find "$dir" -maxdepth 1 -type f -name "$glob" ! -name '*sources*' ! -name '*dev-shadow*' ! -name '*javadoc*' -print | sort)
+  (( ${#jars[@]} == 1 )) || { echo "[Paladins player QA] expected exactly one $glob in $dir, found ${#jars[@]}" >&2; return 1; }
+  printf '%s\n' "${jars[0]}"
+}
 [[ -f "$BASE_WORLD/level.dat" ]] || { echo '[Paladins player QA] baseline dev-server world missing; run baseline first' >&2; exit 1; }
 [[ "$(awk '{print $1}' "$PORT/paladins.sha256")" = '95e8f9e074dd1c432f9486c922173b76a3b3bc57667b28fe154e47dba5c374ee' ]] || { echo '[Paladins player QA] certified release ledger missing/drifted' >&2; exit 1; }
+
+# Reuse the exact foundation artifacts already built and validated by the baseline acceptance
+# in this same deep run. runClient evaluates common/forge build files before Minecraft starts,
+# so every required project property must be carried into the native client invocation too.
+SHIELD_COMMON="$(pick_jar "$ROOT/rpg-series-port/shield-api-forge-1.20.1/common/build/libs" '*-common-*.jar')"
+SHIELD_FORGE="$(pick_jar "$ROOT/rpg-series-port/shield-api-forge-1.20.1/forge/build/libs" '*.jar')"
+SPELL_POWER_COMMON="$(pick_jar "$ROOT/rpg-series-port/spell_power-forge-1.20.1/common/build/libs" '*-common-*.jar')"
+SPELL_POWER_FORGE="$(pick_jar "$ROOT/rpg-series-port/spell_power-forge-1.20.1/forge/build/libs" '*-forge-*.jar')"
+TINY_COMMON="$(pick_jar "$ROOT/rpg-series-port/tiny-config-forge-1.20.1/generated/common/build/libs" '*-common-*.jar')"
+TINY_FORGE="$(pick_jar "$ROOT/rpg-series-port/tiny-config-forge-1.20.1/generated/forge/build/libs" '*-forge-*.jar')"
+SPELL_ENGINE_COMMON="$(pick_jar "$ROOT/.spell-engine-build/common/build/libs" '*-common-*.jar')"
+SPELL_ENGINE_FORGE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell_engine-forge-1.10.2+1.20.1.jar"
+RUNES_COMMON="$(pick_jar "$ROOT/rpg-series-port/runes-forge-1.20.1/common/build/libs" '*-common-*.jar')"
+RUNES_FORGE="$(pick_jar "$ROOT/rpg-series-port/runes-forge-1.20.1/forge/build/libs" '*-forge-*.jar')"
+STRUCTURE_COMMON="$(pick_jar "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1/common/build/libs" '*-common-*.jar')"
+STRUCTURE_FORGE="$(pick_jar "$ROOT/rpg-series-port/structure_pool_api-forge-1.20.1/forge/build/libs" '*-forge-*.jar')"
+ARMOR_COMMON="$(pick_jar "$ROOT/rpg-series-port/armor-model-api-forge-1.20.1/generated/common/build/libs" '*-common-*.jar')"
+ARMOR_FORGE="$(pick_jar "$ROOT/rpg-series-port/armor-model-api-forge-1.20.1/generated/forge/build/libs" '*-forge-*.jar')"
+CLOTH_FORGE="$TMP/ext/cloth-config-forge-11.1.136.jar"
+PLAYER_FORGE="$TMP/ext/player-animation-lib-forge-1.0.2+1.19.4.jar"
+CURIOS_FORGE="$TMP/ext/curios-forge-5.14.1+1.20.1.jar"
+for dep in "$SHIELD_COMMON" "$SHIELD_FORGE" "$SPELL_POWER_COMMON" "$SPELL_POWER_FORGE" "$TINY_COMMON" "$TINY_FORGE" \
+  "$SPELL_ENGINE_COMMON" "$SPELL_ENGINE_FORGE" "$RUNES_COMMON" "$RUNES_FORGE" "$STRUCTURE_COMMON" "$STRUCTURE_FORGE" \
+  "$ARMOR_COMMON" "$ARMOR_FORGE" "$CLOTH_FORGE" "$PLAYER_FORGE" "$CURIOS_FORGE"; do
+  [[ -f "$dep" ]] || { echo "[Paladins player QA] missing baseline foundation artifact: $dep" >&2; exit 1; }
+  unzip -tq "$dep" >/dev/null
+ done
+ARGS=(
+  "-Pshield_api_common_jar=$SHIELD_COMMON"
+  "-Parmor_model_api_common_jar=$ARMOR_COMMON"
+  "-Prunes_common_jar=$RUNES_COMMON"
+  "-Pstructure_pool_api_common_jar=$STRUCTURE_COMMON"
+  "-Pspell_power_common_jar=$SPELL_POWER_COMMON"
+  "-Pspell_engine_common_jar=$SPELL_ENGINE_COMMON"
+  "-Ptiny_config_common_jar=$TINY_COMMON"
+  "-Pshield_api_forge_jar=$SHIELD_FORGE"
+  "-Parmor_model_api_forge_jar=$ARMOR_FORGE"
+  "-Prunes_forge_jar=$RUNES_FORGE"
+  "-Pstructure_pool_api_forge_jar=$STRUCTURE_FORGE"
+  "-Pspell_power_forge_jar=$SPELL_POWER_FORGE"
+  "-Pspell_engine_forge_jar=$SPELL_ENGINE_FORGE"
+  "-Ptiny_config_forge_jar=$TINY_FORGE"
+  "-Pcloth_config_forge_jar=$CLOTH_FORGE"
+  "-Pplayer_animator_forge_jar=$PLAYER_FORGE"
+  "-Pcurios_jar=$CURIOS_FORGE"
+)
+echo "[Paladins player QA] native client foundation property gate passed: ${#ARGS[@]} exact Gradle properties"
+
 rm -rf "$QA_WORLD"; mkdir -p "$RUN/saves"; cp -a "$BASE_WORLD" "$QA_WORLD"; rm -f "$QA_WORLD/session.lock"
 PACK="$QA_WORLD/datapacks/paladins_player_qa"
 mkdir -p "$PACK/data/paladins_qa/functions" "$PACK/data/minecraft/tags/functions"
@@ -132,7 +188,7 @@ rm -rf "$RUN/logs"; mkdir -p "$RUN/logs" "$RUN/config"; printf 'earlyWindowContr
 export DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe ALSOFT_DRIVERS=null
 Xvfb "$DISPLAY" -screen 0 1280x720x24 -nolisten tcp > "$PORT/paladins-player-xvfb.log" 2>&1 & XVFB_PID=$!
 sleep 1; kill -0 "$XVFB_PID" 2>/dev/null || { echo '[Paladins player QA] Xvfb failed to remain alive' >&2; cat "$PORT/paladins-player-xvfb.log" >&2 || true; exit 1; }
-( gradle --no-daemon -p "$PORT" :forge:runClient --args='--width 1280 --height 720 --quickPlaySingleplayer Paladins-Player-QA' </dev/null ) > "$CLIENT_LOG" 2>&1 & PID=$!
+( gradle --no-daemon -p "$PORT" :forge:runClient "${ARGS[@]}" --args='--width 1280 --height 720 --quickPlaySingleplayer Paladins-Player-QA' </dev/null ) > "$CLIENT_LOG" 2>&1 & PID=$!
 wait_marker 'PALADINS_DIVINE_BLOCK_CONSUME_PASS' 210 'Divine Protection one-charge real-player block/consume'
 wait_marker 'PALADINS_DIVINE_TWO_CHARGE_PASS' 30 'Divine Protection two-charge real-player decrement/consume'
 wait_marker 'PALADINS_JUDGEMENT_STUN_INPUT_READY' 30 'real-player Judgement input readiness'
