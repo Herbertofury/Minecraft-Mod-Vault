@@ -53,6 +53,7 @@ python3 "$ROOT/normalize_1201_compat_comments.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat_batch2.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat_batch3.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat_batch3_network.py" "$OUT/common/java"
+python3 "$ROOT/apply_1201_api_compat_batch4.py" "$OUT/common/java"
 
 # Registration transform acceptance: zero direct vanilla mutations, explicit split lifecycle hooks.
 if grep -R -nE '(^|[^A-Za-z0-9_.])Registry\.register(Reference)?\(' "$OUT/common/java"; then
@@ -66,6 +67,13 @@ grep -F 'public static void registerItemGroup()' "$OUT/common/java/net/paladins/
 grep -F 'public static void registerEntities()' "$OUT/common/java/net/paladins/PaladinsMod.java" >/dev/null
 if grep -R -nF 'Identifier.of(' "$OUT/common/java"; then
   echo '[Paladins materialize] 1.21 Identifier.of API survived 1.20.1 compatibility pass' >&2
+  exit 2
+fi
+# Runtime regression guard from acceptance run #198: Forge-native status-effect registration returns
+# a direct holder, so Divine Protection must carry its registry key explicitly into Spell Engine.
+grep -F 'RegistryKey.of(RegistryKeys.STATUS_EFFECT, DIVINE_PROTECTION.id)' "$OUT/common/java/net/paladins/effect/PaladinEffects.java" >/dev/null
+if grep -F 'Protection.register(DIVINE_PROTECTION.entry,' "$OUT/common/java/net/paladins/effect/PaladinEffects.java"; then
+  echo '[Paladins materialize] keyless Divine Protection registration survived batch4' >&2
   exit 2
 fi
 
