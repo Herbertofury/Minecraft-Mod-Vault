@@ -49,6 +49,7 @@ grep -Fx 'minecraft_version=1.20.1' "$LEGACY/gradle.properties" >/dev/null
 bash "$ROOT/prepare_sources.sh" "$CURRENT" "$LEGACY" "$OUT"
 python3 "$ROOT/apply_1201_forge_registration.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat.py" "$OUT/common/java"
+python3 "$ROOT/normalize_1201_compat_comments.py" "$OUT/common/java"
 python3 "$ROOT/apply_1201_api_compat_batch2.py" "$OUT/common/java"
 
 # Registration transform acceptance: zero direct vanilla mutations, explicit split lifecycle hooks.
