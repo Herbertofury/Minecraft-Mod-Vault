@@ -80,11 +80,33 @@ public class CustomShieldItem extends ShieldItem {
 }
 ''', encoding='utf-8')
 
+# Mixin classes are merged into their target and are deliberately invalid for direct runtime
+# classloading. Keep the 1.20.1 ItemStack.damage callback in an ordinary runtime class so javac
+# does not emit an invokedynamic bootstrap handle owned by PlayerEntityMixin.
+callback=gj/'net/fabric_extras/shield_api/internal/ShieldDamageCallbacks.java'
+callback.parent.mkdir(parents=True, exist_ok=True)
+callback.write_text('''package net.fabric_extras.shield_api.internal;
+
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.Hand;
+
+import java.util.function.Consumer;
+
+public final class ShieldDamageCallbacks {
+    private ShieldDamageCallbacks() { }
+
+    public static Consumer<LivingEntity> sendToolBreakStatus(Hand hand) {
+        return entity -> entity.sendToolBreakStatus(hand);
+    }
+}
+''', encoding='utf-8')
+
 # Descriptor-only backport of PlayerEntity hooks. Behavioral branches remain exactly 2.1.0:
 # server-side USED stat; >=3 durability path; correct-hand break handling; unconditional 100t cooldown.
 player=gj/'net/fabric_extras/shield_api/mixin/entity/player/PlayerEntityMixin.java'
 player.write_text('''package net.fabric_extras.shield_api.mixin.entity.player;
 
+import net.fabric_extras.shield_api.internal.ShieldDamageCallbacks;
 import net.fabric_extras.shield_api.item.CustomShieldItem;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
@@ -118,7 +140,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             if (amount >= 3.0F) {
                 int damage = 1 + MathHelper.floor(amount);
                 Hand hand = this.getActiveHand();
-                this.activeItemStack.damage(damage, this, player -> player.sendToolBreakStatus(hand));
+                this.activeItemStack.damage(damage, this, ShieldDamageCallbacks.sendToolBreakStatus(hand));
                 if (this.activeItemStack.isEmpty()) {
                     this.equipStack(hand == Hand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND, ItemStack.EMPTY);
                     this.activeItemStack = ItemStack.EMPTY;
@@ -166,10 +188,13 @@ mixins.write_text(json.dumps(config,indent=2)+"\n",encoding='utf-8')
 for name in ('fabric.mod.json','neoforge.mods.toml'):
     (gr/name).unlink(missing_ok=True)
 
-# Assert the anti-regression behavior directly in generated source/resources.
+# Assert anti-regression behavior and the ModLauncher-safe mixin bytecode shape directly.
 pt=player.read_text(encoding='utf-8')
 assert '@At("HEAD")' in pt and 'set(customShieldItem, 100)' in pt
 assert 'EnchantmentHelper' not in pt and 'BREAK_SHIELD' not in pt and 'nextFloat() <' not in pt
+assert '->' not in pt and '::' not in pt
+assert 'ShieldDamageCallbacks.sendToolBreakStatus(hand)' in pt
+assert callback.exists() and 'sendToolBreakStatus(hand)' in callback.read_text(encoding='utf-8')
 ct=custom.read_text(encoding='utf-8')
 assert 'EquipmentSlot.OFFHAND' in ct and 'setAttributeModifiers' in ct and 'instances.add(this)' in ct
 assert not axe.exists()
@@ -183,4 +208,4 @@ count=0
 for p in gr.rglob('*.json'):
     with p.open('r',encoding='utf-8') as fh: json.load(fh)
     count += 1
-print(f'[Shield API] exact 2.1.0 current behavior materialized on 1.20.1 signatures; validated {count} JSON resources; post-1.20.1 Axe hook omitted; client mixins dist-safe')
+print(f'[Shield API] exact 2.1.0 current behavior materialized on 1.20.1 signatures; validated {count} JSON resources; mixin lambda moved to runtime helper; post-1.20.1 Axe hook omitted; client mixins dist-safe')
