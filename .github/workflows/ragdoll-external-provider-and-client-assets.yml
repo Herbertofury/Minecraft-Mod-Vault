@@ -1,0 +1,128 @@
+name: Ragdoll External Provider and Client Assets
+
+on:
+  push:
+    branches:
+      - ragdoll-recovery
+    paths:
+      - '.github/workflows/ragdoll-external-provider-and-client-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-provider-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download exact JTS 1.2.1 runtime stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          curl -fL --retry 4 --retry-delay 2 -o export/justtrialspawners-1.20.1-1.2.1.jar 'https://edge.forgecdn.net/files/8128/046/justtrialspawners-1.20.1-1.2.1.jar'
+          curl -fL --retry 4 --retry-delay 2 -o export/ftb-library-forge-2001.2.12.jar 'https://edge.forgecdn.net/files/7296/748/ftb-library-forge-2001.2.12.jar'
+          curl -fL --retry 4 --retry-delay 2 -o export/architectury-9.2.14-forge.jar 'https://edge.forgecdn.net/files/5137/938/architectury-9.2.14-forge.jar'
+          printf '%s\n' \
+            'JTS CurseForge project=1509987 file=8128046 version=1.20.1-1.2.1' \
+            'FTB Library CurseForge project=404465 file=7296748 version=2001.2.12' \
+            'Architectury API CurseForge project=419699 file=5137938 version=9.2.14' \
+            > export/PROVENANCE.txt
+          sha256sum export/*.jar > export/SHA256SUMS.txt
+          for jar in export/*.jar; do unzip -tq "$jar"; done
+
+      - name: Upload exact external provider stack
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-jts-1.2.1-exact-stack
+          path: export
+          if-no-files-found: error
+          retention-days: 14
+
+  minecraft-client-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Prewarm official Minecraft 1.20.1 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p asset-export/assets/indexes asset-export/assets/objects
+          python3 - <<'PY'
+          import concurrent.futures, hashlib, json, os, pathlib, urllib.request
+
+          root = pathlib.Path('asset-export/assets')
+          root.mkdir(parents=True, exist_ok=True)
+
+          def fetch_json(url):
+              with urllib.request.urlopen(url, timeout=30) as r:
+                  return json.load(r)
+
+          manifest_url = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
+          manifest = fetch_json(manifest_url)
+          version = next(v for v in manifest['versions'] if v['id'] == '1.20.1')
+          version_json = fetch_json(version['url'])
+          pathlib.Path('asset-export/MINECRAFT-1.20.1-VERSION.json').write_text(json.dumps(version_json, indent=2, sort_keys=True) + '\n')
+
+          idx = version_json['assetIndex']
+          with urllib.request.urlopen(idx['url'], timeout=30) as r:
+              index_bytes = r.read()
+          got = hashlib.sha1(index_bytes).hexdigest()
+          if got != idx['sha1']:
+              raise SystemExit(f'asset index sha1 mismatch: {got} != {idx["sha1"]}')
+          index_path = root / 'indexes' / f"{idx['id']}.json"
+          index_path.write_bytes(index_bytes)
+          index = json.loads(index_bytes)
+
+          hashes = sorted({meta['hash'] for meta in index['objects'].values()})
+
+          def one(h):
+              dest = root / 'objects' / h[:2] / h
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              if dest.exists() and hashlib.sha1(dest.read_bytes()).hexdigest() == h:
+                  return dest.stat().st_size
+              url = f'https://resources.download.minecraft.net/{h[:2]}/{h}'
+              last = None
+              for _ in range(4):
+                  try:
+                      with urllib.request.urlopen(url, timeout=45) as r:
+                          data = r.read()
+                      if hashlib.sha1(data).hexdigest() != h:
+                          raise RuntimeError('sha1 mismatch')
+                      dest.write_bytes(data)
+                      return len(data)
+                  except Exception as e:
+                      last = e
+              raise RuntimeError(f'failed {h}: {last}')
+
+          total = 0
+          with concurrent.futures.ThreadPoolExecutor(max_workers=24) as ex:
+              for size in ex.map(one, hashes):
+                  total += size
+
+          provenance = {
+              'minecraft': '1.20.1',
+              'version_manifest_url': manifest_url,
+              'version_metadata_url': version['url'],
+              'asset_index_id': idx['id'],
+              'asset_index_url': idx['url'],
+              'asset_index_sha1': idx['sha1'],
+              'unique_objects': len(hashes),
+              'object_bytes': total,
+          }
+          pathlib.Path('asset-export/PROVENANCE.json').write_text(json.dumps(provenance, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(provenance, indent=2, sort_keys=True))
+          PY
+          sha256sum asset-export/assets/indexes/*.json asset-export/PROVENANCE.json asset-export/MINECRAFT-1.20.1-VERSION.json > asset-export/SHA256SUMS.txt
+          test -s asset-export/assets/indexes/5.json
+          test "$(find asset-export/assets/objects -type f | wc -l)" -gt 1000
+
+      - name: Upload exact client assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-client-assets
+          path: asset-export
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
