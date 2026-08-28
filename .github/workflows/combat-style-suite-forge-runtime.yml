@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -84,6 +84,7 @@ jobs:
           sha256sum *.jar | sort -k2 > "$ROOT/UPSTREAM-SHA256SUMS.txt"
 
       - name: Warm and launch real Forge client baseline under Xvfb
+        id: baseline
         shell: bash
         run: |
           set -euo pipefail
@@ -95,22 +96,27 @@ jobs:
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils >/dev/null
           cd "$MDK"
 
-          # First compile/prepare all userdev, natives, assets and mappings.
           ./gradlew --no-daemon --stacktrace classes prepareRuns > "$ROOT/prepare.log" 2>&1
 
-          # Real GPU-path client launch. Reaching the main client loop is the acceptance boundary;
-          # timeout ends the unattended baseline after caches/assets have been exercised.
           set +e
           timeout 180s xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' \
             ./gradlew --no-daemon --stacktrace runClient > "$ROOT/baseline-client.log" 2>&1
           rc=$?
           set -e
           echo "baseline_exit=$rc" | tee "$ROOT/baseline-exit.txt"
-          test "$rc" -eq 124 -o "$rc" -eq 0
 
           LOG="$MDK/run/logs/latest.log"
+          if [ -s "$LOG" ]; then cp "$LOG" "$ROOT/latest-baseline.log"; fi
+          echo '===== baseline-client.log tail ====='
+          tail -400 "$ROOT/baseline-client.log" || true
+          echo '===== latest.log tail ====='
+          if [ -s "$LOG" ]; then tail -400 "$LOG"; else echo 'latest.log missing'; fi
+
+          if [ "$rc" -ne 124 ] && [ "$rc" -ne 0 ]; then
+            echo "Real Forge client exited unexpectedly: $rc" >&2
+            exit 1
+          fi
           test -s "$LOG"
-          cp "$LOG" "$ROOT/latest-baseline.log"
           grep -Eiq 'epicfight|epic fight' "$LOG"
           grep -Eiq 'bettercombat|better combat' "$LOG"
           grep -Eiq 'yes_steve_model|yes steve model|ysm' "$LOG"
@@ -120,11 +126,26 @@ jobs:
           grep -Eiq 'observable' "$LOG"
           if grep -Eiq 'Crash Report|ModLoadingException|Failed to create mod instance|Mixin apply failed' "$LOG"; then
             echo 'Baseline client log contains release-blocking load failure' >&2
-            tail -300 "$LOG" >&2
             exit 1
           fi
 
+      - name: Upload decisive native client diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-forge-native-diagnostics
+          path: |
+            ${{ runner.temp }}/css5-forge-runtime/prepare.log
+            ${{ runner.temp }}/css5-forge-runtime/baseline-client.log
+            ${{ runner.temp }}/css5-forge-runtime/baseline-exit.txt
+            ${{ runner.temp }}/css5-forge-runtime/latest-baseline.log
+            ${{ runner.temp }}/css5-forge-runtime/mdk/run/crash-reports
+            ${{ runner.temp }}/css5-forge-runtime/mdk/run/logs
+          if-no-files-found: warn
+          retention-days: 3
+
       - name: Seal portable offline runtime
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
@@ -145,6 +166,7 @@ jobs:
           ls -lh combat-style-suite-forge-offline-runtime.tar.zst
 
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: combat-style-suite-forge-offline-runtime
           path: |
