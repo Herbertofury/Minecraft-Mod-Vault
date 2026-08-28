@@ -32,30 +32,9 @@ clone_exact FabricExtras/RangedWeaponAPI "$RANGED_TARGET" "$UP/ranged-234" & p6=
 clone_exact ZsoltMolnarrr/TinyConfig "$TINY_SHA" "$UP/tiny-config-310" & p7=$!
 wait "$p1" "$p2" "$p3" "$p4" "$p5" "$p6" "$p7"
 
-SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
-python3 "$SPELL_POWER/tools/prepare_upstream_source.py" "$UP/spell-power-1201" "$UP/spell-power-160" "$SPELL_POWER/common"
-if grep -R -nF 'net.tinyconfig' "$SPELL_POWER/common/src/main/java" "$SPELL_POWER/common/src/generatedUpstream/java"; then
-  echo '[Spell Engine foundation] legacy TinyConfig package survived in Spell Power source boundary' >&2
-  exit 1
-fi
-gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build
-SPELL_POWER_COMMON_JAR="$(find "$SPELL_POWER/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
-SPELL_POWER_FORGE_JAR="$(find "$SPELL_POWER/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | sort | head -n1)"
-test -f "$SPELL_POWER_COMMON_JAR" -a -f "$SPELL_POWER_FORGE_JAR"
-unzip -tq "$SPELL_POWER_FORGE_JAR"
-if unzip -p "$SPELL_POWER_FORGE_JAR" net/spell_power/SpellPowerMod.class 2>/dev/null | strings | grep -F 'net/tinyconfig/ConfigManager' >/dev/null; then
-  echo '[Spell Engine foundation] Spell Power release still links legacy net/tinyconfig/ConfigManager' >&2
-  exit 1
-fi
-
-RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
-python3 "$RANGED/tools/prepare_upstream_source.py" "$UP/ranged-1201" "$UP/ranged-234" "$RANGED/common"
-gradle --no-daemon --stacktrace -p "$RANGED" :forge:build
-RANGED_COMMON_JAR="$(find "$RANGED/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
-RANGED_FORGE_JAR="$(find "$RANGED/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | sort | head -n1)"
-test -f "$RANGED_COMMON_JAR" -a -f "$RANGED_FORGE_JAR"
-unzip -tq "$RANGED_FORGE_JAR"
-
+# TinyConfig 3.1.0 is a first-class graduated foundation for both Spell Power and Spell Engine.
+# Build it before either consumer and feed the exact separate common/Forge JARs into their ABI/runtime
+# boundaries. Never fall back to the obsolete JitPack package era or source injection.
 TINY="$ROOT/rpg-series-port/tiny-config-forge-1.20.1"
 bash "$ROOT/rpg-series-port/ci/build-tiny-config-foundation.sh" "$UP/tiny-config-310"
 TINY_CONFIG_COMMON_JAR="$(find "$TINY/generated/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
@@ -64,8 +43,43 @@ test -f "$TINY_CONFIG_COMMON_JAR" -a -f "$TINY_CONFIG_FORGE_JAR"
 unzip -tq "$TINY_CONFIG_COMMON_JAR"
 unzip -tq "$TINY_CONFIG_FORGE_JAR"
 unzip -Z1 "$TINY_CONFIG_COMMON_JAR" | grep -F 'net/tiny_config/versioning/VersionableConfig.class' >/dev/null
+unzip -Z1 "$TINY_CONFIG_COMMON_JAR" | grep -F 'net/tiny_config/models/EnchantmentConfig.class' >/dev/null
 unzip -Z1 "$TINY_CONFIG_COMMON_JAR" | grep -F 'net/tiny_config/ConfigManager.class' >/dev/null
 unzip -p "$TINY_CONFIG_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="tiny_config"' >/dev/null
+
+SPELL_POWER="$ROOT/rpg-series-port/spell_power-forge-1.20.1"
+python3 "$SPELL_POWER/tools/prepare_upstream_source.py" "$UP/spell-power-1201" "$UP/spell-power-160" "$SPELL_POWER/common"
+if grep -R -nF 'net.tinyconfig' "$SPELL_POWER/common/src/main/java" "$SPELL_POWER/common/src/generatedUpstream/java"; then
+  echo '[Spell Engine foundation] legacy TinyConfig package survived in Spell Power source boundary' >&2
+  exit 1
+fi
+SPELL_POWER_TINY_ARGS=(
+  "-Ptiny_config_common_jar=$TINY_CONFIG_COMMON_JAR"
+  "-Ptiny_config_forge_jar=$TINY_CONFIG_FORGE_JAR"
+)
+gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build "${SPELL_POWER_TINY_ARGS[@]}"
+SPELL_POWER_COMMON_JAR="$(find "$SPELL_POWER/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
+SPELL_POWER_FORGE_JAR="$(find "$SPELL_POWER/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | sort | head -n1)"
+test -f "$SPELL_POWER_COMMON_JAR" -a -f "$SPELL_POWER_FORGE_JAR"
+unzip -tq "$SPELL_POWER_FORGE_JAR"
+if unzip -p "$SPELL_POWER_FORGE_JAR" net/spell_power/SpellPowerMod.class 2>/dev/null | strings | grep -F 'net/tinyconfig/ConfigManager' >/dev/null; then
+  echo '[Spell Engine foundation] Spell Power release still links legacy net/tinyconfig/ConfigManager' >&2
+  exit 1
+fi
+if unzip -Z1 "$SPELL_POWER_FORGE_JAR" | grep -Eq '^net/tiny_?config/|^META-INF/jars/.*tiny.?config'; then
+  echo '[Spell Engine foundation] TinyConfig classes/JAR leaked into Spell Power release; dependency must stay separate' >&2
+  exit 1
+fi
+unzip -p "$SPELL_POWER_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="tiny_config"' >/dev/null
+unzip -p "$SPELL_POWER_FORGE_JAR" META-INF/mods.toml | grep -F 'versionRange="[3.1.0,)"' >/dev/null
+
+RANGED="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
+python3 "$RANGED/tools/prepare_upstream_source.py" "$UP/ranged-1201" "$UP/ranged-234" "$RANGED/common"
+gradle --no-daemon --stacktrace -p "$RANGED" :forge:build
+RANGED_COMMON_JAR="$(find "$RANGED/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
+RANGED_FORGE_JAR="$(find "$RANGED/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | sort | head -n1)"
+test -f "$RANGED_COMMON_JAR" -a -f "$RANGED_FORGE_JAR"
+unzip -tq "$RANGED_FORGE_JAR"
 
 export SPELL_POWER_COMMON_JAR RANGED_COMMON_JAR SPELL_POWER_FORGE_JAR RANGED_FORGE_JAR
 unset SPELL_POWER_SOURCE_DIRS RANGED_SOURCE_DIRS || true
