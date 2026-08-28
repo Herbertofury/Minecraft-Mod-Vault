@@ -1,6 +1,19 @@
 # Paladins 3.1.1 -> Native Forge 1.20.1 Port Contract
 
-Status: ACTIVE. Archers 3.1.1 graduated on authoritative acceptance run #179 / `33141697191`; this lane may now implement and verify Paladins.
+Status: **GRADUATED**. Canonical post-promotion deep acceptance run #212 / `33215195254` passed on executable authority commit `257171c71a363285bb5bdbb58083121f3a7456d3`. Rogues is the next RPG Series leaf.
+
+## Graduation authority
+
+- Canonical runtime authority commit: `257171c71a363285bb5bdbb58083121f3a7456d3`
+- Pre-promotion exact repair head: `1a9c93399e377b2461632ffedcfa3403ac5338c6`
+- Pre-promotion deep acceptance: run #211 / `33214337111` — `FULL_DEEP_BEHAVIOR_PASS`
+- Canonical post-promotion deep acceptance: run #212 / `33215195254` — `FULL_DEEP_BEHAVIOR_PASS`
+- Certified Paladins release SHA-256: `95e8f9e074dd1c432f9486c922173b76a3b3bc57667b28fe154e47dba5c374ee`
+- Certified deterministic source ZIP SHA-256: `fb0e5812857a2fd46de488cd17a80011ef5d18795ff96fa1a3ebed5fd19a4377`
+- Run #212 evidence ZIP SHA-256: `152e65f28022d81767e85ee5fd7e905b8d3b73bb3aed53e78fd56ae3c620235c`
+- Run #212 evidence ZIP size: `16,710,637` bytes
+- Run #212 proved fresh Forge 47.4.23 packaged-server readiness, native LWJGL client join through the real `ConnectScreen` network stack, Divine Protection one/two-charge damage interception, Judgement/STUN input blocking plus positive post-clear controls, Priest Absorption lifecycle, Levitate gravity/Slow Falling semantics, reproducible release identity, and deterministic source identity.
+- Canonical Drive evidence file: `paladins-run212-canonical-graduation-evidence.zip`, file ID `1t9ASV5-M_2rVtoHd96zyblGdrHA3zW4i`; Drive round-trip size and SHA-256 verification passed.
 
 ## Feature authority
 
@@ -111,4 +124,4 @@ Mirror the Archers discipline:
 10. Fresh official Forge 47.4.23 packaged-server replay with the exact release JAR.
 11. Persist source/evidence/release artifacts to both GitHub and canonical Google Drive before graduation.
 
-Archers 3.1.1 graduated on #179. Paladins is now the active leaf.
+Acceptance satisfied by canonical run #212. Paladins 3.1.1 is graduated; Rogues is the next active leaf.
