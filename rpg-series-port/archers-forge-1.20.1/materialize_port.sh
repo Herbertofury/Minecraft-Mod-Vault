@@ -25,6 +25,7 @@ cp -a "$CURRENT/neoforge/src/main/." "$GENERATED/reference/current-neoforge/"
 cp -a "$LEGACY/src/main/." "$GENERATED/reference/legacy-1.20.1/"
 
 python3 "$ROOT/apply_1201_transforms.py" "$GENERATED/common/java" "$GENERATED/common/resources"
+python3 "$ROOT/apply_1201_api_transforms.py" "$GENERATED/common/java"
 
 (
   cd "$GENERATED"
