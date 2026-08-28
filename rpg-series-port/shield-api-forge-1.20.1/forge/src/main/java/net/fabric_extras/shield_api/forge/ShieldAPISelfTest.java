@@ -22,7 +22,9 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 final class ShieldAPISelfTest {
@@ -85,11 +87,12 @@ final class ShieldAPISelfTest {
         );
 
         // Historical 1.20.1 Shield API could probabilistically skip this when non-sprinting.
-        // Current 2.1.0 semantics are unconditional and exactly 100 ticks.
+        // Current 2.1.0 semantics are unconditional and exactly 100 ticks for every CustomShieldItem.
+        // instances is a HashSet, so iteration order is intentionally not part of the contract.
         player.disableShield(false);
         require(player.trackingCooldown.calls > 0, "disableShield(false) did not touch custom shield cooldowns");
-        require(player.trackingCooldown.lastItem == shield, "disableShield(false) did not target the registered custom shield");
-        require(player.trackingCooldown.lastDuration == 100, "disableShield(false) cooldown was not exactly 100 ticks");
+        require(Integer.valueOf(100).equals(player.trackingCooldown.durationByItem.get(shield)),
+                "disableShield(false) did not apply exactly 100 ticks to the registered custom shield");
 
         var usedStat = Stats.USED.getOrCreateStat(shield);
         ItemStack damaged = new ItemStack(shield);
@@ -115,14 +118,12 @@ final class ShieldAPISelfTest {
 
     private static final class TrackingCooldownManager extends ItemCooldownManager {
         int calls;
-        Item lastItem;
-        int lastDuration;
+        final Map<Item, Integer> durationByItem = new IdentityHashMap<>();
 
         @Override
         public void set(Item item, int duration) {
             calls++;
-            lastItem = item;
-            lastDuration = duration;
+            durationByItem.put(item, duration);
             super.set(item, duration);
         }
     }
