@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pathlib
+import subprocess
 import sys
 
 work = pathlib.Path(sys.argv[1]).resolve()
@@ -108,3 +109,12 @@ for rel, (old, new) in targets.items():
     print(f"[Spell Engine compat 6m] bridged {count} registry call(s): {rel}")
 
 print("[Spell Engine compat 6m] loader-neutral native registration bridge installed")
+
+# Keep the build driver's established final-pass call stable while extending the migration with a
+# separately reviewable client-lifecycle pass. This avoids silently burying loader-client behavior in
+# the registry transform and lets 6n stay fail-closed on its own generated output.
+next_pass = pathlib.Path(__file__).with_name("compat_pass_6n.py")
+if not next_pass.is_file():
+    raise SystemExit(f"missing chained Spell Engine client lifecycle pass: {next_pass}")
+baseline = pathlib.Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else pathlib.Path('.')
+subprocess.run([sys.executable, str(next_pass), str(work), str(baseline)], check=True)
