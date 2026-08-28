@@ -1,0 +1,73 @@
+name: Ragdoll Sable Recovery
+
+on:
+  push:
+    branches:
+      - ragdoll-recovery
+    paths:
+      - '.github/workflows/ragdoll-sable-recovery.yml'
+      - 'verification/ragdoll-forge-1.20.1/recovery/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover-sable-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact Sable 2.0.0 lineage
+        uses: actions/checkout@v4
+        with:
+          repository: ryanhcode/sable
+          ref: b7226222caf4eace63a708bdcd73ef36c971137d
+          path: sable-upstream
+          fetch-depth: 1
+
+      - name: Verify immutable source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git -C sable-upstream rev-parse HEAD)"
+          expected="b7226222caf4eace63a708bdcd73ef36c971137d"
+          test "$actual" = "$expected"
+          printf '%s\n' "$actual" > SABLE-UPSTREAM-COMMIT.txt
+          git -C sable-upstream status --porcelain=v1 > SABLE-UPSTREAM-STATUS.txt
+          test ! -s SABLE-UPSTREAM-STATUS.txt
+
+      - name: Package exact upstream source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf sable-upstream/.git
+          python3 - <<'PY'
+          import os, zipfile
+          root='sable-upstream'
+          out='sable-mc1.21.1-2.0.0-neoforge-b7226222-source.zip'
+          epoch=(2020,1,1,0,0,0)
+          with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              for base, dirs, files in os.walk(root):
+                  dirs.sort(); files.sort()
+                  for name in files:
+                      p=os.path.join(base,name)
+                      arc=p.replace(os.sep,'/')
+                      info=zipfile.ZipInfo(arc, epoch)
+                      info.compress_type=zipfile.ZIP_DEFLATED
+                      info.external_attr=(0o100644 & 0xFFFF) << 16
+                      with open(p,'rb') as f: z.writestr(info,f.read())
+          PY
+          sha256sum sable-mc1.21.1-2.0.0-neoforge-b7226222-source.zip > SABLE-UPSTREAM-SHA256.txt
+          unzip -tq sable-mc1.21.1-2.0.0-neoforge-b7226222-source.zip
+
+      - name: Upload exact source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sable-mc1.21.1-2.0.0-neoforge-b7226222-source
+          path: |
+            sable-mc1.21.1-2.0.0-neoforge-b7226222-source.zip
+            SABLE-UPSTREAM-COMMIT.txt
+            SABLE-UPSTREAM-STATUS.txt
+            SABLE-UPSTREAM-SHA256.txt
+          if-no-files-found: error
+          retention-days: 14
