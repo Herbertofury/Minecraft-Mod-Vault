@@ -1,0 +1,6 @@
+architectury { common(rootProject.enabled_platforms.split(',')) }
+dependencies {
+    compileOnly "org.spongepowered:mixin:0.8.5"
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    compileOnly "org.jetbrains:annotations:24.1.0"
+}
