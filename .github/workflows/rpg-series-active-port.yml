@@ -41,6 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           ACTIVE_FILE='rpg-series-port/ci/ACTIVE_RUNNER'
+          LOG='rpg-series-port/active-port-verifier.log'
           test -f "$ACTIVE_FILE"
           RUNNER="$(tr -d '\r\n ' < "$ACTIVE_FILE")"
           case "$RUNNER" in
@@ -49,8 +50,8 @@ jobs:
           esac
           SCRIPT="rpg-series-port/ci/$RUNNER"
           test -f "$SCRIPT"
-          echo "[RPG CI] Active runner: $SCRIPT"
-          bash "$SCRIPT"
+          echo "[RPG CI] Active runner: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
 
       - name: Preserve active-port evidence
         if: always()
@@ -60,6 +61,7 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           path: |
+            rpg-series-port/active-port-verifier.log
             rpg-series-port/*/forge/build/libs/*.jar
             rpg-series-port/*/generated/forge/build/libs/*.jar
             rpg-series-port/*/*.jar
