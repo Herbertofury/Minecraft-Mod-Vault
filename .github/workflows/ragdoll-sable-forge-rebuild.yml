@@ -1,0 +1,132 @@
+name: Ragdoll Sable Forge Rebuild
+
+on:
+  push:
+    branches: [ ragdoll-recovery ]
+    paths:
+      - '.github/workflows/ragdoll-sable-forge-rebuild.yml'
+      - 'verification/ragdoll-forge-1.20.1/rebuild/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact Sable Forge backport head
+        uses: actions/checkout@v4
+        with:
+          repository: CamelPoem32/sable-backport
+          ref: 6dd48142a62347f1454559b546cbaa63eca648ac
+          path: sable
+          fetch-depth: 1
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C sable rev-parse HEAD)" = '6dd48142a62347f1454559b546cbaa63eca648ac'
+          git -C sable status --porcelain=v1 > /tmp/sable-status.txt
+          test ! -s /tmp/sable-status.txt
+      - name: Stage exact target dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target_modpack/mods
+          curl -fL --retry 4 --retry-delay 2 -o target_modpack/mods/create-1.20.1-6.0.8.jar 'https://edge.forgecdn.net/files/7178/761/create-1.20.1-6.0.8.jar'
+          echo '6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0  target_modpack/mods/create-1.20.1-6.0.8.jar' | sha256sum -c -
+          lz4="$HOME/.gradle/caches/modules-2/files-2.1/at.yawk.lz4/lz4-java/1.11.0/b9669fb5e3ccf50a579c9a4f750cab37ce8fce1b/lz4-java-1.11.0.jar"
+          mkdir -p "$(dirname "$lz4")"
+          curl -fL --retry 4 --retry-delay 2 -o "$lz4" 'https://repo1.maven.org/maven2/at/yawk/lz4/lz4-java/1.11.0/lz4-java-1.11.0.jar'
+          echo "535c5578cab5dcd0a438e202df80091632b873c0370c25d9b1c1ad1d73577207  $lz4" | sha256sum -c -
+      - name: Rebase Forge patch to 47.4.23 and repair dependency mapping
+        working-directory: sable
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/^forge_version=47\.4\.20$/forge_version=47.4.23/' gradle.properties
+          sed -i 's/^org\.gradle\.parallel=true$/org.gradle.parallel=false/' gradle.properties
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('forge/build.gradle')
+          t=p.read_text()
+          old="""    flatDir {
+                  dirs layout.buildDirectory.dir('targetModpackRepository')
+              }
+          """
+          new="""    maven {
+                  url = file('build/targetModpackRepository')
+                  metadataSources { mavenPom(); artifact() }
+              }
+              flatDir {
+                  dirs layout.buildDirectory.dir('targetModpackRepository')
+              }
+          """
+          if old not in t: raise SystemExit('target repository block not found')
+          t=t.replace(old,new,1)
+          marker="""        expectedTargetArtifacts.each { key, spec ->
+                      logger.lifecycle(\"Staged ${spec.group}:${spec.artifact}:${spec.version} (${spec.sha256})\")
+                  }
+          """
+          stage="""        expectedTargetArtifacts.each { key, spec ->
+                      File flatJar = new File(repositoryDir, spec.file)
+                      if (!flatJar.isFile()) throw new GradleException(\"Missing staged target jar: ${flatJar}\")
+                      File moduleDir = new File(repositoryDir, \"local/target/${spec.artifact}/${spec.version}\")
+                      if (!moduleDir.mkdirs() && !moduleDir.isDirectory()) throw new GradleException(\"Unable to create ${moduleDir}\")
+                      File moduleJar = new File(moduleDir, \"${spec.artifact}-${spec.version}.jar\")
+                      Files.copy(flatJar.toPath(), moduleJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                      File modulePom = new File(moduleDir, \"${spec.artifact}-${spec.version}.pom\")
+                      modulePom.setText(\"\"\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>
+          <project xmlns=\\\"http://maven.apache.org/POM/4.0.0\\\"><modelVersion>4.0.0</modelVersion><groupId>local.target</groupId><artifactId>${spec.artifact}</artifactId><version>${spec.version}</version><packaging>jar</packaging></project>\"\"\", 'UTF-8')
+                  }
+
+                  expectedTargetArtifacts.each { key, spec ->
+                      logger.lifecycle(\"Staged ${spec.group}:${spec.artifact}:${spec.version} (${spec.sha256})\")
+                  }
+          """
+          if marker not in t: raise SystemExit('target artifact logger marker not found')
+          p.write_text(t.replace(marker,stage,1))
+          PY
+          chmod +x gradlew
+      - name: Build companion sequentially
+        working-directory: sable
+        run: ./gradlew --no-daemon --no-parallel :sable_companion_1_20:build
+      - name: Build and verify production Sable/Rapier artifact
+        working-directory: sable
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon --no-parallel :forge:spotlessApply
+          ./gradlew --no-daemon --no-parallel \
+            :forge:verifyTargetModpackDependencies \
+            :forge:verifySubLevelEntityCollisionBoundary \
+            :forge:verifyBasicSubLevelRenderLifecycle \
+            :forge:verifySableSpawnCommandBoundary \
+            :forge:build \
+            :forge:verifyRapierPackagedArtifact \
+            :forge:verifyRapierProductionNamespace \
+            :forge:verifyCompanionProductionNamespace \
+            :forge:verifyProductionMinecraftAccessBoundary
+      - name: Collect exact artifact and source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          find sable/forge/build/libs -maxdepth 1 -type f -name '*-all.jar' -print -exec cp '{}' export/ \;
+          test "$(find export -type f -name '*-all.jar' | wc -l)" -ge 1
+          sha256sum export/*-all.jar > export/SHA256SUMS.txt
+          printf '%s\n' 'source=6dd48142a62347f1454559b546cbaa63eca648ac' 'forge=47.4.23' 'create_sha256=6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0' 'rebuild=2026-08-27-recovery' > export/PROVENANCE.txt
+          git -C sable archive --format=zip --output="$GITHUB_WORKSPACE/export/sable-forge-1.20.1-source-6dd48142.zip" HEAD
+          sha256sum export/sable-forge-1.20.1-source-6dd48142.zip >> export/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sable-forge-1.20.1-rebuild
+          path: export
+          if-no-files-found: error
+          retention-days: 14
