@@ -44,13 +44,15 @@ Current 3.1.1 declares:
 
 Prefer the already-graduated 1.20.1 foundations in this project where their public contract satisfies current Paladins behavior. Port/graduate any genuinely missing foundation before weakening Paladins behavior.
 
-## Shield API substrate
+## Shield API source authority + substrate
 
 - Source project: `FabricExtras/ShieldAPI`
-- Current repository default branch: `1.21.1`.
-- Current branch head observed: `3e1f38fe1be03e21a45075cc9fe39bfff7a41296` (repository currently reports Shield API 2.2.0; Paladins itself pins 2.1.0, so exact 2.1.0 release source must be pinned before implementation).
+- **Exact Paladins-pinned Shield API 2.1.0 tag commit:** `bccbc4fded8956d16cf7bebb24e5cfd3d2f91347`
+- Exact 2.1.0 tree: `5d5c158276891582132f5ed5a8ba0d712b8c9bfd`
+- Tag: `2.1.0`; release published 2025-09-17; commit message `migration to Architectury`.
+- Newer 1.21.1 head `3e1f38fe1be03e21a45075cc9fe39bfff7a41296` is Shield API 2.2.0 and is **not** the source authority for this Paladins pin.
 - Exact target-era 1.20.1 branch: `cdcf7ffdcffb31a1dd8c36ba7a27cf312b0e8e71`, Shield API `1.0.1`, Yarn `1.20.1+build.10`.
-- Treat current API behavior as authority and 1.20.1 branch as mapping substrate. Do not substitute the historical API wholesale if Paladins 3.1.1 uses later features.
+- Port the exact 2.1.0 public behavior to target-native Forge 1.20.1, using the 1.20.1 branch only as mapping/runtime substrate. Do not substitute historical 1.0.1 wholesale and do not silently upgrade Paladins to Shield API 2.2.0.
 
 ## Acceptance policy
 
