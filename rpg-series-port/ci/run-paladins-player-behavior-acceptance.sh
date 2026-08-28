@@ -11,6 +11,8 @@ SERVER_LOG="$PORT/paladins-player-server.log"
 SERVER_LATEST="$FRESH/logs/latest.log"
 FIFO="$FRESH/paladins-player-console.fifo"
 ROBOT_DIR="${RUNNER_TEMP:-/tmp}/paladins-input-robot"
+QA_HELPER="$PORT/forge/src/main/java/net/paladins/forge/client/PaladinsQaAutoConnect.java"
+QA_HELPER_CLASS="$PORT/forge/build/classes/java/main/net/paladins/forge/client/PaladinsQaAutoConnect.class"
 CLIENT_PID=''
 SERVER_PID=''
 XVFB_PID=''
@@ -19,7 +21,7 @@ cleanup(){
   if [[ -n "$CLIENT_PID" ]] && kill -0 "$CLIENT_PID" 2>/dev/null; then kill -TERM "$CLIENT_PID" 2>/dev/null || true; sleep 1; kill -KILL "$CLIENT_PID" 2>/dev/null || true; wait "$CLIENT_PID" 2>/dev/null || true; fi
   if [[ -n "$SERVER_PID" ]] && kill -0 "$SERVER_PID" 2>/dev/null; then kill -TERM "$SERVER_PID" 2>/dev/null || true; sleep 1; kill -KILL "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true; fi
   if [[ -n "$XVFB_PID" ]] && kill -0 "$XVFB_PID" 2>/dev/null; then kill -TERM "$XVFB_PID" 2>/dev/null || true; wait "$XVFB_PID" 2>/dev/null || true; fi
-  rm -f "$FIFO"
+  rm -f "$FIFO" "$QA_HELPER" "$QA_HELPER_CLASS"
 }
 trap cleanup EXIT
 wait_marker(){
@@ -137,9 +139,55 @@ public final class PaladinsInputRobot {
 JAVA
 javac "$ROBOT_DIR/PaladinsInputRobot.java"
 
+# CI-only bootstrap: compile a disposable client event subscriber into the dev run. It invokes
+# Minecraft 1.20.1's real ConnectScreen network path after client initialization, bypassing the
+# flaky title-screen Quick Play state observed in runs #206/#207. The helper is never committed
+# into product sources, never added to the certified release JAR/source ZIP, and is removed on exit.
+mkdir -p "$(dirname "$QA_HELPER")"
+cat > "$QA_HELPER" <<'JAVA'
+package net.paladins.forge.client;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.ConnectScreen;
+import net.minecraft.client.network.ServerAddress;
+import net.minecraft.client.network.ServerInfo;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.paladins.PaladinsMod;
+
+@Mod.EventBusSubscriber(modid = PaladinsMod.ID, value = Dist.CLIENT)
+public final class PaladinsQaAutoConnect {
+    private static int ticks;
+    private static boolean triggered;
+
+    private PaladinsQaAutoConnect() { }
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || triggered) return;
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.currentScreen == null || ++ticks < 40) return;
+        triggered = true;
+        String target = "127.0.0.1:25565";
+        System.out.println("[Paladins player QA] PALADINS_QA_AUTOCONNECT_TRIGGERED: " + target);
+        ConnectScreen.connect(
+                client.currentScreen,
+                client,
+                ServerAddress.parse(target),
+                new ServerInfo("Paladins Player QA", target, false),
+                false);
+    }
+}
+JAVA
+
+grep -Fq 'PALADINS_QA_AUTOCONNECT_TRIGGERED' "$QA_HELPER"
+grep -Fq 'ConnectScreen.connect(' "$QA_HELPER"
+echo '[Paladins player QA] deterministic dev-client autoconnect helper staged.'
+
 # Start the exact certified packaged Forge server first. The player assertions are driven through
-# its real console against a genuine ServerPlayer; this avoids synthetic LivingEntity fixtures and
-# removes the brittle singleplayer-world discovery path that run #204 exposed.
+# its real console against a genuine ServerPlayer; this avoids synthetic LivingEntity fixtures.
 rm -rf "$FRESH/logs" "$RUN/logs"
 mkdir -p "$RUN/logs" "$RUN/config"
 printf 'earlyWindowControl = false\n' > "$RUN/config/fml.toml"
@@ -153,10 +201,12 @@ export DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe 
 Xvfb "$DISPLAY" -screen 0 1280x720x24 -nolisten tcp > "$PORT/paladins-player-xvfb.log" 2>&1 & XVFB_PID=$!
 sleep 1
 kill -0 "$XVFB_PID" 2>/dev/null || { echo '[Paladins player QA] Xvfb failed to remain alive' >&2; cat "$PORT/paladins-player-xvfb.log" >&2 || true; exit 1; }
-( gradle --no-daemon -p "$PORT" :forge:runClient "${ARGS[@]}" --args='--width 1280 --height 720 --quickPlayMultiplayer 127.0.0.1:25565' </dev/null ) > "$CLIENT_LOG" 2>&1 & CLIENT_PID=$!
-wait_marker 'joined the game' 210 'native Forge client joining exact packaged server'
+( gradle --no-daemon -p "$PORT" :forge:runClient "${ARGS[@]}" --args='--width 1280 --height 720' </dev/null ) > "$CLIENT_LOG" 2>&1 & CLIENT_PID=$!
+wait_marker 'PALADINS_QA_AUTOCONNECT_TRIGGERED' 210 'deterministic native-client autoconnect trigger'
+wait_marker 'joined the game' 90 'native Forge client joining exact packaged server'
 grep -Fq 'Backend library: LWJGL' "$CLIENT_LATEST" || { echo '[Paladins player QA] real player joined without LWJGL evidence' >&2; exit 1; }
-echo '[Paladins player QA] PALADINS_REAL_PLAYER_JOIN_PASS: native LWJGL Forge client joined exact certified packaged server.'
+[[ "$(sha256sum "$PAL_JAR" | awk '{print $1}')" = "$EXPECTED_SHA" ]] || { echo '[Paladins player QA] packaged Paladins release changed during QA bootstrap' >&2; exit 1; }
+echo '[Paladins player QA] PALADINS_REAL_PLAYER_JOIN_PASS: native LWJGL Forge client joined exact certified packaged server through the real ConnectScreen network stack.'
 
 send_cmd 'gamerule doMobSpawning false'
 send_cmd 'gamerule doDaylightCycle false'
@@ -230,4 +280,5 @@ for _ in $(seq 1 30); do kill -0 "$SERVER_PID" 2>/dev/null || break; sleep 1; do
 if kill -0 "$SERVER_PID" 2>/dev/null; then echo '[Paladins player QA] packaged server did not stop cleanly after real-player QA' >&2; exit 1; fi
 wait "$SERVER_PID"; SERVER_PID=''
 
+[[ "$(sha256sum "$PAL_JAR" | awk '{print $1}')" = "$EXPECTED_SHA" ]] || { echo '[Paladins player QA] packaged Paladins release identity drifted after real-player QA' >&2; exit 1; }
 echo '[Paladins player QA] PLAYER_BEHAVIOR_ACCEPTANCE_PASS: exact packaged-server + native LWJGL client runtime proved Divine Protection one/two-charge damage interception and Judgement/STUN input blocking with positive post-clear controls.'
