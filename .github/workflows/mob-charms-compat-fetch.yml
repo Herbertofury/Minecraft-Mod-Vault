@@ -1,0 +1,87 @@
+name: Mob Charms compatibility fetch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mob-charms-compat-fetch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MC_VERSION: "1.20.1"
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve and download current compatibility matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, pathlib, hashlib, urllib.parse, urllib.request, time
+          API='https://api.modrinth.com/v2'; MC='1.20.1'; UA='MobCharms-Compat-Fetch/1.1'
+          OUT=pathlib.Path('out'); (OUT/'forge').mkdir(parents=True,exist_ok=True); (OUT/'fabric-reference').mkdir(parents=True,exist_ok=True)
+          targets=[
+            ('curios','forge','forge'),('relics-mod','forge','forge'),('artifacts','forge','forge'),
+            ('enigmatic-legacy','forge','forge'),('apotheosis','forge','forge'),('better-combat','forge','forge'),
+            ('punchy-fpa','forge','forge'),('simply-swords','forge','forge'),('spartan-weaponry','forge','forge'),
+            ('accessories','fabric','fabric-reference'),('trinkets','fabric','fabric-reference'),
+            ('jewelry','fabric','fabric-reference'),('additional-rpg-jewelry','fabric','fabric-reference'),('things','fabric','fabric-reference')]
+          def get(url):
+            with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':UA}),timeout=60) as r:return json.load(r)
+          def latest(project,loader):
+            q=urllib.parse.urlencode({'loaders':json.dumps([loader]),'game_versions':json.dumps([MC])})
+            vs=get(f'{API}/project/{urllib.parse.quote(project)}/version?{q}')
+            if not vs: raise RuntimeError(f'no {loader} {MC} version')
+            vs.sort(key=lambda v:v.get('date_published',''),reverse=True)
+            rel=[v for v in vs if v.get('version_type')=='release']
+            return (rel or vs)[0]
+          seen=set(); rows=[]; failures=[]
+          def dl(v,bucket,requested_by,target=None):
+            key=(v['id'],bucket)
+            if key in seen:return
+            seen.add(key)
+            fs=v.get('files') or []; f=next((x for x in fs if x.get('primary')),fs[0] if fs else None)
+            if not f: raise RuntimeError('no downloadable file')
+            dest=OUT/bucket/f['filename']
+            with urllib.request.urlopen(urllib.request.Request(f['url'],headers={'User-Agent':UA}),timeout=120) as r,open(dest,'wb') as w:
+              while True:
+                b=r.read(1024*1024)
+                if not b:break
+                w.write(b)
+            raw=dest.read_bytes(); sha=hashlib.sha256(raw).hexdigest(); sha512=(f.get('hashes') or {}).get('sha512')
+            if sha512 and hashlib.sha512(raw).hexdigest()!=sha512: raise RuntimeError('sha512 mismatch '+f['filename'])
+            rows.append({'target':target,'requested_by':requested_by,'project_id':v.get('project_id'),'version_id':v['id'],'version_number':v.get('version_number'),'version_name':v.get('name'),'date_published':v.get('date_published'),'version_type':v.get('version_type'),'loaders':v.get('loaders'),'game_versions':v.get('game_versions'),'filename':f['filename'],'size':len(raw),'sha256':sha,'source_url':f['url'],'bucket':bucket})
+            loader='forge' if bucket=='forge' else 'fabric'
+            for d in v.get('dependencies') or []:
+              if d.get('dependency_type')!='required':continue
+              try:
+                if d.get('version_id'): dv=get(f"{API}/version/{d['version_id']}")
+                elif d.get('project_id'): dv=latest(d['project_id'],loader)
+                else: continue
+                dl(dv,bucket,'dependency-of:'+v['id'])
+              except Exception as e:
+                failures.append({'dependency_of':v['id'],'project_id':d.get('project_id'),'version_id':d.get('version_id'),'error':repr(e)})
+          for p,l,b in targets:
+            try: dl(latest(p,l),b,'requested-target',p)
+            except Exception as e: failures.append({'project':p,'loader':l,'error':repr(e)})
+          manifest={'minecraft':MC,'generated_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'files':rows,'failures':failures}
+          (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
+          with open(OUT/'SHA256SUMS.txt','w') as f:
+            for r in sorted(rows,key=lambda x:(x['bucket'],x['filename'])): f.write(f"{r['sha256']}  {r['bucket']}/{r['filename']}\n")
+          primary={p for p,l,b in targets if b=='forge'}; got={r['target'] for r in rows if r.get('target') and r['bucket']=='forge'}; missing=sorted(primary-got)
+          print(json.dumps(manifest,indent=2))
+          if missing: raise SystemExit('Missing Forge targets: '+', '.join(missing))
+          PY
+      - name: Upload compatibility bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mob-charms-compat-1.20.1
+          path: out/
+          compression-level: 0
+          if-no-files-found: error
