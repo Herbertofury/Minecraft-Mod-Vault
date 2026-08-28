@@ -49,6 +49,7 @@ processResources {
     inputs.property 'spell_engine_version', rootProject.spell_engine_version
     inputs.property 'bundle_api_version', rootProject.bundle_api_version
     inputs.property 'ranged_weapon_api_version', rootProject.ranged_weapon_api_version
+    inputs.property 'curios_version', rootProject.curios_version
     filesMatching('META-INF/mods.toml') {
         expand(
             version: project.version,
@@ -57,7 +58,8 @@ processResources {
             armor_model_api_version: rootProject.armor_model_api_version,
             spell_engine_version: rootProject.spell_engine_version,
             bundle_api_version: rootProject.bundle_api_version,
-            ranged_weapon_api_version: rootProject.ranged_weapon_api_version
+            ranged_weapon_api_version: rootProject.ranged_weapon_api_version,
+            curios_version: rootProject.curios_version
         )
     }
 }
