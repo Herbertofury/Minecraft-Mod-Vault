@@ -97,6 +97,10 @@ jobs:
           cd "$MDK"
 
           ./gradlew --no-daemon --stacktrace classes prepareRuns > "$ROOT/prepare.log" 2>&1
+          SRG_MAP="$MDK/build/createSrgToMcp/output.srg"
+          test -s "$SRG_MAP"
+          printf 'production_refmap_remap=%s\n' "$SRG_MAP" | tee "$ROOT/refmap-remap.txt"
+          export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dmixin.env.remapRefMap=true -Dmixin.env.refMapRemappingFile=$SRG_MAP"
 
           set +e
           timeout 180s xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' \
@@ -136,6 +140,7 @@ jobs:
           name: combat-style-suite-forge-native-diagnostics
           path: |
             ${{ runner.temp }}/css5-forge-runtime/prepare.log
+            ${{ runner.temp }}/css5-forge-runtime/refmap-remap.txt
             ${{ runner.temp }}/css5-forge-runtime/baseline-client.log
             ${{ runner.temp }}/css5-forge-runtime/baseline-exit.txt
             ${{ runner.temp }}/css5-forge-runtime/latest-baseline.log
@@ -158,6 +163,7 @@ jobs:
           Java: 17
           Upstream stack: Epic Fight 20.14.17, Better Combat 1.9.0 Forge, YSM 2.6.5 Forge, Punchy 2.7d Forge, TaCZ 1.1.8-hotfix
           Profilers: spark 1.10.53, Observable 4.4.2 + dependencies
+          Production mixin JARs are remapped in userdev with createSrgToMcp/output.srg.
           The Suite JARs are intentionally NOT included; local QA adds the exact candidate after artifact retrieval.
           EOF
           cd "$RUNNER_TEMP"
