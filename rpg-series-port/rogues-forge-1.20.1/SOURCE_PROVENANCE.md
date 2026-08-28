@@ -30,15 +30,20 @@ Repository: `ZsoltMolnarrr/Rogues`
 - Commit: `bdfe6447b90758129e12430b497d97c181222b12`
 - Root tree: `0a4f7f94e77031732843f8a40a8460184bd3577a`
 - `gradle.properties` blob: `1d1e4007bf335129cc6cabb115a0f78d3805fca0`
-- `common` tree: `294546c95c33e2f97b79325e21d0434c4ce77a02`
-- `forge` tree: `6f31c256dc901a247be108488509206079317734b`
-- `gradle` tree: `54519e011fbca16ca7415fcea30fedda8b78e0cb`
-- `gradlew` blob: `555c706d8842a1d4ed184d7eeb6783a0f770b3f2`
-- `gradlew.bat` blob: `f955316af440d3ec5ea49b27d41c0c1257084042`
-- `settings.gradle` blob: `ed288563467414e15d9c7e6db8f2dc24b8d2ed96`
+- `build.gradle` blob: `b2042ce3a0b8b15418f9c7c4bedef5a1f3d3338e`
+- `gradle` tree: `59896c6c521e647462c281c276fb973d5ee6bdc2`
+- `gradlew` blob: `aeb74cbb43e3931a2455a838345c3f6b8131aaa2`
+- `gradlew.bat` blob: `6689b85beecde676054c39c2408085f41e6be6dc`
+- `settings.gradle` blob: `f91a4fe7e1f1240c4ca98d81fd7a3d7cede3efb5`
+- `src` tree: `6a6057dfc702860f6ddd2fd49fffee8f47b84469`
+- `src/main` tree: `02c0bf29477a997d144d87cec1cb604ebd435241`
+- `src/main/java` tree: `ff8de0b53c1fb6dc05b47d052ee8b1cf7fe25c54`
+- `src/main/resources` tree: `4d74c108a0f186d547dc1ed0e54b8e58aa81c633`
 - Yarn declaration: `1.20.1+build.10`
 
-The two `gradle.properties` blob IDs above were re-verified directly from the immutable commits before this clean prep was restored. The current file also contains properties with optional whitespace around `=`, so source-prep validation must parse property keys/values rather than require one exact spacing style.
+The historical 1.20.1 authority is a **single-project layout** rooted at `src/main`, not a `common`/`forge` multi-module tree. Earlier prep notes that listed historical `common` and `forge` trees, plus older wrapper/settings hashes, were stale and are superseded by the immutable root-tree enumeration above.
+
+The two `gradle.properties` blob IDs above were re-verified directly from the immutable commits. The current file also contains properties with optional whitespace around `=`, so source-prep validation must parse property keys/values rather than require one exact spacing style.
 
 The current `common/src` subtree was also re-derived directly from the immutable commit after an older prep note was found to contain a stale/non-resolving value. The hashes in this ledger are the corrected values and must supersede that older note.
 
@@ -52,12 +57,13 @@ A source-preparation step is valid only when it:
 2. verifies the resolved root tree before consuming source;
 3. verifies the exact `gradle.properties` Git blob and required version/Minecraft/Yarn values;
 4. tolerates harmless whitespace around Gradle property separators without weakening value checks;
-5. keeps the current 3.1.1 tree and historical 1.20.1 tree physically distinct;
-6. materializes current `common/src/main/java`, `common/src/main/resources`, **and** `common/src/main/generated` data rather than treating current generated spell/data definitions as disposable;
-7. places historical source under an `.upstream`/reference-only location and never overlays it wholesale onto generated current source;
-8. records deterministic provenance for every materialized authority;
-9. fails if any immutable pin changes unexpectedly or if the current generated Last Stand definition disappears;
-10. excludes Git metadata, caches, build outputs, generated runtime worlds/logs, and mutable download metadata from deterministic source packages.
+5. verifies the expected **different layouts**: current `common/src/main/...` and historical `src/main/...`;
+6. keeps the current 3.1.1 tree and historical 1.20.1 tree physically distinct;
+7. materializes current `common/src/main/java`, `common/src/main/resources`, **and** `common/src/main/generated` data rather than treating current generated spell/data definitions as disposable;
+8. places historical source under an `.upstream`/reference-only location and never overlays it wholesale onto generated current source;
+9. records deterministic provenance for every materialized authority;
+10. fails if any immutable pin changes unexpectedly or if the current generated Last Stand definition disappears;
+11. excludes Git metadata, caches, build outputs, generated runtime worlds/logs, and mutable download metadata from deterministic source packages.
 
 ## Semantic authority rule
 
