@@ -5,8 +5,19 @@ sourceSets {
         resources.srcDir 'src/generatedUpstream/resources'
     }
 }
+
+File requiredJar(String propertyName) {
+    def value = providers.gradleProperty(propertyName).orNull
+    if (value == null || value.trim().isEmpty()) throw new GradleException("Missing -P${propertyName}=...")
+    def file = rootProject.file(value.trim())
+    if (!file.isFile()) throw new GradleException("${propertyName} does not exist: ${file}")
+    return file
+}
+
 dependencies {
     compileOnly "org.spongepowered:mixin:0.8.5"
     annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
-    implementation "com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version"
+    // TinyConfig 3.1.0 is a separately packaged graduated foundation. Compile against its exact
+    // common ABI; never source-inject, shade, or silently resolve the obsolete JitPack package era.
+    compileOnly files(requiredJar('tiny_config_common_jar'))
 }
