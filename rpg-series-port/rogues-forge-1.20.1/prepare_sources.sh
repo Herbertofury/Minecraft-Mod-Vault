@@ -83,7 +83,7 @@ if actual != expected:
 PY
 }
 
-verify_snapshot(){
+verify_snapshot_properties(){
   local dir="$1" blob="$2" version="$3" mc="$4" yarn="$5" label="$6"
   local gradle="$dir/gradle.properties" actual_blob
   [[ -f "$gradle" ]] || fail "$label gradle.properties missing"
@@ -92,8 +92,6 @@ verify_snapshot(){
   assert_prop "$gradle" mod_version "$version"
   assert_prop "$gradle" minecraft_version "$mc"
   assert_prop "$gradle" yarn_mappings "$yarn"
-  [[ -d "$dir/common/src/main/java" ]] || fail "$label common Java source missing"
-  [[ -d "$dir/common/src/main/resources" ]] || fail "$label common resources missing"
 }
 
 deterministic_manifest(){
@@ -109,10 +107,19 @@ verify_tree_via_api "$CURRENT_COMMIT" "$CURRENT_TREE" current
 verify_tree_via_api "$HIST_COMMIT" "$HIST_TREE" historical
 fetch_archive "$CURRENT_COMMIT" "$CURRENT_REF" current
 fetch_archive "$HIST_COMMIT" "$HIST_REF" historical
-verify_snapshot "$CURRENT_REF" "$CURRENT_GRADLE_BLOB" "$CURRENT_VERSION" "$CURRENT_MC" "$CURRENT_YARN" current
-verify_snapshot "$HIST_REF" "$HIST_GRADLE_BLOB" "$HIST_VERSION" "$HIST_MC" "$HIST_YARN" historical
+verify_snapshot_properties "$CURRENT_REF" "$CURRENT_GRADLE_BLOB" "$CURRENT_VERSION" "$CURRENT_MC" "$CURRENT_YARN" current
+verify_snapshot_properties "$HIST_REF" "$HIST_GRADLE_BLOB" "$HIST_VERSION" "$HIST_MC" "$HIST_YARN" historical
+
+# The pinned authorities intentionally have different layouts. Current 3.1.1 is Architectury-style
+# (`common/src/main/...`), while the historical Minecraft 1.20.1 substrate predates that split and is
+# a single-project tree (`src/main/...`). Never normalize one by overlaying it onto the other.
+[[ -d "$CURRENT_REF/common/src/main/java" ]] || fail 'current common Java source missing'
+[[ -d "$CURRENT_REF/common/src/main/resources" ]] || fail 'current common resources missing'
 [[ -d "$CURRENT_REF/common/src/main/generated" ]] || fail 'current 3.1.1 generated data missing'
 [[ -f "$CURRENT_REF/common/src/main/generated/data/rogues/spell/last_stand.json" ]] || fail 'current 3.1.1 Last Stand generated spell data missing'
+[[ -d "$HIST_REF/src/main/java" ]] || fail 'historical 1.20.1 single-project Java source missing'
+[[ -d "$HIST_REF/src/main/resources" ]] || fail 'historical 1.20.1 single-project resources missing'
+[[ ! -d "$HIST_REF/common/src/main/java" ]] || fail 'historical layout unexpectedly changed to common/src; re-audit substrate pin before continuing'
 
 rm -rf "$MATERIALIZED"
 mkdir -p "$MATERIALIZED/common/src/main/java" "$MATERIALIZED/common/src/main/resources" "$MATERIALIZED/common/src/main/generated"
@@ -149,6 +156,7 @@ current_gradle_blob=$CURRENT_GRADLE_BLOB
 current_version=$CURRENT_VERSION
 current_minecraft=$CURRENT_MC
 current_yarn=$CURRENT_YARN
+current_layout=common/src/main
 current_reference_manifest_sha256=$CURRENT_REF_SHA
 historical_commit=$HIST_COMMIT
 historical_tree=$HIST_TREE
@@ -156,6 +164,7 @@ historical_gradle_blob=$HIST_GRADLE_BLOB
 historical_version=$HIST_VERSION
 historical_minecraft=$HIST_MC
 historical_yarn=$HIST_YARN
+historical_layout=src/main
 historical_reference_manifest_sha256=$HIST_REF_SHA
 materialized_current_manifest_sha256=$CURRENT_MANIFEST_SHA
 materialized_current_file_count=$CURRENT_FILE_COUNT
@@ -167,7 +176,7 @@ SECOND="$TMP/materialized-second.sha256"
 deterministic_manifest "$MATERIALIZED" "$SECOND"
 cmp -s "$MANIFEST" "$SECOND" || fail 'materialized-current manifest changed within one preparation run'
 
-echo "[Rogues source prep] CURRENT_AUTHORITY_PASS commit=$CURRENT_COMMIT tree=$CURRENT_TREE blob=$CURRENT_GRADLE_BLOB"
-echo "[Rogues source prep] HISTORICAL_SUBSTRATE_PASS commit=$HIST_COMMIT tree=$HIST_TREE blob=$HIST_GRADLE_BLOB"
+echo "[Rogues source prep] CURRENT_AUTHORITY_PASS commit=$CURRENT_COMMIT tree=$CURRENT_TREE blob=$CURRENT_GRADLE_BLOB layout=common/src/main"
+echo "[Rogues source prep] HISTORICAL_SUBSTRATE_PASS commit=$HIST_COMMIT tree=$HIST_TREE blob=$HIST_GRADLE_BLOB layout=src/main"
 echo "[Rogues source prep] MATERIALIZED_CURRENT_PASS files=$CURRENT_FILE_COUNT manifest=$CURRENT_MANIFEST_SHA generated=true"
 echo '[Rogues source prep] HISTORICAL_SEPARATION_PASS: historical 1.20.1 reference remains isolated under .upstream and never overlays current 3.1.1 source.'
