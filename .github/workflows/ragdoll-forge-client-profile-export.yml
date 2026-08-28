@@ -1,0 +1,47 @@
+name: Ragdoll Forge Client Profile Export
+
+on:
+  push:
+    branches: [ragdoll-recovery]
+    paths:
+      - '.github/workflows/ragdoll-forge-client-profile-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download and verify exact Forge installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 2 -o forge-installer.jar 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
+          echo 'ed31ce02ac69176f34353235cb2508d5a0f1e088  forge-installer.jar' | sha1sum -c -
+          mkdir -p export/extracted export/client
+          (cd export/extracted && jar xf ../../forge-installer.jar)
+          cp export/extracted/install_profile.json export/
+          cp export/extracted/version.json export/
+          sha256sum forge-installer.jar export/install_profile.json export/version.json > export/SHA256SUMS.txt
+
+      - name: Install production client profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p client-home/.minecraft
+          HOME="$PWD/client-home" java -jar forge-installer.jar --installClient "$PWD/client-home/.minecraft" > export/install-client.log 2>&1
+          find client-home/.minecraft/versions -maxdepth 3 -type f -print | sort > export/installed-files.txt
+          mkdir -p export/installed-profile
+          find client-home/.minecraft/versions -type f \( -name '*.json' -o -name '*.jar' \) -exec cp -v '{}' export/installed-profile/ ';'
+          sha256sum export/installed-profile/* >> export/SHA256SUMS.txt
+
+      - name: Upload exact production client profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-production-client-profile
+          path: export
+          if-no-files-found: error
+          retention-days: 14
