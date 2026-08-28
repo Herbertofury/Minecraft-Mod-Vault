@@ -1,0 +1,106 @@
+name: DevKit Art Acquisition
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/devkit-art-acquisition.yml'
+
+permissions:
+  contents: read
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - jasonjgardner/blockbench-mcp-plugin
+          - jasonjgardner/blockbench-mcp-project
+          - SwagRee/BlockBenchMCP
+          - MalloyTheDev/aseprite-mcp
+          - JannisX11/blockbench-plugins
+          - tazercopter/Hytale-Blockbench-Bridge
+          - kaisalmon/MrSalmonsBlockbenchBakedAmbientOcclusion
+          - sosadly/blockbench-mcp
+          - SS-360/materialpilot
+          - Gamezxz/pixel-art-studio
+          - dakotacsk/code-as-pixelart
+    steps:
+      - name: Acquire complete repository snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo='${{ matrix.repo }}'
+          slug="${repo//\//__}"
+          mkdir -p "out/$slug" work
+          default_branch="$(gh api "repos/$repo" --jq '.default_branch')"
+          echo "$repo" > "out/$slug/REPOSITORY.txt"
+          echo "$default_branch" > "out/$slug/DEFAULT_BRANCH.txt"
+
+          # Complete Git history/refs as a portable bundle.
+          git clone --mirror "https://github.com/$repo.git" "work/$slug.git"
+          git -C "work/$slug.git" bundle create "../../out/$slug/${slug}-ALL-REFS.bundle" --all
+          git -C "work/$slug.git" show-ref > "out/$slug/ALL-REFS.txt"
+
+          # Working-tree snapshot of default branch including submodules and LFS objects.
+          git clone --branch "$default_branch" --recurse-submodules "https://github.com/$repo.git" "work/$slug-default"
+          if command -v git-lfs >/dev/null 2>&1; then
+            git -C "work/$slug-default" lfs install --local || true
+            git -C "work/$slug-default" lfs pull || true
+          fi
+          commit="$(git -C "work/$slug-default" rev-parse HEAD)"
+          echo "$commit" > "out/$slug/DEFAULT-BRANCH-COMMIT.txt"
+          git -C "work/$slug-default" submodule status --recursive > "out/$slug/SUBMODULES.txt" || true
+          rm -rf "work/$slug-default/.git"
+          (cd "work" && zip -q -r "../out/$slug/${slug}-${default_branch}-source.zip" "$slug-default")
+
+          # Explicit main snapshot when a main branch exists and isn't already the default.
+          if [ "$default_branch" != "main" ] && git -C "work/$slug.git" show-ref --verify --quiet refs/heads/main; then
+            git clone --branch main --recurse-submodules "https://github.com/$repo.git" "work/$slug-main"
+            git -C "work/$slug-main" lfs pull || true
+            git -C "work/$slug-main" rev-parse HEAD > "out/$slug/MAIN-BRANCH-COMMIT.txt"
+            rm -rf "work/$slug-main/.git"
+            (cd "work" && zip -q -r "../out/$slug/${slug}-main-source.zip" "$slug-main")
+          fi
+
+          # Latest tag source snapshot, independently archived when tags exist.
+          latest_tag="$(git -C "work/$slug.git" tag --sort=-version:refname | head -n 1 || true)"
+          if [ -n "$latest_tag" ]; then
+            printf '%s\n' "$latest_tag" > "out/$slug/LATEST-TAG.txt"
+            git clone --branch "$latest_tag" --recurse-submodules "https://github.com/$repo.git" "work/$slug-tag"
+            git -C "work/$slug-tag" lfs pull || true
+            git -C "work/$slug-tag" rev-parse HEAD > "out/$slug/LATEST-TAG-COMMIT.txt"
+            rm -rf "work/$slug-tag/.git"
+            safe_tag="$(printf '%s' "$latest_tag" | tr '/ ' '__')"
+            (cd "work" && zip -q -r "../out/$slug/${slug}-${safe_tag}-source.zip" "$slug-tag")
+          fi
+
+          # Latest GitHub Release metadata + every downloadable release asset.
+          if gh release view --repo "$repo" --json tagName,name,publishedAt,url > "out/$slug/LATEST-RELEASE.json" 2>/dev/null; then
+            mkdir -p "out/$slug/release-assets"
+            gh release download --repo "$repo" --dir "out/$slug/release-assets" || true
+          else
+            printf '%s\n' 'No GitHub Release found at acquisition time.' > "out/$slug/NO-GITHUB-RELEASE.txt"
+          fi
+
+          # License/README provenance copied from the live default checkout where available.
+          for f in LICENSE LICENSE.md LICENSE.txt COPYING COPYING.md README README.md README.txt; do
+            if [ -f "work/$slug-default/$f" ]; then cp "work/$slug-default/$f" "out/$slug/PROVENANCE-$f"; fi
+          done
+
+          find "out/$slug" -type f -print0 | sort -z | xargs -0 sha256sum > "out/$slug/SHA256SUMS.txt"
+          find "out/$slug" -maxdepth 2 -type f -printf '%P\t%s bytes\n' | sort > "out/$slug/CONTENTS.txt"
+
+      - name: Upload repository acquisition artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: devkit-${{ strategy.job-index }}-${{ matrix.repo }}
+          path: out/
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
