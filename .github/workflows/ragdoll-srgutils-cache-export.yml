@@ -1,0 +1,35 @@
+name: Ragdoll Srgutils Cache Export
+
+on:
+  push:
+    branches:
+      - ragdoll-recovery
+    paths:
+      - '.github/workflows/ragdoll-srgutils-cache-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch exact Maven coordinate
+        shell: bash
+        run: |
+          set -euo pipefail
+          root='repo/net/minecraftforge/srgutils/0.4.11'
+          mkdir -p "$root"
+          base='https://maven.minecraftforge.net/net/minecraftforge/srgutils/0.4.11'
+          curl -fL --retry 4 --retry-delay 2 -o "$root/srgutils-0.4.11.jar" "$base/srgutils-0.4.11.jar"
+          curl -fL --retry 4 --retry-delay 2 -o "$root/srgutils-0.4.11.pom" "$base/srgutils-0.4.11.pom"
+          sha256sum "$root"/* > repo/SHA256SUMS.txt
+          unzip -tq "$root/srgutils-0.4.11.jar"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-srgutils-0.4.11-local-maven
+          path: repo
+          if-no-files-found: error
+          retention-days: 14
