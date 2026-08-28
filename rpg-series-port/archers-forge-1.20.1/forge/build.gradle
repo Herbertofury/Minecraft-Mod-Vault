@@ -39,6 +39,11 @@ dependencies {
         modCompileOnly files(jar)
         modRuntimeOnly files(jar)
     }
+
+    // Loom userdev launches do not expand jar-in-jar dependencies from a mod supplied as a plain
+    // file dependency. Spell Engine owns and embeds MixinExtras in the real packaged distribution;
+    // this exact standalone library exists only so dev runServer/runClient see the same loader API.
+    runtimeOnly "io.github.llamalad7:mixinextras-forge:$rootProject.mixinextras_version"
 }
 
 processResources {
