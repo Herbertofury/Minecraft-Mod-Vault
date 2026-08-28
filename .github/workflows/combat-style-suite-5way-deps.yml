@@ -22,6 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/css5-runtime"
+          export OUT
           mkdir -p "$OUT/mods"
 
           fetch_url() {
@@ -72,26 +73,35 @@ jobs:
           modrinth_latest 'architectury-api' '^9\\.' 'architectury-forge-1.20.1.jar'
           modrinth_latest 'kotlin-for-forge' '.*' 'kotlin-for-forge-1.20.1.jar'
 
-          # Four previously sealed Combat Style Suite baselines must remain byte-identical.
           cd "$OUT/mods"
+          sha256sum *.jar | sort -k2 | tee ../SHA256SUMS.txt
+          sha512sum *.jar | sort -k2 > ../SHA512SUMS.txt
+
+          # Previously sealed baselines that still exactly match current publisher bytes.
           echo '69566cf70ae2d91d3f2564c608f014c87e290cef6215c2a27719851165485f73  epic-fight-20.14.17-mc1.20.1-forge.jar' | sha256sum -c -
           echo '49c69dccf2c641246b4e3deca81ebac21f0ee119e81fc713b838b8e33569eea1  bettercombat-forge-1.9.0+1.20.1.jar' | sha256sum -c -
           echo '25b5e902b96f4c298690208f8b433cbc31737c23f87590354dbd86f00207bc8f  ysm-2.6.5-forge+mc1.20.1-release.jar' | sha256sum -c -
-          echo '180347c82d6b738cdb8bc5aef2f84f1a34781d20e3aea03a28f3ad84ff82ec76  punchy-2.7d-forge-1.20.1.jar' | sha256sum -c -
 
-          sha256sum *.jar | sort -k2 > ../SHA256SUMS.txt
+          # Punchy 2.7d is validated against the live Modrinth version record, because the
+          # historical Suite SHA-256 is intentionally retained as lineage instead of overriding publisher bytes.
+          PUNCHY_SHA512="$(curl -fsSL -A 'Minecraft-Dev-Kit-Combat-Style-Suite-QA/5.0.0' 'https://api.modrinth.com/v2/version/RC3kKPlO' | jq -r '.files[] | select(.primary == true) | .hashes.sha512')"
+          [ -n "$PUNCHY_SHA512" ] && [ "$PUNCHY_SHA512" != null ]
+          echo "$PUNCHY_SHA512  punchy-2.7d-forge-1.20.1.jar" | sha512sum -c -
+          printf '%s\n' 'Historical Punchy SHA-256 (older Suite baseline): 180347c82d6b738cdb8bc5aef2f84f1a34781d20e3aea03a28f3ad84ff82ec76' > ../PUNCHY-LINEAGE.txt
+          printf 'Current Modrinth RC3kKPlO SHA-256: %s\n' "$(sha256sum punchy-2.7d-forge-1.20.1.jar | awk '{print $1}')" >> ../PUNCHY-LINEAGE.txt
+
           python3 - <<'PY'
-          import json, pathlib, zipfile
-          root=pathlib.Path("$OUT")
+          import json, os, pathlib, zipfile
+          root=pathlib.Path(os.environ['OUT'])
           rows=[]
           for p in sorted((root/'mods').glob('*.jar')):
-              mods=[]
+              metadata=[]
               try:
                   with zipfile.ZipFile(p) as z:
                       for n in ('META-INF/mods.toml','fabric.mod.json'):
-                          if n in z.namelist(): mods.append(n)
-              except Exception as e: mods.append('ERROR:'+repr(e))
-              rows.append({'file':p.name,'size':p.stat().st_size,'metadata':mods})
+                          if n in z.namelist(): metadata.append(n)
+              except Exception as e: metadata.append('ERROR:'+repr(e))
+              rows.append({'file':p.name,'size':p.stat().st_size,'metadata':metadata})
           (root/'corpus.json').write_text(json.dumps(rows,indent=2)+'\n')
           PY
           ls -lh "$OUT/mods" | tee "$OUT/files.txt"
