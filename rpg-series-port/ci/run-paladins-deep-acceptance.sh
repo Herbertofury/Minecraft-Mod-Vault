@@ -3,4 +3,5 @@ set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 bash "$ROOT/rpg-series-port/ci/run-paladins-acceptance.sh"
 bash "$ROOT/rpg-series-port/ci/run-paladins-behavior-acceptance.sh"
-echo '[Paladins deep acceptance] BASELINE_PLUS_SERVER_BEHAVIOR_PASS; integrated-player Judgement STUN remains the final behavior-specific gate before graduation.'
+bash "$ROOT/rpg-series-port/ci/run-paladins-judgement-player-acceptance.sh"
+echo '[Paladins deep acceptance] FULL_DEEP_BEHAVIOR_PASS: baseline runtime matrix, packaged-server effect semantics, and real integrated-player Judgement/STUN controls all passed.'
