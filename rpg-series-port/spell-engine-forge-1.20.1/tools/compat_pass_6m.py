@@ -14,6 +14,7 @@ bridge.parent.mkdir(parents=True, exist_ok=True)
 bridge.write_text('''package net.spell_engine.compat.registry;
 
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 
@@ -56,6 +57,10 @@ public final class RegistrationBridge {
         requireExpected(state, registry, id);
         state.registrar().register(registry, id, value);
         return value;
+    }
+
+    public static <T> T register(Registry<T> registry, RegistryKey<T> key, T value) {
+        return register(registry, key.getValue(), value);
     }
 
     public static <T> RegistryEntry<T> registerReference(Registry<T> registry, Identifier id, T value) {
