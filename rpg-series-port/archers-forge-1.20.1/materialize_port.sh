@@ -28,6 +28,7 @@ python3 "$ROOT/apply_1201_transforms.py" "$GENERATED/common/java" "$GENERATED/co
 python3 "$ROOT/apply_1201_api_transforms.py" "$GENERATED/common/java"
 python3 "$ROOT/apply_1201_api_wave2.py" "$GENERATED/common/java" "$GENERATED/common/resources"
 python3 "$ROOT/apply_1201_runtime_transforms.py" "$GENERATED/common/java"
+python3 "$ROOT/apply_1201_forge_registration.py" "$GENERATED/common/java"
 
 (
   cd "$GENERATED"
@@ -37,4 +38,4 @@ python3 "$ROOT/apply_1201_runtime_transforms.py" "$GENERATED/common/java"
 
 printf '[Archers materialize] current 3.1.1 Java files: %s\n' "$(find "$GENERATED/common/java" -type f -name '*.java' | wc -l | tr -d ' ')"
 printf '[Archers materialize] current resource/data files: %s\n' "$(find "$GENERATED/common/resources" -type f | wc -l | tr -d ' ')"
-echo '[Archers materialize] all current common content staged; explicit 1.20.1 transforms applied; references retained outside compilation.'
+echo '[Archers materialize] all current common content staged; explicit 1.20.1 transforms and native Forge registration seam applied; references retained outside compilation.'
