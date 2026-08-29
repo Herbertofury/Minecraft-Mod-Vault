@@ -1,10 +1,6 @@
 name: Build Vanilla Feature Atlas
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/build-vanilla-feature-atlas.yml'
   workflow_dispatch:
 
 permissions:
@@ -13,37 +9,24 @@ permissions:
 jobs:
   atlas:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare builder
+      - name: Validate atlas builder
         shell: bash
         run: |
           set -euo pipefail
           python3 -m py_compile devkit-orchestrator/tools/build_vanilla_atlas.py
-          # The initial builder intentionally used no-checkout clones for git-show history.
-          # minecraft-data also needs its working tree for pre-1.14 normalized files.
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('devkit-orchestrator/tools/build_vanilla_atlas.py')
-          s=p.read_text()
-          needle='clone_repo("https://github.com/PrismarineJS/minecraft-data.git", minecraft_data, depth=1)\n'
-          repl=needle+'    run(["git", "checkout", "--detach", "HEAD"], cwd=minecraft_data, capture=False)\n'
-          if repl not in s:
-              if needle not in s: raise SystemExit('builder patch anchor missing')
-              s=s.replace(needle,repl)
-          p.write_text(s)
-          PY
-      - name: Build authoritative + derived atlas
+      - name: Build complete latest-to-oldest atlas
         shell: bash
         run: |
           set -euo pipefail
           python3 devkit-orchestrator/tools/build_vanilla_atlas.py \
             --out out/vanilla-atlas \
             --work .atlas-work \
-            --workers 24 \
+            --workers 32 \
             --with-provider-inventory
-      - name: Sanity checks
+      - name: Strict completeness gate
         shell: bash
         run: |
           set -euo pipefail
@@ -51,31 +34,33 @@ jobs:
           import json
           from pathlib import Path
           a=json.loads(Path('out/vanilla-atlas/VANILLA-ATLAS.json').read_text())
-          r=json.loads(Path('out/vanilla-atlas/BUILD-RECEIPT.json').read_text())
+          c=a['coverage']
           assert a['schema']==2
-          assert a['latestRelease']
-          assert a['latestSnapshot']
-          assert a['coverage']['officialVersions'] > 100
-          assert a['coverage']['soundEvents'] > 500
-          assert a['coverage']['externalAssetPaths'] > 1000
-          assert len(a.get('assetIndexes',{})) > 10
-          print(json.dumps(r,indent=2))
+          assert c['officialVersions']>900
+          assert c['soundEvents']>2000
+          assert c['soundDefinitions']>1900
+          assert c['registryEntries']>39000
+          assert c['externalAssetPaths']>7000
+          assert c['resourcePaths']>1000
+          assert c['dataPaths']>1000
+          assert c['assetIndexes']>50
+          print(json.dumps(json.loads(Path('out/vanilla-atlas/BUILD-RECEIPT.json').read_text()),indent=2))
           PY
       - name: Package atlas
         shell: bash
         run: |
           set -euo pipefail
+          NAME="Minecraft-Vanilla-Feature-Atlas-COMPLETE-$(date -u +%Y-%m-%d).tar.zst"
           tar --sort=name --mtime='UTC 2026-08-28' --owner=0 --group=0 --numeric-owner \
-            -C out -cf - vanilla-atlas | zstd -T0 -6 -o out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst
-          sha256sum out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst > out/ATLAS-PACKAGE-SHA256.txt
-          du -sh out/vanilla-atlas out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst
-          cat out/ATLAS-PACKAGE-SHA256.txt
+            -C out -cf - vanilla-atlas | zstd -T0 -6 -o "out/$NAME"
+          sha256sum "out/$NAME" > out/ATLAS-PACKAGE-SHA256.txt
+          du -sh out/vanilla-atlas "out/$NAME"
       - name: Upload atlas artifact
         uses: actions/upload-artifact@v4
         with:
-          name: minecraft-vanilla-feature-atlas-2026-08-28
+          name: minecraft-vanilla-feature-atlas-complete
           path: |
-            out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst
+            out/Minecraft-Vanilla-Feature-Atlas-COMPLETE-*.tar.zst
             out/ATLAS-PACKAGE-SHA256.txt
             out/vanilla-atlas/BUILD-RECEIPT.json
             out/vanilla-atlas/SOURCES.md
