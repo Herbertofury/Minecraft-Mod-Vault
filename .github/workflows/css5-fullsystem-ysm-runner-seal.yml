@@ -25,6 +25,11 @@ jobs:
           ROOT=/tmp/css5-rootfs
           sudo debootstrap --variant=minbase noble "$ROOT" http://archive.ubuntu.com/ubuntu
           sudo cp /etc/resolv.conf "$ROOT/etc/resolv.conf"
+          sudo tee "$ROOT/etc/apt/sources.list" >/dev/null <<'EOSOURCES'
+          deb http://archive.ubuntu.com/ubuntu noble main universe
+          deb http://archive.ubuntu.com/ubuntu noble-updates main universe
+          deb http://security.ubuntu.com/ubuntu noble-security main universe
+          EOSOURCES
           sudo chroot "$ROOT" /bin/bash -lc 'set -e; apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb xauth libgl1-mesa-dri libglx-mesa0 libgl1 libx11-6 libxext6 libxi6 libxrandr2 libxcursor1 libxinerama1 libxrender1 libxxf86vm1 libasound2t64 iproute2 procps kmod linux-image-generic ca-certificates; apt-get clean; rm -rf /var/lib/apt/lists/*'
 
           sudo mkdir -p "$ROOT/opt/css5" "$ROOT/mnt/host"
