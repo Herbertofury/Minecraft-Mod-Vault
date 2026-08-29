@@ -32,18 +32,19 @@ PY
 done
 # Keep the real-player Stealth visibility fixture tied to the player's actual
 # authoritative server position. A real LWJGL client can briefly reconcile a
-# scripted teleport after the server accepts it; fixed absolute skeleton
-# coordinates can therefore stop representing six blocks even though the
-# gameplay code is correct. Require the player to settle inside each intended
-# arena, then summon the hostile exactly six blocks from the player's current
-# server-side position. Pin movement_speed to zero after spawn while preserving
-# full AI and bow attacks, so the control proves six-block acquisition/attack and
-# the Stealth case cannot wander inside the configured close-range reveal band.
+# scripted teleport after the server accepts it; fixed absolute coordinates can
+# therefore stop representing six blocks even though gameplay code is correct.
+# Require the player to settle inside each arena, then anchor a fully-AI skeleton
+# as a boat passenger exactly six blocks from the player's current server-side
+# position. The mount constrains translation without altering movement attributes,
+# target selection, look control, bow logic, or attack cooldowns. Run #235 proved
+# movement_speed=0 is not a valid discriminator because the non-Stealth control
+# never fired; the boat fixture therefore fails closed on a real ranged hit first.
 PLAYER_QA="$CI/run-rogues-player-behavior-acceptance.sh"
 OLD_CONTROL="send_cmd 'tp @a 20.5 100 0.5 0 0'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'summon minecraft:skeleton 20.5 100 6.5 {Tags:[\"rogp\",\"rogp_control_skeleton\"],Silent:1b,PersistenceRequired:1b}';"
-NEW_CONTROL="send_cmd 'tp @a 20.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 20.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_CONTROL_ARENA_POSITION_READY'; wait_marker 'ROGUES_CONTROL_ARENA_POSITION_READY' 20 'control arena position'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:skeleton ~ ~ ~6 {Tags:[\"rogp\",\"rogp_control_skeleton\"],Silent:1b,PersistenceRequired:1b}'; send_cmd 'attribute @e[type=minecraft:skeleton,tag=rogp_control_skeleton,limit=1,sort=nearest] minecraft:generic.movement_speed base set 0';"
+NEW_CONTROL="send_cmd 'tp @a 20.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 20.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_CONTROL_ARENA_POSITION_READY'; wait_marker 'ROGUES_CONTROL_ARENA_POSITION_READY' 20 'control arena position'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:boat ~ ~ ~6 {Type:\"oak\",Tags:[\"rogp\",\"rogp_control_anchor\"],Invulnerable:1b,Passengers:[{id:\"minecraft:skeleton\",Tags:[\"rogp\",\"rogp_control_skeleton\"],Silent:1b,PersistenceRequired:1b}]}';"
 OLD_STEALTH="send_cmd 'tp @a 30.5 100 0.5 0 0'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'summon minecraft:skeleton 30.5 100 6.5 {Tags:[\"rogp\",\"rogp_stealth_skeleton\"],Silent:1b,PersistenceRequired:1b}';"
-NEW_STEALTH="send_cmd 'tp @a 30.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 30.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_STEALTH_ARENA_POSITION_READY'; wait_marker 'ROGUES_STEALTH_ARENA_POSITION_READY' 20 'Stealth arena position'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:skeleton ~ ~ ~6 {Tags:[\"rogp\",\"rogp_stealth_skeleton\"],Silent:1b,PersistenceRequired:1b}'; send_cmd 'attribute @e[type=minecraft:skeleton,tag=rogp_stealth_skeleton,limit=1,sort=nearest] minecraft:generic.movement_speed base set 0';"
+NEW_STEALTH="send_cmd 'tp @a 30.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 30.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_STEALTH_ARENA_POSITION_READY'; wait_marker 'ROGUES_STEALTH_ARENA_POSITION_READY' 20 'Stealth arena position'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:boat ~ ~ ~6 {Type:\"oak\",Tags:[\"rogp\",\"rogp_stealth_anchor\"],Invulnerable:1b,Passengers:[{id:\"minecraft:skeleton\",Tags:[\"rogp\",\"rogp_stealth_skeleton\"],Silent:1b,PersistenceRequired:1b}]}';"
 python3 - "$PLAYER_QA" "$OLD_CONTROL" "$NEW_CONTROL" "$OLD_STEALTH" "$NEW_STEALTH" <<'PY'
 from pathlib import Path
 import sys
@@ -57,9 +58,8 @@ path.write_text(text)
 PY
 grep -Fq 'ROGUES_CONTROL_ARENA_POSITION_READY' "$PLAYER_QA" || { echo '[Rogues deep acceptance] control arena stabilization patch missing' >&2; exit 2; }
 grep -Fq 'ROGUES_STEALTH_ARENA_POSITION_READY' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth arena stabilization patch missing' >&2; exit 2; }
-grep -Fq 'execute at @a[limit=1] run summon minecraft:skeleton ~ ~ ~6' "$PLAYER_QA" || { echo '[Rogues deep acceptance] relative six-block summon patch missing' >&2; exit 2; }
-grep -Fq 'rogp_control_skeleton,limit=1,sort=nearest] minecraft:generic.movement_speed base set 0' "$PLAYER_QA" || { echo '[Rogues deep acceptance] control hostile range pin missing' >&2; exit 2; }
-grep -Fq 'rogp_stealth_skeleton,limit=1,sort=nearest] minecraft:generic.movement_speed base set 0' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth hostile range pin missing' >&2; exit 2; }
+grep -Fq 'summon minecraft:boat ~ ~ ~6 {Type:"oak",Tags:["rogp","rogp_control_anchor"]' "$PLAYER_QA" || { echo '[Rogues deep acceptance] control six-block AI-preserving anchor missing' >&2; exit 2; }
+grep -Fq 'summon minecraft:boat ~ ~ ~6 {Type:"oak",Tags:["rogp","rogp_stealth_anchor"]' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth six-block AI-preserving anchor missing' >&2; exit 2; }
 # The Stealth visibility arena owns exactly one tagged skeleton. Keep that entity
 # alive long enough to make the hit-break check a real entity-caused hit, then
 # resolve the source through `execute as ... by @s`. This avoids an ambiguous
