@@ -29,7 +29,7 @@ import urllib.request
 from collections import defaultdict
 
 SCHEMA = 2
-UA = "Minecraft-Dev-Kit-Vanilla-Feature-Atlas/2.6.0"
+UA = "Minecraft-Dev-Kit-Vanilla-Feature-Atlas/2.6.1"
 MOJANG_MANIFEST = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 
 
@@ -88,19 +88,29 @@ def branch_version_commits(repo: Path, branch: str) -> list[tuple[str, str]]:
     commits = run(["git", "rev-list", "--reverse", f"origin/{branch}"], cwd=repo).splitlines()
     out = []
     by_version = {}
+    def version_for(commit):
+        raw = git_show(repo, commit, "version.txt")
+        if raw:
+            v = raw.decode("utf-8", "replace").strip()
+            if v:
+                return v
+        raw = git_show(repo, commit, "version.json")
+        if raw:
+            try:
+                obj = json.loads(raw.decode("utf-8"))
+                v = str(obj.get("id") or "").strip()
+                if v:
+                    return v
+            except Exception:
+                pass
+        return ""
+    cache = {}
     for c in commits:
-        raw = git_show(repo, c, "version.txt")
-        if not raw:
-            continue
-        v = raw.decode("utf-8", "replace").strip()
-        if not v:
-            continue
-        by_version[v] = c
+        v = cache[c] = version_for(c)
+        if v:
+            by_version[v] = c
     for c in commits:
-        raw = git_show(repo, c, "version.txt")
-        if not raw:
-            continue
-        v = raw.decode("utf-8", "replace").strip()
+        v = cache.get(c, "")
         if v and by_version.get(v) == c:
             out.append((v, c))
     return out
@@ -244,6 +254,7 @@ def build(args):
     clone_repo("https://github.com/misode/mcmeta.git", mcmeta, branches=["summary", "assets-json", "data-json"])
     minecraft_data = work / "minecraft-data"
     clone_repo("https://github.com/PrismarineJS/minecraft-data.git", minecraft_data, depth=1)
+    run(["git", "checkout", "--detach", "HEAD"], cwd=minecraft_data, capture=False)
     vanilla_backport = work / "VanillaBackport"
     if args.with_provider_inventory:
         clone_repo("https://github.com/ItsBlackGear/VanillaBackport.git", vanilla_backport, depth=1)
