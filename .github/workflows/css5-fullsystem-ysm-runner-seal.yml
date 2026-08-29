@@ -56,6 +56,8 @@ jobs:
           mount -t devpts devpts /dev/pts || true
           mount -t tmpfs tmpfs /run || true
           mount -t tmpfs tmpfs /tmp || true
+          modprobe 9p || true
+          modprobe 9pnet || true
           modprobe 9pnet_virtio || true
           if ! mount -t 9p -o trans=virtio,version=9p2000.L,cache=loose hostshare /mnt/host; then
             echo 'CSS5_GUEST_FAIL hostshare_mount'
@@ -70,8 +72,8 @@ jobs:
           INITRD=$(basename "$(readlink -f "$ROOT/initrd.img")")
           sudo test -f "$ROOT/boot/$KERNEL"
           sudo test -f "$ROOT/boot/$INITRD"
-          sudo cp "$ROOT/boot/$KERNEL" ./vmlinuz-css5
-          sudo cp "$ROOT/boot/$INITRD" ./initrd-css5
+          sudo install -m 0644 "$ROOT/boot/$KERNEL" ./vmlinuz-css5
+          sudo install -m 0644 "$ROOT/boot/$INITRD" ./initrd-css5
 
           truncate -s 3072M css5-guest.ext4
           mkfs.ext4 -F -q css5-guest.ext4
@@ -79,6 +81,64 @@ jobs:
           sudo mount -o loop css5-guest.ext4 /tmp/css5-mnt
           sudo cp -a "$ROOT"/. /tmp/css5-mnt/
           sudo umount /tmp/css5-mnt
+
+          mkdir -p /tmp/css5-hostshare
+          cat > /tmp/css5-hostshare/run-guest.sh <<'EOSMOKE'
+          #!/bin/bash
+          set -euo pipefail
+          echo 'CSS5_SMOKE_START'
+          if grep -qw hypervisor /proc/cpuinfo; then
+            echo 'CSS5_GUEST_FAIL hypervisor_flag_present'
+            poweroff -f || true
+            exit 41
+          fi
+          echo 'CSS5_HYPERVISOR_FLAG=0'
+          java -version 2>&1 | tee /mnt/host/java-version.txt
+          echo 'CSS5_JAVA_OK'
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 640x480x24 -nolisten tcp >/mnt/host/xvfb.log 2>&1 &
+          xvfb_pid=$!
+          sleep 2
+          kill -0 "$xvfb_pid"
+          echo 'CSS5_XVFB_OK'
+          kill "$xvfb_pid" || true
+          wait "$xvfb_pid" 2>/dev/null || true
+          echo 'CSS5_GUEST_SMOKE_PASS'
+          sync
+          poweroff -f || true
+          EOSMOKE
+          chmod 0755 /tmp/css5-hostshare/run-guest.sh
+
+          set +e
+          timeout 180s qemu-system-x86_64 \
+            -machine q35,accel=tcg \
+            -cpu max,hypervisor=off \
+            -smp 2 \
+            -m 1536 \
+            -kernel vmlinuz-css5 \
+            -initrd initrd-css5 \
+            -append 'root=/dev/vda rw rootfstype=ext4 console=ttyS0 init=/opt/css5/init.sh' \
+            -drive file=css5-guest.ext4,format=raw,if=virtio \
+            -virtfs local,path=/tmp/css5-hostshare,mount_tag=hostshare,security_model=none \
+            -nographic \
+            -monitor none \
+            -no-reboot 2>&1 | tee FULLSYSTEM-SMOKE.log
+          qemu_rc=${PIPESTATUS[0]}
+          set -e
+          grep -q 'CSS5_GUEST_READY' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_HYPERVISOR_FLAG=0' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_JAVA_OK' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_XVFB_OK' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_GUEST_SMOKE_PASS' FULLSYSTEM-SMOKE.log
+          if grep -q 'CSS5_GUEST_FAIL' FULLSYSTEM-SMOKE.log; then
+            echo 'Full-system guest emitted a fail marker' >&2
+            exit 1
+          fi
+          if [ "$qemu_rc" -ne 0 ]; then
+            echo "QEMU smoke exited with $qemu_rc after guest pass markers; treating non-zero shutdown as infrastructure failure" >&2
+            exit 1
+          fi
+
           zstd -T0 -15 --sparse -f css5-guest.ext4 -o css5-guest.ext4.zst
           rm css5-guest.ext4
 
@@ -88,9 +148,9 @@ jobs:
           cp -a /usr/share/qemu qemu-portable/share/
           if [ -d /usr/share/seabios ]; then cp -a /usr/share/seabios qemu-portable/share/; fi
           tar -C qemu-portable -cf - . | zstd -T0 -15 -o qemu-portable.tar.zst
-          sha256sum vmlinuz-css5 initrd-css5 css5-guest.ext4.zst qemu-portable.tar.zst | tee SHA256SUMS.txt
+          sha256sum vmlinuz-css5 initrd-css5 css5-guest.ext4.zst qemu-portable.tar.zst FULLSYSTEM-SMOKE.log | tee SHA256SUMS.txt
           qemu-system-x86_64 --version | tee QEMU-VERSION.txt
-          printf 'Ubuntu 24.04 noble minimal guest; linux-image-virtual; full-system TCG only; no YSM modification.\n' > PROVENANCE.txt
+          printf 'Ubuntu 24.04 noble minimal guest; linux-image-virtual; full-system TCG only; hypervisor CPUID flag suppressed at VM boundary; no YSM modification.\n' > PROVENANCE.txt
 
       - name: Upload runner core
         uses: actions/upload-artifact@v4
@@ -103,6 +163,7 @@ jobs:
             SHA256SUMS.txt
             QEMU-VERSION.txt
             PROVENANCE.txt
+            FULLSYSTEM-SMOKE.log
           retention-days: 3
           if-no-files-found: error
 
