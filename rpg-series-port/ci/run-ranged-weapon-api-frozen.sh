@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 PORT="$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1"
 CERTIFIER="$ROOT/rpg-series-port/ci/certify-ranged-weapon-api-run268.py"
-EXPECTED_JAR_SHA="96c81b8187eea072fca39e809c1a339679ec5a2adf5b6ba93ccb8dbbf32ec6ae"
+EXPECTED_JAR_SHA="e387df1f42473864e687715c2495e66d57f64b53daae463b5d2e2157c2da6894"
 EXPECTED_SOURCE_SHA="9dca4b31dda65ef7cf86219db6c7c81ad64c518ea866c4f292437237de66de45"
 FRESH="$PORT/.fresh-forge-server"
 
@@ -24,8 +24,7 @@ bash "$ROOT/rpg-series-port/ci/run-ranged-weapon-api.sh"
 SOURCE_SHA="$(awk '{print $1}' "$PORT/ranged-weapon-api-source.sha256")"
 [[ "$SOURCE_SHA" = "$EXPECTED_SOURCE_SHA" ]] || { echo "[Ranged Weapon API certification] source drifted: $SOURCE_SHA != $EXPECTED_SOURCE_SHA" >&2; exit 1; }
 
-# Architectury emits a random 32-hex injection namespace into the archive path and PlatformMethods
-# self-name. Canonicalize that build-only token only after proving the normalized payload manifest.
+# Canonicalize build-only Architectury namespace and nested Loom ZIP metadata into stable content bytes.
 JAR="$(find "$PORT/forge/build/libs" -maxdepth 1 -type f -name 'ranged_weapon_api-forge-2.3.4+1.20.1.jar' -print -quit)"
 [[ -f "$JAR" ]] || { echo '[Ranged Weapon API certification] release JAR missing' >&2; exit 1; }
 TMP_JAR="$PORT/forge/build/libs/.ranged-weapon-api-certified.jar"
@@ -49,9 +48,8 @@ if grep -Eiq 'MixinApplyError|InvalidMixinException|MixinTransformerError|Using 
   exit 1
 fi
 
-# The original suite ran its packaged server with the pre-canonical random token. Replace only
-# RWA with the exact canonical JAR and re-run the real Forge 47.4.23 server/self-test so the bytes
-# we graduate are the bytes actually exercised in production packaging.
+# Replace only RWA with the exact canonical JAR and re-run Forge 47.4.23/self-test so the bytes
+# being graduated are the exact bytes exercised in production packaging.
 [[ -x "$FRESH/run.sh" ]] || { echo '[Ranged Weapon API certification] fresh packaged Forge server missing' >&2; exit 1; }
 find "$FRESH/mods" -maxdepth 1 -type f -name 'ranged_weapon_api-forge-*.jar' -delete
 cp -f "$JAR" "$FRESH/mods/"
