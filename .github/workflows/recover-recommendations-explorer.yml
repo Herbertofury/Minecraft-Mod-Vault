@@ -38,143 +38,100 @@ jobs:
           final_html = Path('Minecraft Recommendations Vault - Explorer.html')
           final_manifest = Path('Minecraft Recommendations Vault - Explorer.build.json')
           diag = {
-              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/3',
+              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/4',
               'expectedHtmlBytes': expected_html_size,
               'expectedHtmlSha256': expected_html_sha,
               'expectedBuilderBytes': expected_builder_size,
               'parts': [],
           }
 
-          def clean_b64(text: str) -> str:
+          def clean_b64(text):
               return ''.join(text.split())
 
-          def decode_relaxed(text: str) -> bytes:
+          def decode_relaxed(text):
               clean = clean_b64(text)
               if len(clean) % 4 == 1:
                   raise ValueError(f'invalid base64 length modulo 4: {len(clean)}')
-              pad = '=' * ((4 - (len(clean) % 4)) % 4)
-              return base64.b64decode(clean + pad, validate=False)
+              return base64.b64decode(clean + '=' * ((4 - len(clean) % 4) % 4), validate=False)
 
-          def verified_html_from_b64(text: str):
+          def verified_html_from_b64(text):
               try:
-                  xz = decode_relaxed(text)
-                  html = lzma.decompress(xz)
+                  html = lzma.decompress(decode_relaxed(text))
               except Exception:
                   return None
-              if len(html) != expected_html_size:
-                  return None
-              if hashlib.sha256(html).hexdigest() != expected_html_sha:
+              if len(html) != expected_html_size or hashlib.sha256(html).hexdigest() != expected_html_sha:
                   return None
               return html
 
-          def first_corrupt_base64_group(text: str):
-              # Decode independent 4-char base64 groups and stream their three decoded
-              # bytes through the XZ decoder. Before the deleted base64 character all
-              # groups are exact; after it, grouping shifts. The first XZ error therefore
-              # gives a tight upper bound for the deletion location without brute-forcing
-              # the whole payload.
+          def first_corrupt_group(text):
               dec = lzma.LZMADecompressor()
               upto = len(text) - (len(text) % 4)
               for pos in range(0, upto, 4):
                   try:
-                      block = base64.b64decode(text[pos:pos + 4], validate=True)
-                      dec.decompress(block)
+                      dec.decompress(base64.b64decode(text[pos:pos+4], validate=True))
                   except Exception as exc:
                       return pos, type(exc).__name__, str(exc)
                   if dec.eof:
                       return pos + 4, 'EOF', 'decoder reached EOF'
               return upto, 'NO_ERROR', 'no XZ error before incomplete tail'
 
-          def localized_single_char_repair(text: str, approx: int):
-              # Try increasingly wide windows immediately before the observed XZ error.
-              # Wrong insertions fail closed; a candidate is accepted ONLY if the exact
-              # already-recorded HTML byte count and SHA-256 match.
-              windows = (256, 1024, 4096, 16384)
-              seen = set()
-              attempts = 0
-              for window in windows:
-                  lo = max(0, approx - window)
-                  hi = min(len(text), approx + 16)
-                  # The anomalous first staging part is 15,999 chars rather than the
-                  # intended 16,000, so never search beyond its end unless the decoder
-                  # proved corruption later than that boundary.
-                  if approx <= len(parts[0]) + 2048:
-                      hi = min(hi, len(parts[0]) + 1)
-                  for pos in range(lo, hi + 1):
-                      if pos in seen:
-                          continue
-                      seen.add(pos)
-                      for ch in alphabet:
-                          attempts += 1
-                          candidate = text[:pos] + ch + text[pos:]
-                          html = verified_html_from_b64(candidate)
-                          if html is not None:
-                              return html, {
-                                  'kind': 'single-missing-base64-character-localized-by-xz',
-                                  'insertPosition': pos,
-                                  'insertedCharacter': ch,
-                                  'approxCorruptionPosition': approx,
-                                  'attempts': attempts,
-                                  'searchWindow': window,
-                              }
-              return None, {'attempts': attempts, 'approxCorruptionPosition': approx}
-
           try:
-              staging_dir = Path('.github/mrv-explorer-staging')
-              if not staging_dir.exists():
+              staging = Path('.github/mrv-explorer-staging')
+              if not staging.exists():
                   if not final_html.is_file() or not final_manifest.is_file():
-                      raise RuntimeError('staging is absent and no published Explorer exists')
+                      raise RuntimeError('staging absent and no exact published Explorer exists')
                   existing = final_html.read_bytes()
                   if len(existing) != expected_html_size or hashlib.sha256(existing).hexdigest() != expected_html_sha:
-                      raise RuntimeError('published Explorer exists but fails exact size/SHA verification')
-                  print('Exact Explorer already published; cleanup-trigger run is a healthy no-op.')
+                      raise RuntimeError('published Explorer fails exact verification')
+                  print('Exact Explorer already published; healthy cleanup no-op.')
                   sys.exit(0)
 
               parts = []
               for i in range(7):
-                  p = staging_dir / f'xzstage-{i:02d}.b64'
-                  if not p.is_file() or p.stat().st_size == 0:
-                      raise RuntimeError(f'missing or empty staging part: {p}')
+                  p = staging / f'xzstage-{i:02d}.b64'
                   raw = p.read_text(encoding='utf-8')
                   clean = clean_b64(raw)
-                  diag['parts'].append({
-                      'name': p.name,
-                      'fileBytes': p.stat().st_size,
-                      'cleanBase64Chars': len(clean),
-                      'cleanModulo4': len(clean) % 4,
-                      'sha256': hashlib.sha256(raw.encode('utf-8')).hexdigest(),
-                  })
+                  diag['parts'].append({'name': p.name, 'fileBytes': p.stat().st_size, 'cleanBase64Chars': len(clean), 'cleanModulo4': len(clean)%4, 'sha256': hashlib.sha256(raw.encode()).hexdigest()})
                   parts.append(clean)
-
               joined = ''.join(parts)
               diag['joinedBase64Chars'] = len(joined)
-              diag['joinedModulo4'] = len(joined) % 4
+              diag['joinedModulo4'] = len(joined)%4
               html = verified_html_from_b64(joined)
               repair = None
 
-              if html is None and len(joined) % 4 == 1:
-                  approx, error_type, error_text = first_corrupt_base64_group(joined)
+              if html is None and len(joined)%4 == 1:
+                  approx, etype, etext = first_corrupt_group(joined)
                   diag['firstObservedCorruptGroupStart'] = approx
-                  diag['firstObservedCorruptGroupErrorType'] = error_type
-                  diag['firstObservedCorruptGroupError'] = error_text
-                  html, repair_meta = localized_single_char_repair(joined, approx)
-                  diag['localizedRepairSearch'] = repair_meta
-                  if html is not None:
-                      repair = repair_meta
+                  diag['firstObservedCorruptGroupErrorType'] = etype
+                  diag['firstObservedCorruptGroupError'] = etext
+                  lo = max(0, approx - 256)
+                  hi = min(len(joined), approx + 16)
+                  if approx <= len(parts[0]) + 2048:
+                      hi = min(hi, len(parts[0]) + 1)
+                  diag['probeRange'] = [lo, hi]
+                  attempts = 0
+                  for pos in range(lo, hi + 1):
+                      for ch in alphabet:
+                          attempts += 1
+                          candidate = joined[:pos] + ch + joined[pos:]
+                          html = verified_html_from_b64(candidate)
+                          if html is not None:
+                              repair = {'kind':'single-missing-base64-character-localized-by-xz','insertPosition':pos,'insertedCharacter':ch,'approxCorruptionPosition':approx,'attempts':attempts}
+                              break
+                      if html is not None:
+                          break
+                  diag['probeAttempts'] = attempts
 
               if html is None:
-                  raise RuntimeError('staged XZ payload could not be reconstructed to the exact expected Explorer after localized single-character recovery')
+                  raise RuntimeError('exact Explorer not recovered in bounded probe; diagnostic preserves corruption location for next repair')
 
-              diag['repair'] = repair or {'kind': 'none'}
+              diag['repair'] = repair or {'kind':'none'}
               diag['actualHtmlBytes'] = len(html)
               diag['actualHtmlSha256'] = hashlib.sha256(html).hexdigest()
               final_html.write_bytes(html)
 
-              builder_stage = staging_dir / 'builder.py.xz.b64'
-              if not builder_stage.is_file() or builder_stage.stat().st_size == 0:
-                  raise RuntimeError('missing or empty builder staging payload')
-              builder_xz = decode_relaxed(builder_stage.read_text(encoding='utf-8'))
-              builder = lzma.decompress(builder_xz)
+              builder_stage = staging / 'builder.py.xz.b64'
+              builder = lzma.decompress(decode_relaxed(builder_stage.read_text(encoding='utf-8')))
               diag['actualBuilderBytes'] = len(builder)
               diag['actualBuilderSha256'] = hashlib.sha256(builder).hexdigest()
               if len(builder) != expected_builder_size:
@@ -182,20 +139,12 @@ jobs:
               Path('tools/recommendations-explorer/build_recommendations_explorer.py').write_bytes(builder)
               diag['result'] = 'PASS'
           except Exception as exc:
-              diag['result'] = 'FAIL'
-              diag['errorType'] = type(exc).__name__
-              diag['error'] = str(exc)
-              diag['traceback'] = traceback.format_exc(limit=8)
-              Path('/tmp/recommendations-explorer-recovery-diagnostic.json').write_text(
-                  json.dumps(diag, indent=2, sort_keys=True) + '\n', encoding='utf-8'
-              )
-              print(json.dumps(diag, indent=2, sort_keys=True))
-              sys.exit(1)
+              diag['result']='FAIL'; diag['errorType']=type(exc).__name__; diag['error']=str(exc); diag['traceback']=traceback.format_exc(limit=8)
+              Path('/tmp/recommendations-explorer-recovery-diagnostic.json').write_text(json.dumps(diag,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+              print(json.dumps(diag,indent=2,sort_keys=True)); sys.exit(1)
 
-          Path('/tmp/recommendations-explorer-recovery-diagnostic.json').write_text(
-              json.dumps(diag, indent=2, sort_keys=True) + '\n', encoding='utf-8'
-          )
-          print(json.dumps(diag, indent=2, sort_keys=True))
+          Path('/tmp/recommendations-explorer-recovery-diagnostic.json').write_text(json.dumps(diag,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print(json.dumps(diag,indent=2,sort_keys=True))
           PY
 
           cat > "Minecraft Recommendations Vault - Explorer.build.json" <<'JSON'
@@ -220,14 +169,7 @@ jobs:
           # Recommendations Vault Explorer builder
 
           `build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet `Minecraft Recommendations Vault — Master Tracker`.
-
-          Usage:
-
-          ```bash
-          python3 tools/recommendations-explorer/build_recommendations_explorer.py /path/to/master-tracker.xlsx "Minecraft Recommendations Vault - Explorer.html"
-          ```
-
-          The builder emits the HTML plus a sibling `.build.json` provenance manifest. The manifest records the source Drive ID, source export SHA-256/size, source modified time, generator version, sheet/row counts, output SHA-256/size, and build time. No dataset caps, viewport culling, or partial-sheet export are used.
+          It emits the HTML plus a sibling provenance manifest and never uses dataset caps or viewport culling.
           MD
 
           rm -rf .github/mrv-explorer-staging
@@ -240,9 +182,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          if git diff --cached --quiet; then
-            exit 0
-          fi
+          if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Publish verified Recommendations Vault Explorer'
           git push
 
@@ -251,16 +191,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -s /tmp/recommendations-explorer-recovery-diagnostic.json ]; then
-            exit 0
-          fi
+          if [ ! -s /tmp/recommendations-explorer-recovery-diagnostic.json ]; then exit 0; fi
           mkdir -p .github/recovery-diagnostics
           cp /tmp/recommendations-explorer-recovery-diagnostic.json .github/recovery-diagnostics/recommendations-explorer.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .github/recovery-diagnostics/recommendations-explorer.json
-          if git diff --cached --quiet; then
-            exit 0
-          fi
+          if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Record Recommendations Explorer recovery failure diagnostics'
           git push
