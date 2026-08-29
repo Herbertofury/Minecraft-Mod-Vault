@@ -71,8 +71,34 @@ if grep -R 'net.fabricmc' common/src/main/java common/src/generatedUpstream/java
   exit 1
 fi
 
-rm -f "$ROOT/ranged-weapon-api-forge-1.20.1-source-ci.zip"
-zip -qr "$ROOT/ranged-weapon-api-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.fresh-forge-server/*'
+SOURCE_ZIP="$ROOT/ranged-weapon-api-forge-1.20.1-source-ci.zip"
+rm -f "$SOURCE_ZIP"
+python3 - "$PORT" "$SOURCE_ZIP" <<'PY_SOURCE'
+from pathlib import Path
+import stat, sys, zipfile
+src=Path(sys.argv[1]).resolve(); out=Path(sys.argv[2]).resolve()
+skip={'.gradle','build','run','runs','.git','.fresh-forge-server'}
+files=[]
+for path in src.rglob('*'):
+    rel=path.relative_to(src)
+    if any(part in skip for part in rel.parts):
+        continue
+    if len(rel.parts)==1 and (rel.name.endswith('.sha256') or rel.name.endswith('-smoke.log')):
+        continue
+    if path.is_file():
+        files.append((rel.as_posix(),path))
+with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as zf:
+    for arcname,path in sorted(files):
+        info=zipfile.ZipInfo(arcname,date_time=(1980,1,1,0,0,0))
+        info.compress_type=zipfile.ZIP_DEFLATED
+        info.external_attr=(stat.S_IFREG|0o644)<<16
+        info.create_system=3
+        zf.writestr(info,path.read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
+PY_SOURCE
+unzip -tq "$SOURCE_ZIP" >/dev/null
+SOURCE_SHA="$(sha256sum "$SOURCE_ZIP" | awk '{print $1}')"
+printf '%s  %s\n' "$SOURCE_SHA" "$SOURCE_ZIP" | tee ranged-weapon-api-source.sha256
+echo "[Ranged Weapon API CI] DETERMINISTIC_SOURCE_PACKAGE_PASS sha256=$SOURCE_SHA"
 
 gradle --no-daemon --stacktrace :forge:build
 
@@ -94,6 +120,22 @@ if unzip -l "$JAR" | grep -q 'fabric.mod.json\|META-INF/neoforge.mods.toml'; the
   echo 'Non-Forge metadata leaked into final JAR' >&2
   exit 1
 fi
+python3 - "$JAR" <<'PY_PACK'
+import json,sys,zipfile
+jar=sys.argv[1]
+with zipfile.ZipFile(jar) as z:
+    names=set(z.namelist())
+    if 'pack.mcmeta' not in names:
+        raise SystemExit('[Ranged Weapon API CI] production pack.mcmeta missing')
+    meta=json.loads(z.read('pack.mcmeta'))
+    fmt=meta.get('pack',{}).get('pack_format')
+    if fmt != 15:
+        raise SystemExit(f'[Ranged Weapon API CI] production pack format drifted: {fmt} != 15')
+    langs=sorted(n for n in names if n.startswith('assets/ranged_weapon/lang/') and n.endswith('.json'))
+    if len(langs) < 20 or 'assets/ranged_weapon/lang/en_us.json' not in names:
+        raise SystemExit(f'[Ranged Weapon API CI] production language resource contract failed: {len(langs)} language files')
+    print(f'[Ranged Weapon API CI] PRODUCTION_RESOURCE_PACK_CONTRACT_PASS pack_format={fmt} languages={len(langs)}')
+PY_PACK
 sha256sum "$JAR" | tee ranged-weapon-api-forge.sha256
 
 # Client proof: load the current source in Forge, reach LWJGL + resource reload,
