@@ -7,6 +7,7 @@ dependencies {
     modCompileOnly('dev.kosmx.player-anim:player-animation-lib-fabric:1.0.2+1.19.4') { transitive=false }
     compileOnly 'net.fabricmc:fabric-loader:0.15.11'
     compileOnly 'org.spongepowered:mixin:0.8.5'; annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    compileOnly "io.github.llamalad7:mixinextras-common:$rootProject.mixinextras_version"
 }
 def generatedJava=rootProject.file('generated/common/java'); def generatedResources=rootProject.file('generated/common/resources')
 sourceSets.main.java.setSrcDirs([generatedJava]); sourceSets.main.resources.setSrcDirs([generatedResources])
