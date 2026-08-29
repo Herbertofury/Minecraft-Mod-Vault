@@ -76,7 +76,7 @@ jobs:
           cp out/version_manifest_v2.json work/assets/version_manifest_v2.json
           cp out/1.20.1.json work/assets/1.20.1.json
           cp out/ASSET-VERIFY.json work/assets/ASSET-VERIFY.json
-          tar --sort=name --mtime='UTC 2026-08-28' --owner=0 --group=0 --numeric-owner -C work -cf - assets | zstd -T0 -19 -o out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst
+          tar --sort=name --mtime='UTC 2026-08-28' --owner=0 --group=0 --numeric-owner -C work -cf - assets | zstd -T0 -6 -o out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst
           sha256sum out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst > out/SHA256SUMS.txt
           sha256sum work/assets/indexes/*.json >> out/SHA256SUMS.txt
           du -sh work/assets out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst
