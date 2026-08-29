@@ -30,6 +30,29 @@ PY
   grep -Fq "$NEW_WAIT" "$CI/$script"
   bash -n "$CI/$script"
 done
+# The Stealth visibility arena already owns exactly one tagged skeleton. Keep
+# that entity alive long enough to make the hit-break check a real entity-caused
+# hit, then resolve the source through `execute as ... by @s`. This avoids an
+# ambiguous nested entity argument and proves RemoveOnHit against the semantic
+# path the gameplay actually uses. Fail closed if the QA source shape drifts.
+PLAYER_QA="$CI/run-rogues-player-behavior-acceptance.sh"
+OLD_KILL="wait_marker 'ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS' 20 'stealth hostile visibility reduction'; send_cmd 'kill @e[tag=rogp_stealth_skeleton]'"
+NEW_KILL="wait_marker 'ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS' 20 'stealth hostile visibility reduction'"
+OLD_DAMAGE="send_cmd 'damage @a[limit=1] 1 minecraft:generic'; sleep 1;"
+NEW_DAMAGE="send_cmd 'execute as @e[type=minecraft:skeleton,tag=rogp_stealth_skeleton,limit=1,sort=nearest] run damage @p 1 minecraft:generic by @s'; sleep 1; send_cmd 'kill @e[tag=rogp_stealth_skeleton]';"
+python3 - "$PLAYER_QA" "$OLD_KILL" "$NEW_KILL" "$OLD_DAMAGE" "$NEW_DAMAGE" <<'PY'
+from pathlib import Path
+import sys
+path=Path(sys.argv[1]); old_kill,new_kill,old_damage,new_damage=sys.argv[2:]
+text=path.read_text()
+for label, old in (("stealth skeleton lifetime", old_kill), ("entity-source damage", old_damage)):
+    if text.count(old) != 1:
+        raise SystemExit(f'[Rogues deep acceptance] expected exactly one {label} QA seam, found {text.count(old)}')
+text=text.replace(old_kill,new_kill,1).replace(old_damage,new_damage,1)
+path.write_text(text)
+PY
+grep -Fq "$NEW_DAMAGE" "$PLAYER_QA" || { echo '[Rogues deep acceptance] entity-source damage QA patch missing' >&2; exit 2; }
+bash -n "$PLAYER_QA"
 bash "$CI/run-rogues-acceptance.sh"
 bash "$CI/run-rogues-release-certification.sh"
 bash "$CI/run-rogues-server-behavior.sh"
