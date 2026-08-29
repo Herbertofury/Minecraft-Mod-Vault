@@ -29,13 +29,16 @@ jobs:
           mkdir -p tools/recommendations-explorer .github/recovery-diagnostics
           python3 - <<'PY'
           from pathlib import Path
-          import base64, hashlib, json, lzma, sys, traceback
+          import base64, hashlib, json, lzma, string, sys, traceback
 
           expected_html_size = 374830
           expected_html_sha = 'e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b'
           expected_builder_size = 23550
+          alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits + '+/'
+          final_html = Path('Minecraft Recommendations Vault - Explorer.html')
+          final_manifest = Path('Minecraft Recommendations Vault - Explorer.build.json')
           diag = {
-              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/1',
+              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/2',
               'expectedHtmlBytes': expected_html_size,
               'expectedHtmlSha256': expected_html_sha,
               'expectedBuilderBytes': expected_builder_size,
@@ -47,13 +50,39 @@ jobs:
 
           def decode_relaxed(text: str) -> bytes:
               clean = clean_b64(text)
+              if len(clean) % 4 == 1:
+                  raise ValueError(f'invalid base64 length modulo 4: {len(clean)}')
               pad = '=' * ((4 - (len(clean) % 4)) % 4)
               return base64.b64decode(clean + pad, validate=False)
 
+          def verified_html_from_b64(text: str):
+              try:
+                  xz = decode_relaxed(text)
+                  html = lzma.decompress(xz)
+              except Exception:
+                  return None
+              if len(html) != expected_html_size:
+                  return None
+              if hashlib.sha256(html).hexdigest() != expected_html_sha:
+                  return None
+              return html
+
           try:
+              # A cleanup commit after a prior successful publication also matches the
+              # staging trigger. Treat an already-published exact artifact as a healthy no-op.
+              staging_dir = Path('.github/mrv-explorer-staging')
+              if not staging_dir.exists():
+                  if not final_html.is_file() or not final_manifest.is_file():
+                      raise RuntimeError('staging is absent and no published Explorer exists')
+                  existing = final_html.read_bytes()
+                  if len(existing) != expected_html_size or hashlib.sha256(existing).hexdigest() != expected_html_sha:
+                      raise RuntimeError('published Explorer exists but fails exact size/SHA verification')
+                  print('Exact Explorer already published; cleanup-trigger run is a healthy no-op.')
+                  sys.exit(0)
+
               parts = []
               for i in range(7):
-                  p = Path(f'.github/mrv-explorer-staging/xzstage-{i:02d}.b64')
+                  p = staging_dir / f'xzstage-{i:02d}.b64'
                   if not p.is_file() or p.stat().st_size == 0:
                       raise RuntimeError(f'missing or empty staging part: {p}')
                   raw = p.read_text(encoding='utf-8')
@@ -70,30 +99,55 @@ jobs:
               joined = ''.join(parts)
               diag['joinedBase64Chars'] = len(joined)
               diag['joinedModulo4'] = len(joined) % 4
-              explorer_xz = decode_relaxed(joined)
-              diag['decodedXzBytes'] = len(explorer_xz)
-              diag['decodedXzSha256'] = hashlib.sha256(explorer_xz).hexdigest()
-              html = lzma.decompress(explorer_xz)
+
+              html = verified_html_from_b64(joined)
+              repair = None
+
+              # The first captured staging part is 15,999 chars while the following
+              # fixed-size parts are 16,000 chars. The aggregate length is mod-4 == 1,
+              # which proves at least one base64 character was lost. First repair only
+              # plausible chunk boundaries; this is deterministic, bounded, and still
+              # accepted solely by the already-recorded artifact SHA-256 and byte count.
+              if html is None and len(joined) % 4 == 1:
+                  offsets = []
+                  cursor = 0
+                  for idx, part in enumerate(parts[:-1]):
+                      cursor += len(part)
+                      offsets.append((idx, cursor))
+                  diag['boundaryRepairCandidates'] = len(offsets) * len(alphabet)
+                  for part_idx, pos in offsets:
+                      for ch in alphabet:
+                          candidate = joined[:pos] + ch + joined[pos:]
+                          html = verified_html_from_b64(candidate)
+                          if html is not None:
+                              repair = {
+                                  'kind': 'single-missing-base64-character-at-boundary',
+                                  'afterPart': part_idx,
+                                  'insertedCharacter': ch,
+                                  'insertPosition': pos,
+                              }
+                              break
+                      if html is not None:
+                          break
+
+              if html is None:
+                  raise RuntimeError('staged XZ payload could not be reconstructed to the exact expected Explorer after bounded boundary self-heal')
+
+              diag['repair'] = repair or {'kind': 'none'}
               diag['actualHtmlBytes'] = len(html)
               diag['actualHtmlSha256'] = hashlib.sha256(html).hexdigest()
-              if len(html) != expected_html_size:
-                  raise RuntimeError(f'HTML size mismatch: {len(html)} != {expected_html_size}')
-              if diag['actualHtmlSha256'] != expected_html_sha:
-                  raise RuntimeError(f"HTML SHA-256 mismatch: {diag['actualHtmlSha256']} != {expected_html_sha}")
-              Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html)
+              final_html.write_bytes(html)
 
-              builder_stage = Path('.github/mrv-explorer-staging/builder.py.xz.b64')
+              builder_stage = staging_dir / 'builder.py.xz.b64'
               if not builder_stage.is_file() or builder_stage.stat().st_size == 0:
                   raise RuntimeError('missing or empty builder staging payload')
               builder_xz = decode_relaxed(builder_stage.read_text(encoding='utf-8'))
-              diag['builderDecodedXzBytes'] = len(builder_xz)
               builder = lzma.decompress(builder_xz)
               diag['actualBuilderBytes'] = len(builder)
               diag['actualBuilderSha256'] = hashlib.sha256(builder).hexdigest()
               if len(builder) != expected_builder_size:
                   raise RuntimeError(f'builder size mismatch: {len(builder)} != {expected_builder_size}')
               Path('tools/recommendations-explorer/build_recommendations_explorer.py').write_bytes(builder)
-
               diag['result'] = 'PASS'
           except Exception as exc:
               diag['result'] = 'FAIL'
