@@ -1,0 +1,87 @@
+name: Build Vanilla Feature Atlas Complete
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-vanilla-feature-atlas-complete.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atlas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply complete-history builder fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('devkit-orchestrator/tools/build_vanilla_atlas.py')
+          s=p.read_text()
+          s=s.replace('["git", "clone", "--filter=blob:none", "--no-checkout"]','["git", "clone", "--filter=blob:limit=2m", "--no-checkout"]')
+          s=s.replace('["git", "fetch", "--filter=blob:none", "origin", f"{b}:refs/remotes/origin/{b}"]','["git", "fetch", "--filter=blob:limit=2m", "origin", f"{b}:refs/remotes/origin/{b}"]')
+          needle='clone_repo("https://github.com/PrismarineJS/minecraft-data.git", minecraft_data, depth=1)\n'
+          repl=needle+'    run(["git", "checkout", "--detach", "HEAD"], cwd=minecraft_data, capture=False)\n'
+          if repl not in s:
+              if needle not in s: raise SystemExit('checkout patch anchor missing')
+              s=s.replace(needle,repl)
+          start=s.index('def branch_version_commits(')
+          end=s.index('\n\ndef ns(', start)
+          new='''def branch_version_commits(repo: Path, branch: str) -> list[tuple[str, str]]:\n    commits = run(["git", "rev-list", "--reverse", f"origin/{branch}"], cwd=repo).splitlines()\n    out = []\n    by_version = {}\n    def version_for(commit):\n        raw = git_show(repo, commit, "version.txt")\n        if raw:\n            v = raw.decode("utf-8", "replace").strip()\n            if v: return v\n        raw = git_show(repo, commit, "version.json")\n        if raw:\n            try:\n                obj = json.loads(raw.decode("utf-8"))\n                v = str(obj.get("id") or "").strip()\n                if v: return v\n            except Exception:\n                pass\n        return ""\n    cache = {}\n    for c in commits:\n        v = cache[c] = version_for(c)\n        if v: by_version[v] = c\n    for c in commits:\n        v = cache.get(c, "")\n        if v and by_version.get(v) == c: out.append((v, c))\n    return out\n'''
+          s=s[:start]+new+s[end:]
+          s=s.replace('Minecraft-Dev-Kit-Vanilla-Feature-Atlas/2.6.0','Minecraft-Dev-Kit-Vanilla-Feature-Atlas/2.6.1')
+          p.write_text(s)
+          PY
+          python3 -m py_compile devkit-orchestrator/tools/build_vanilla_atlas.py
+      - name: Build complete atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 devkit-orchestrator/tools/build_vanilla_atlas.py --out out/vanilla-atlas --work .atlas-work --workers 32 --with-provider-inventory
+      - name: Strict completeness gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('out/vanilla-atlas/VANILLA-ATLAS.json').read_text())
+          c=a['coverage']
+          assert a['schema']==2
+          assert a['latestRelease']=='26.2'
+          assert a['latestSnapshot']=='26.3-snapshot-10'
+          assert c['officialVersions']>900
+          assert c['soundEvents']>2000
+          assert c['soundDefinitions']>1900
+          assert c['registryEntries']>39000
+          assert c['externalAssetPaths']>7000
+          assert c['resourcePaths']>1000, c
+          assert c['dataPaths']>1000, c
+          assert c['assetIndexes']>50
+          print(json.dumps(json.loads(Path('out/vanilla-atlas/BUILD-RECEIPT.json').read_text()),indent=2))
+          PY
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --sort=name --mtime='UTC 2026-08-28' --owner=0 --group=0 --numeric-owner -C out -cf - vanilla-atlas | zstd -T0 -6 -o out/Minecraft-Vanilla-Feature-Atlas-COMPLETE-2026-08-28.tar.zst
+          sha256sum out/Minecraft-Vanilla-Feature-Atlas-COMPLETE-2026-08-28.tar.zst > out/ATLAS-PACKAGE-SHA256.txt
+          du -sh out/vanilla-atlas out/Minecraft-Vanilla-Feature-Atlas-COMPLETE-2026-08-28.tar.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-vanilla-feature-atlas-complete-2026-08-28
+          path: |
+            out/Minecraft-Vanilla-Feature-Atlas-COMPLETE-2026-08-28.tar.zst
+            out/ATLAS-PACKAGE-SHA256.txt
+            out/vanilla-atlas/BUILD-RECEIPT.json
+            out/vanilla-atlas/SOURCES.md
+            out/vanilla-atlas/SHA256SUMS.txt
+            out/vanilla-atlas/VANILLA-ATLAS.json
+          compression-level: 0
+          retention-days: 7
