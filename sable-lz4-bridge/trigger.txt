@@ -1,0 +1,1 @@
+Fetch and verify the exact Sable/Rapier dependencies required by the local Forge 1.20.1 Dev Kit build: lz4-java 1.11.0, Veil Forge 1.0.0.296, MixinExtras 0.5.3, and the official Sponge Mixin 0.8.5 annotation-processor fat JAR.
