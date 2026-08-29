@@ -1,10 +1,12 @@
 {
-  "boundaryRepairCandidates": 384,
-  "error": "staged XZ payload could not be reconstructed to the exact expected Explorer after bounded boundary self-heal",
+  "error": "exact Explorer not recovered in bounded probe; diagnostic preserves corruption location for next repair",
   "errorType": "RuntimeError",
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
   "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
+  "firstObservedCorruptGroupError": "Corrupt input data",
+  "firstObservedCorruptGroupErrorType": "LZMAError",
+  "firstObservedCorruptGroupStart": 12316,
   "joinedBase64Chars": 109109,
   "joinedModulo4": 1,
   "parts": [
@@ -58,7 +60,12 @@
       "sha256": "b41afacc75cf201dd2482a29967c890a96c78797a317f3b9b745b94737c9a984"
     }
   ],
+  "probeAttempts": 17472,
+  "probeRange": [
+    12060,
+    12332
+  ],
   "result": "FAIL",
-  "schema": "mrv.recommendations-explorer-recovery-diagnostic/2",
-  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 104, in <module>\nRuntimeError: staged XZ payload could not be reconstructed to the exact expected Explorer after bounded boundary self-heal\n"
+  "schema": "mrv.recommendations-explorer-recovery-diagnostic/4",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 96, in <module>\nRuntimeError: exact Explorer not recovered in bounded probe; diagnostic preserves corruption location for next repair\n"
 }
