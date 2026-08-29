@@ -1,0 +1,37 @@
+name: CSS5 QEMU Runtime Modules Seal
+
+on:
+  push:
+    branches: [combat-style-suite-5way-qa-20260828]
+    paths: [.github/workflows/css5-qemu-runtime-modules-seal.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seal:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Seal exact Ubuntu QEMU runtime modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 zstd
+          qemu-system-x86_64 --version | tee QEMU-VERSION.txt
+          test -d /usr/lib/x86_64-linux-gnu/qemu
+          find /usr/lib/x86_64-linux-gnu/qemu -maxdepth 2 -type f -print | sort | tee MODULE-FILES.txt
+          tar -C /usr/lib/x86_64-linux-gnu -cf - qemu | zstd -T0 -15 -o qemu-runtime-modules.tar.zst
+          sha256sum qemu-runtime-modules.tar.zst QEMU-VERSION.txt MODULE-FILES.txt | tee SHA256SUMS.txt
+      - name: Upload modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-qemu-runtime-modules-8.2.2
+          path: |
+            qemu-runtime-modules.tar.zst
+            QEMU-VERSION.txt
+            MODULE-FILES.txt
+            SHA256SUMS.txt
+          retention-days: 3
+          if-no-files-found: error
