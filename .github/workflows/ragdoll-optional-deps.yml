@@ -1,0 +1,86 @@
+name: Ragdoll Optional API Export
+
+on:
+  push:
+    branches: [ ragdoll-sable-source-export-v2 ]
+    paths:
+      - '.github/workflows/ragdoll-optional-deps.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download exact Forge 1.20.1 optional APIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          python3 - <<'PY'
+          import hashlib, json, pathlib, urllib.request, zipfile
+
+          out = pathlib.Path('export')
+          def fetch_modrinth(version_id, filename):
+              req = urllib.request.Request(f'https://api.modrinth.com/v2/version/{version_id}', headers={'User-Agent':'Minecraft-Mod-Vault-ragdoll-port/1.0'})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  meta = json.load(r)
+              files = meta['files']
+              picked = next((f for f in files if f.get('primary') and f['filename'].endswith('.jar')), None) or next(f for f in files if f['filename'].endswith('.jar'))
+              dest = out / filename
+              urllib.request.urlretrieve(picked['url'], dest)
+              return meta, picked, dest
+
+          provenance=[]
+          for vid, name, label in [
+              ('IPQlZkz1', 'curios-forge-5.14.1+1.20.1.jar', 'Curios'),
+              ('xJQHCmWJ', 'Jade-1.20.1-Forge-11.13.3.jar', 'Jade'),
+          ]:
+              meta, picked, dest = fetch_modrinth(vid, name)
+              sha=hashlib.sha256(dest.read_bytes()).hexdigest()
+              with zipfile.ZipFile(dest) as zf: bad=zf.testzip()
+              if bad: raise SystemExit(f'{label} bad ZIP entry {bad}')
+              provenance.append(f'{label}: modrinth_version={vid} source_file={picked["filename"]} sha256={sha}')
+
+          # Accessories 1.0.0-beta.48+1.20.1, CurseForge project 938917 / file 7164863.
+          accessories = out / 'accessories-neoforge-1.0.0-beta.48+1.20.1.jar'
+          urls = [
+              'https://www.cursemaven.com/curse/maven/accessories-938917/7164863/accessories-938917-7164863.jar',
+              'https://edge.forgecdn.net/files/7164/863/accessories-neoforge-1.0.0-beta.48+1.20.1.jar',
+          ]
+          last=None
+          for url in urls:
+              try:
+                  req=urllib.request.Request(url, headers={'User-Agent':'Minecraft-Mod-Vault-ragdoll-port/1.0'})
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      accessories.write_bytes(r.read())
+                  with zipfile.ZipFile(accessories) as zf:
+                      bad=zf.testzip()
+                  if bad: raise RuntimeError(f'bad ZIP entry {bad}')
+                  last=None
+                  break
+              except Exception as exc:
+                  last=exc
+          if last is not None: raise SystemExit(f'Accessories download failed: {last}')
+          sha=hashlib.sha256(accessories.read_bytes()).hexdigest()
+          provenance.append(f'Accessories: curseforge_project=938917 file=7164863 sha256={sha}')
+
+          jars=sorted(out.glob('*.jar'))
+          (out/'SHA256SUMS.txt').write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in jars), encoding='utf-8')
+          (out/'PROVENANCE.txt').write_text('\n'.join(provenance)+'\n', encoding='utf-8')
+          print((out/'PROVENANCE.txt').read_text(), end='')
+          PY
+          for f in export/*.jar; do echo "== $f =="; jar tf "$f" | head -n 15; done
+          cat export/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-forge-1.20.1-optional-apis
+          path: export
+          if-no-files-found: error
+          retention-days: 7
