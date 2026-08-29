@@ -1,0 +1,14 @@
+plugins { id 'com.github.johnrengelman.shadow' }
+architectury { platformSetupLoomIde(); forge() }
+configurations { common { canBeResolved=true; canBeConsumed=false }; compileClasspath.extendsFrom common; runtimeClasspath.extendsFrom common; developmentForge.extendsFrom common; shadowBundle { canBeResolved=true; canBeConsumed=false } }
+File requiredJar(String name) { def v=providers.gradleProperty(name).orNull; if(v==null||v.trim().isEmpty()) throw new GradleException("Missing -P${name}=..."); def f=rootProject.file(v.trim()); if(!f.isFile()) throw new GradleException("${name} does not exist: ${f}"); return f }
+dependencies {
+    forge "net.minecraftforge:forge:$rootProject.forge_version"
+    common(project(path: ':common', configuration: 'namedElements')) { transitive=false }
+    shadowBundle project(path: ':common', configuration: 'transformProductionForge')
+    [requiredJar('armor_model_api_forge_jar'),requiredJar('structure_pool_api_forge_jar'),requiredJar('spell_power_forge_jar'),requiredJar('spell_engine_forge_jar'),requiredJar('tiny_config_forge_jar'),requiredJar('cloth_config_forge_jar'),requiredJar('player_animator_forge_jar'),requiredJar('curios_jar')].each { jar -> modCompileOnly files(jar); modRuntimeOnly files(jar) }
+    runtimeOnly "io.github.llamalad7:mixinextras-forge:$rootProject.mixinextras_version"
+}
+processResources { inputs.property 'version',project.version; inputs.property 'forge_version',rootProject.forge_version; inputs.property 'minecraft_version',rootProject.minecraft_version; inputs.property 'armor_model_api_version',rootProject.armor_model_api_version; inputs.property 'structure_pool_api_version',rootProject.structure_pool_api_version; inputs.property 'spell_engine_version',rootProject.spell_engine_version; filesMatching('META-INF/mods.toml') { expand(version:project.version,forge_version:rootProject.forge_version,minecraft_version:rootProject.minecraft_version,armor_model_api_version:rootProject.armor_model_api_version,structure_pool_api_version:rootProject.structure_pool_api_version,spell_engine_version:rootProject.spell_engine_version) } }
+shadowJar { configurations=[project.configurations.shadowBundle]; archiveClassifier='dev-shadow' }
+remapJar { inputFile.set(shadowJar.archiveFile); dependsOn(shadowJar); archiveClassifier=''; doLast { def releaseJar=archiveFile.get().asFile; def forbidden=zipTree(releaseJar).matching { include 'net/spell_engine/**'; include 'net/spell_power/**'; include 'net/fabric_extras/structure_pool/**'; include 'net/rpg_foundation/armor_api/**'; include 'net/tiny_config/**' }.files; if(!forbidden.isEmpty()) throw new GradleException("External foundation classes leaked into Rogues release: ${forbidden}") } }
