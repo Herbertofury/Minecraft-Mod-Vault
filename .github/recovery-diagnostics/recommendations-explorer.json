@@ -1,8 +1,7 @@
 {
-  "decodedXzBytes": 81830,
-  "decodedXzSha256": "dd5435cf8017421f90a94ec8626395743e71693bacae5f8f52e7bb0b18a7025d",
-  "error": "Corrupt input data",
-  "errorType": "LZMAError",
+  "boundaryRepairCandidates": 384,
+  "error": "staged XZ payload could not be reconstructed to the exact expected Explorer after bounded boundary self-heal",
+  "errorType": "RuntimeError",
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
   "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
@@ -60,6 +59,6 @@
     }
   ],
   "result": "FAIL",
-  "schema": "mrv.recommendations-explorer-recovery-diagnostic/1",
-  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 46, in <module>\n  File \"/usr/lib/python3.12/lzma.py\", line 343, in decompress\n    res = decomp.decompress(data)\n          ^^^^^^^^^^^^^^^^^^^^^^^\n_lzma.LZMAError: Corrupt input data\n"
+  "schema": "mrv.recommendations-explorer-recovery-diagnostic/2",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 104, in <module>\nRuntimeError: staged XZ payload could not be reconstructed to the exact expected Explorer after bounded boundary self-heal\n"
 }
