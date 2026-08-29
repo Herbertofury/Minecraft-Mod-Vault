@@ -41,7 +41,7 @@ jobs:
             sudo umount "$ROOT/proc" 2>/dev/null || true
           }
           trap cleanup_chroot_mounts EXIT
-          sudo chroot "$ROOT" /bin/bash -lc 'set -e; apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb xauth libgl1-mesa-dri libglx-mesa0 libgl1 libx11-6 libxext6 libxi6 libxrandr2 libxcursor1 libxinerama1 libxrender1 libxxf86vm1 libasound2t64 iproute2 procps kmod linux-image-generic ca-certificates; apt-get clean; rm -rf /var/lib/apt/lists/*'
+          sudo chroot "$ROOT" /bin/bash -lc 'set -e; apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb xauth libgl1-mesa-dri libglx-mesa0 libgl1 libx11-6 libxext6 libxi6 libxrandr2 libxcursor1 libxinerama1 libxrender1 libxxf86vm1 libasound2t64 iproute2 procps kmod initramfs-tools linux-image-virtual ca-certificates; apt-get clean; rm -rf /var/lib/apt/lists/*'
           cleanup_chroot_mounts
           trap - EXIT
 
@@ -68,6 +68,8 @@ jobs:
 
           KERNEL=$(basename "$(readlink -f "$ROOT/vmlinuz")")
           INITRD=$(basename "$(readlink -f "$ROOT/initrd.img")")
+          sudo test -f "$ROOT/boot/$KERNEL"
+          sudo test -f "$ROOT/boot/$INITRD"
           sudo cp "$ROOT/boot/$KERNEL" ./vmlinuz-css5
           sudo cp "$ROOT/boot/$INITRD" ./initrd-css5
 
@@ -88,7 +90,7 @@ jobs:
           tar -C qemu-portable -cf - . | zstd -T0 -15 -o qemu-portable.tar.zst
           sha256sum vmlinuz-css5 initrd-css5 css5-guest.ext4.zst qemu-portable.tar.zst | tee SHA256SUMS.txt
           qemu-system-x86_64 --version | tee QEMU-VERSION.txt
-          printf 'Ubuntu 24.04 noble minimal guest; full-system TCG only; no YSM modification.\n' > PROVENANCE.txt
+          printf 'Ubuntu 24.04 noble minimal guest; linux-image-virtual; full-system TCG only; no YSM modification.\n' > PROVENANCE.txt
 
       - name: Upload runner core
         uses: actions/upload-artifact@v4
@@ -110,6 +112,11 @@ jobs:
           set -euo pipefail
           split -b 300M -d -a 2 css5-guest.ext4.zst css5-guest.ext4.zst.part-
           sha256sum css5-guest.ext4.zst css5-guest.ext4.zst.part-* > GUEST-SHA256SUMS.txt
+          count=$(find . -maxdepth 1 -name 'css5-guest.ext4.zst.part-*' | wc -l)
+          if [ "$count" -gt 2 ]; then
+            echo "Guest compressed image unexpectedly needs $count parts; refusing partial artifact publication" >&2
+            exit 1
+          fi
 
       - name: Upload guest part 00
         uses: actions/upload-artifact@v4
