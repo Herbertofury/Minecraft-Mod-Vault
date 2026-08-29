@@ -1,0 +1,39 @@
+name: Ragdoll Forge Compat Dependency Export
+
+on:
+  push:
+    branches:
+      - ragdoll-sable-source-export-build-v3
+    paths:
+      - '.github/workflows/ragdoll-forge-compat-deps.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact Forge 1.20.1 compatibility APIs and backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          curl -fL --retry 4 --retry-delay 2 -o export/curios-forge-5.14.1+1.20.1.jar 'https://edge.forgecdn.net/files/6418/456/curios-forge-5.14.1%2B1.20.1.jar'
+          curl -fL --retry 4 --retry-delay 2 -o export/Jade-1.20.1-Forge-11.13.3.jar 'https://edge.forgecdn.net/files/8479/276/Jade-1.20.1-Forge-11.13.3.jar'
+          curl -fL --retry 4 --retry-delay 2 -o export/ragdollified-1.20.1-1.0.0-RELEASE.jar 'https://edge.forgecdn.net/files/8704/143/ragdollified-1.20.1-1.0.0-RELEASE.jar'
+          echo '7d3861384b3d63b14e7beaa367a49b66ffa6cc50a8dff1c75d16b471a969c2d4  export/ragdollified-1.20.1-1.0.0-RELEASE.jar' | sha256sum -c -
+          printf '%s\n' \
+            'target=Minecraft 1.20.1 / Forge 47.4.23' \
+            'ragdollified=1.0.0-RELEASE' \
+            'ragdollified_sha256=7d3861384b3d63b14e7beaa367a49b66ffa6cc50a8dff1c75d16b471a969c2d4' \
+            'curios=5.14.1+1.20.1' \
+            'jade=11.13.3' \
+            > export/PROVENANCE.txt
+          sha256sum export/*.jar > export/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ragdoll-forge-1.20.1-compat-deps
+          path: export
+          if-no-files-found: error
+          retention-days: 14

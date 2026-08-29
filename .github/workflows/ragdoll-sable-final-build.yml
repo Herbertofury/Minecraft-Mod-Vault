@@ -1,11 +1,9 @@
-name: Ragdoll Sable Forge Build
+name: Ragdoll Sable Final Forge Build
 
 on:
   pull_request:
     branches: [ main ]
     paths:
-      - 'sable-source-export-trigger/**'
-      - '.github/workflows/ragdoll-sable-build.yml'
       - '.github/workflows/ragdoll-sable-final-build.yml'
 
 permissions:
@@ -127,11 +125,14 @@ jobs:
               if (method ? declaresMethod(owner, name, descriptor) : declaresField(owner, name, descriptor)) {
                   return true;
               }
-              // java.lang classes are intentionally outside this packaged hierarchy. Enum methods
-              // are inherited from java/lang/Enum and are valid without weakening Sable/MC checks.
+              // java.lang classes are intentionally outside the packaged Sable hierarchy. Enum ABI
+              // methods are inherited from java/lang/Enum, so recognize them without weakening any
+              // Sable/Minecraft owner validation.
               if (method && supertypes(owner).contains("java/lang/Enum")) {
                   if (("ordinal".equals(name) && "()I".equals(descriptor))
-                          || ("name".equals(name) && "()Ljava/lang/String;".equals(descriptor))) return true;
+                          || ("name".equals(name) && "()Ljava/lang/String;".equals(descriptor))) {
+                      return true;
+                  }
               }
 '''
           if needle not in m: raise SystemExit('ABI resolver marker not found')
