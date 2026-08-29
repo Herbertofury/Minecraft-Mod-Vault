@@ -61,9 +61,31 @@ grep -Fq 'PALADINS_FROZEN_SOURCE_VIEW_PASS' "$TARGET" || { echo '[RPG integratio
 grep -Fq '09b523c7d4688961ec992f77dc08835b12a29bb2' "$TARGET" || { echo '[RPG integration deep] frozen Paladins contract blob pin missing after patch' >&2; exit 2; }
 grep -Fq 'no owned [[mods]] modId found' "$TARGET" || { echo '[RPG integration deep] section-aware mod ownership parser missing after patch' >&2; exit 2; }
 grep -Fq "section == 'mods'" "$TARGET" || { echo '[RPG integration deep] mod ownership parser is not scoped to [[mods]]' >&2; exit 2; }
+PAL_MIXIN_OLD="    if 'MixinConfigs:' not in manifest: raise SystemExit('[RPG integration] Paladins production mixin activation missing')"
+PAL_MIXIN_COUNT="$(grep -Fxc "$PAL_MIXIN_OLD" "$TARGET" || true)"
+[[ "$PAL_MIXIN_COUNT" = 1 ]] || { echo "[RPG integration deep] expected exactly one Paladins mixin activation seam, found $PAL_MIXIN_COUNT" >&2; exit 2; }
+python3 - "$TARGET" "$PAL_MIXIN_OLD" <<'PY_MIXIN'
+from pathlib import Path
+import sys
+path=Path(sys.argv[1]); old=sys.argv[2]
+text=path.read_text()
+new=r'''    pal_mixin_cfg=__import__('json').loads(z.read('paladins.mixins.json').decode('utf-8','replace'))
+    pal_declared_mixins=[entry for key in ('mixins','client','server') for entry in pal_mixin_cfg.get(key,[])]
+    if pal_declared_mixins and 'MixinConfigs: paladins.mixins.json' not in manifest:
+        raise SystemExit('[RPG integration] Paladins non-empty production mixin config is not activated')
+    if not pal_declared_mixins and any(n.startswith('net/paladins/mixin/') and n.endswith('.class') for n in names):
+        raise SystemExit('[RPG integration] Paladins empty mixin config disagrees with packaged mixin classes')'''
+if text.count(old) != 1:
+    raise SystemExit(f'[RPG integration deep] expected one Paladins mixin activation seam, found {text.count(old)}')
+text=text.replace(old,new,1)
+path.write_text(text)
+PY_MIXIN
+grep -Fq 'Paladins non-empty production mixin config is not activated' "$TARGET" || { echo '[RPG integration deep] conditional Paladins mixin activation gate missing' >&2; exit 2; }
+grep -Fq 'Paladins empty mixin config disagrees with packaged mixin classes' "$TARGET" || { echo '[RPG integration deep] empty Paladins mixin consistency gate missing' >&2; exit 2; }
 bash -n "$TARGET"
 echo '[RPG integration deep] WAIT_MARKER_HARNESS_HARDENING_PASS'
 echo '[RPG integration deep] ROGUES_SOURCE_VIEW_HARDENING_PASS'
 echo '[RPG integration deep] PALADINS_SOURCE_VIEW_HARDENING_PASS'
 echo '[RPG integration deep] MOD_OWNERSHIP_PARSER_HARDENING_PASS'
+echo '[RPG integration deep] PALADINS_MIXIN_CONTRACT_HARDENING_PASS'
 bash "$TARGET"
