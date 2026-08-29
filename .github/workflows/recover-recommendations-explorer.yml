@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/mrv-explorer-staging/xzstage-06.b64'
+      - '.github/workflows/recover-recommendations-explorer.yml'
   workflow_dispatch:
 
 permissions:
@@ -20,25 +21,96 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
       - name: Reconstruct verified Explorer and reproducible builder
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p tools/recommendations-explorer
-          : > /tmp/explorer.xz.b64
-          for i in 00 01 02 03 04 05 06; do
-            f=".github/mrv-explorer-staging/xzstage-${i}.b64"
-            test -s "$f"
-            cat "$f" >> /tmp/explorer.xz.b64
-          done
-          base64 -d /tmp/explorer.xz.b64 > /tmp/explorer.xz
-          xz -dc /tmp/explorer.xz > "Minecraft Recommendations Vault - Explorer.html"
-          test "$(wc -c < 'Minecraft Recommendations Vault - Explorer.html')" = "374830"
-          echo "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b  Minecraft Recommendations Vault - Explorer.html" | sha256sum -c -
+          mkdir -p tools/recommendations-explorer .github/recovery-diagnostics
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json, lzma, sys, traceback
 
-          base64 -d .github/mrv-explorer-staging/builder.py.xz.b64 > /tmp/builder.py.xz
-          xz -dc /tmp/builder.py.xz > tools/recommendations-explorer/build_recommendations_explorer.py
-          test "$(wc -c < tools/recommendations-explorer/build_recommendations_explorer.py)" = "23550"
+          expected_html_size = 374830
+          expected_html_sha = 'e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b'
+          expected_builder_size = 23550
+          diag = {
+              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/1',
+              'expectedHtmlBytes': expected_html_size,
+              'expectedHtmlSha256': expected_html_sha,
+              'expectedBuilderBytes': expected_builder_size,
+              'parts': [],
+          }
+
+          def clean_b64(text: str) -> str:
+              return ''.join(text.split())
+
+          def decode_relaxed(text: str) -> bytes:
+              clean = clean_b64(text)
+              pad = '=' * ((4 - (len(clean) % 4)) % 4)
+              return base64.b64decode(clean + pad, validate=False)
+
+          try:
+              parts = []
+              for i in range(7):
+                  p = Path(f'.github/mrv-explorer-staging/xzstage-{i:02d}.b64')
+                  if not p.is_file() or p.stat().st_size == 0:
+                      raise RuntimeError(f'missing or empty staging part: {p}')
+                  raw = p.read_text(encoding='utf-8')
+                  clean = clean_b64(raw)
+                  diag['parts'].append({
+                      'name': p.name,
+                      'fileBytes': p.stat().st_size,
+                      'cleanBase64Chars': len(clean),
+                      'cleanModulo4': len(clean) % 4,
+                      'sha256': hashlib.sha256(raw.encode('utf-8')).hexdigest(),
+                  })
+                  parts.append(clean)
+
+              joined = ''.join(parts)
+              diag['joinedBase64Chars'] = len(joined)
+              diag['joinedModulo4'] = len(joined) % 4
+              explorer_xz = decode_relaxed(joined)
+              diag['decodedXzBytes'] = len(explorer_xz)
+              diag['decodedXzSha256'] = hashlib.sha256(explorer_xz).hexdigest()
+              html = lzma.decompress(explorer_xz)
+              diag['actualHtmlBytes'] = len(html)
+              diag['actualHtmlSha256'] = hashlib.sha256(html).hexdigest()
+              if len(html) != expected_html_size:
+                  raise RuntimeError(f'HTML size mismatch: {len(html)} != {expected_html_size}')
+              if diag['actualHtmlSha256'] != expected_html_sha:
+                  raise RuntimeError(f"HTML SHA-256 mismatch: {diag['actualHtmlSha256']} != {expected_html_sha}")
+              Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html)
+
+              builder_stage = Path('.github/mrv-explorer-staging/builder.py.xz.b64')
+              if not builder_stage.is_file() or builder_stage.stat().st_size == 0:
+                  raise RuntimeError('missing or empty builder staging payload')
+              builder_xz = decode_relaxed(builder_stage.read_text(encoding='utf-8'))
+              diag['builderDecodedXzBytes'] = len(builder_xz)
+              builder = lzma.decompress(builder_xz)
+              diag['actualBuilderBytes'] = len(builder)
+              diag['actualBuilderSha256'] = hashlib.sha256(builder).hexdigest()
+              if len(builder) != expected_builder_size:
+                  raise RuntimeError(f'builder size mismatch: {len(builder)} != {expected_builder_size}')
+              Path('tools/recommendations-explorer/build_recommendations_explorer.py').write_bytes(builder)
+
+              diag['result'] = 'PASS'
+          except Exception as exc:
+              diag['result'] = 'FAIL'
+              diag['errorType'] = type(exc).__name__
+              diag['error'] = str(exc)
+              diag['traceback'] = traceback.format_exc(limit=8)
+              Path('/tmp/recommendations-explorer-recovery-diagnostic.json').write_text(
+                  json.dumps(diag, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+              )
+              print(json.dumps(diag, indent=2, sort_keys=True))
+              sys.exit(1)
+
+          Path('/tmp/recommendations-explorer-recovery-diagnostic.json').write_text(
+              json.dumps(diag, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(diag, indent=2, sort_keys=True))
+          PY
 
           cat > "Minecraft Recommendations Vault - Explorer.build.json" <<'JSON'
           {
@@ -73,6 +145,8 @@ jobs:
           MD
 
           rm -rf .github/mrv-explorer-staging
+          rm -f .github/recovery-diagnostics/recommendations-explorer.json
+
       - name: Publish exact reconstructed bytes
         shell: bash
         run: |
@@ -84,4 +158,23 @@ jobs:
             exit 0
           fi
           git commit -m 'Publish verified Recommendations Vault Explorer'
+          git push
+
+      - name: Persist fail-closed recovery diagnostic
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/recommendations-explorer-recovery-diagnostic.json ]; then
+            exit 0
+          fi
+          mkdir -p .github/recovery-diagnostics
+          cp /tmp/recommendations-explorer-recovery-diagnostic.json .github/recovery-diagnostics/recommendations-explorer.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/recovery-diagnostics/recommendations-explorer.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Record Recommendations Explorer recovery failure diagnostics'
           git push
