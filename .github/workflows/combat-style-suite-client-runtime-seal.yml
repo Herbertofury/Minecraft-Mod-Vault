@@ -35,11 +35,11 @@ jobs:
           mvfile RC3kKPlO 'punchy-2.7d-forge-1.20.1.jar'
           fetch 'https://mediafilez.forgecdn.net/files/8141/310/tacz-1.20.1-1.1.8-hotfix.jar' 'tacz-1.20.1-1.1.8-hotfix.jar'
           mvfile Zqooxsd2 'ysm-2.6.5-forge+mc1.20.1-release.jar'
-          latest playeranimator '1\\.0\\.2.*1\\.20' 'player-animation-lib-forge-1.0.2-rc1+1.20.jar'
-          latest cloth-config '^11\\.1\\.' 'cloth-config-forge-1.20.1.jar'
-          latest spark '^1\\.10\\.53' 'spark-1.10.53-forge.jar'
-          latest observable '^4\\.4\\.2' 'observable-4.4.2-forge.jar'
-          latest architectury-api '^9\\.' 'architectury-forge-1.20.1.jar'
+          latest playeranimator '1\.0\.2.*1\.20' 'player-animation-lib-forge-1.0.2-rc1+1.20.jar'
+          latest cloth-config '^11\.1\.' 'cloth-config-forge-1.20.1.jar'
+          latest spark '^1\.10\.53' 'spark-1.10.53-forge.jar'
+          latest observable '^4\.4\.2' 'observable-4.4.2-forge.jar'
+          latest architectury-api '^9\.' 'architectury-forge-1.20.1.jar'
           latest kotlin-for-forge '.*' 'kotlin-for-forge-1.20.1.jar'
           cd "$R/run/mods"
           echo '69566cf70ae2d91d3f2564c608f014c87e290cef6215c2a27719851165485f73  epic-fight-20.14.17-mc1.20.1-forge.jar'|sha256sum -c -
@@ -70,7 +70,7 @@ jobs:
           java -jar headlessmc-launcher-2.10.0.jar --command forge 1.20.1 --uid 47.4.23 > hmc-forge.log 2>&1
           export LIBGL_ALWAYS_SOFTWARE=1 ALSOFT_DRIVERS=null
           sudo apt-get update -qq; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb libgl1-mesa-dri zstd >/dev/null
-          xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' java -Dhmc.check.xvfb=true -jar headlessmc-launcher-2.10.0.jar --command launch '.*1\\.20\\.1.*47\\.4\\.23.*' -regex -offline -keep --jvm '-Xms2G -Xmx4G -Djava.awt.headless=true' > seed-client.log 2>&1
+          xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' java -Dhmc.check.xvfb=true -jar headlessmc-launcher-2.10.0.jar --command launch '.*1\.20\.1.*47\.4\.23.*' -regex -offline -keep --jvm '-Xms2G -Xmx4G -Djava.awt.headless=true' > seed-client.log 2>&1
           LOG="$R/run/logs/latest.log"; test -s "$LOG"; cp "$LOG" seed-latest.log
           grep -F 'Running game tests...' "$LOG"
           grep -E 'Offline.*logged in with entity id|Offline joined the game' "$LOG"
@@ -78,7 +78,7 @@ jobs:
           ! grep -Eiq 'ModLoadingException|Failed to create mod instance|Mixin apply failed|Preparing crash report' "$LOG"
           rm -f "$R/run/mods/mc-runtime-test.jar"
           test -f "$R/run/saves/New World/level.dat"
-      - name: Seal runtime
+      - name: Seal and split runtime
         shell: bash
         run: |
           set -euo pipefail
@@ -89,13 +89,39 @@ jobs:
           Exact YSM is separately sealed because YSM itself refuses virtual machines.
           Combat Style Suite is intentionally absent so this artifact can be cloned for byte-identical baseline/candidate performance runs.
           EOF
-          cd "$RUNNER_TEMP"; tar --zstd -cf css5-client-runtime.tar.zst css5-client; sha256sum css5-client-runtime.tar.zst > css5-client-runtime.tar.zst.sha256
+          cd "$RUNNER_TEMP"
+          tar --zstd -cf css5-client-runtime.tar.zst css5-client
+          sha256sum css5-client-runtime.tar.zst > css5-client-runtime.whole.sha256
+          split -b 350M -d -a 2 css5-client-runtime.tar.zst css5-client-runtime.tar.zst.part-
+          test -s css5-client-runtime.tar.zst.part-00
+          test -s css5-client-runtime.tar.zst.part-01
+          test -s css5-client-runtime.tar.zst.part-02
+          sha256sum css5-client-runtime.tar.zst.part-* > css5-client-runtime.parts.sha256
+          cat css5-client-runtime.whole.sha256 css5-client-runtime.parts.sha256 > css5-client-runtime.manifest.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: combat-style-suite-sealed-client-runtime
-          path: |
-            ${{ runner.temp }}/css5-client-runtime.tar.zst
-            ${{ runner.temp }}/css5-client-runtime.tar.zst.sha256
+          name: combat-style-suite-sealed-client-runtime-part-00
+          path: ${{ runner.temp }}/css5-client-runtime.tar.zst.part-00
           compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-sealed-client-runtime-part-01
+          path: ${{ runner.temp }}/css5-client-runtime.tar.zst.part-01
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-sealed-client-runtime-part-02
+          path: ${{ runner.temp }}/css5-client-runtime.tar.zst.part-02
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-sealed-client-runtime-manifest
+          path: ${{ runner.temp }}/css5-client-runtime.manifest.sha256
           if-no-files-found: error
           retention-days: 3
