@@ -1,0 +1,101 @@
+name: Combat Style Suite Sealed Client Runtime
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/combat-style-suite-client-runtime-seal.yml'
+      - 'combat-style-suite-5way-qa/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seal-client:
+    if: startsWith(github.head_ref, 'combat-style-suite-5way-qa-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build exact VM-faithful corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          R="$RUNNER_TEMP/css5-client"; mkdir -p "$R/run/mods" "$R/HeadlessMC" "$R/minecraft" "$R/sealed-y-sm"
+          fetch(){ curl -fL --retry 5 --retry-all-errors --retry-delay 2 -A 'CSS5-QA/5.0.0' "$1" -o "$R/run/mods/$2"; test -s "$R/run/mods/$2"; }
+          mvfile(){ local id=$1 out=$2 json url; json="$(curl -fsSL --retry 4 -A 'CSS5-QA/5.0.0' "https://api.modrinth.com/v2/version/$id")"; url="$(jq -r '.files[]|select(.primary==true)|.url' <<<"$json"|head -1)"; fetch "$url" "$out"; }
+          latest(){ local project=$1 re=$2 out=$3 api json id url; api="https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%221.20.1%22%5D&loaders=%5B%22forge%22%5D"; json="$(curl -fsSL --retry 4 -A 'CSS5-QA/5.0.0' "$api")"; id="$(jq -r --arg re "$re" '[.[]|select(.version_number|test($re;"i"))][0].id // .[0].id' <<<"$json")"; url="$(curl -fsSL -A 'CSS5-QA/5.0.0' "https://api.modrinth.com/v2/version/$id"|jq -r '.files[]|select(.primary==true)|.url'|head -1)"; fetch "$url" "$out"; }
+          fetch 'https://mediafilez.forgecdn.net/files/8049/910/epic-fight-20.14.17-mc1.20.1-forge.jar' 'epic-fight-20.14.17-mc1.20.1-forge.jar'
+          mvfile rnhiaw3t 'bettercombat-forge-1.9.0+1.20.1.jar'
+          mvfile RC3kKPlO 'punchy-2.7d-forge-1.20.1.jar'
+          fetch 'https://mediafilez.forgecdn.net/files/8141/310/tacz-1.20.1-1.1.8-hotfix.jar' 'tacz-1.20.1-1.1.8-hotfix.jar'
+          mvfile Zqooxsd2 'ysm-2.6.5-forge+mc1.20.1-release.jar'
+          latest playeranimator '1\\.0\\.2.*1\\.20' 'player-animation-lib-forge-1.0.2-rc1+1.20.jar'
+          latest cloth-config '^11\\.1\\.' 'cloth-config-forge-1.20.1.jar'
+          latest spark '^1\\.10\\.53' 'spark-1.10.53-forge.jar'
+          latest observable '^4\\.4\\.2' 'observable-4.4.2-forge.jar'
+          latest architectury-api '^9\\.' 'architectury-forge-1.20.1.jar'
+          latest kotlin-for-forge '.*' 'kotlin-for-forge-1.20.1.jar'
+          cd "$R/run/mods"
+          echo '69566cf70ae2d91d3f2564c608f014c87e290cef6215c2a27719851165485f73  epic-fight-20.14.17-mc1.20.1-forge.jar'|sha256sum -c -
+          echo '49c69dccf2c641246b4e3deca81ebac21f0ee119e81fc713b838b8e33569eea1  bettercombat-forge-1.9.0+1.20.1.jar'|sha256sum -c -
+          echo '27234cac35eda3b2c16cd9b7a594534f4d417065c40810307a09c1ecaf9225aa  punchy-2.7d-forge-1.20.1.jar'|sha256sum -c -
+          echo '9ed8ada1283ed7a793a70cc1b51c4a340f367ce84707e1a7b8cf21ee3d288d77  tacz-1.20.1-1.1.8-hotfix.jar'|sha256sum -c -
+          echo '25b5e902b96f4c298690208f8b433cbc31737c23f87590354dbd86f00207bc8f  ysm-2.6.5-forge+mc1.20.1-release.jar'|sha256sum -c -
+          sha256sum *.jar|sort -k2 > "$R/UPSTREAM-SHA256SUMS.txt"
+          mv ysm-2.6.5-forge+mc1.20.1-release.jar "$R/sealed-y-sm/"
+          printf 'Exact YSM 2.6.5 publisher JAR. Not launched in CI because its native core rejects virtual machines.\n' > "$R/sealed-y-sm/README.txt"
+          curl -fL --retry 5 --retry-all-errors -o "$R/headlessmc-launcher-2.10.0.jar" 'https://github.com/3arthqu4ke/headlessmc/releases/download/2.10.0/headlessmc-launcher-2.10.0.jar'
+          curl -fL --retry 5 --retry-all-errors -o "$R/run/mods/mc-runtime-test.jar" 'https://github.com/headlesshq/mc-runtime-test/releases/download/4.5.1/mc-runtime-test-1.20.1-4.5.1-lexforge-release.jar'
+          echo '992240a481ce45f2536a64114278615abeb0cd708dffca69770756b50c428e56  mc-runtime-test.jar'|sha256sum -c -
+          cat > "$R/HeadlessMC/config.properties" <<EOF
+          hmc.java.versions=$JAVA_HOME/bin/java
+          hmc.gamedir=$R/run
+          hmc.mcdir=$R/minecraft
+          hmc.offline=true
+          hmc.rethrow.launch.exceptions=true
+          hmc.exit.on.failed.command=true
+          EOF
+      - name: Install packaged Forge 47.4.23 and create real integrated world
+        shell: bash
+        run: |
+          set -euo pipefail
+          R="$RUNNER_TEMP/css5-client"; cd "$R"
+          java -jar headlessmc-launcher-2.10.0.jar --command download 1.20.1 > hmc-download.log 2>&1
+          java -jar headlessmc-launcher-2.10.0.jar --command forge 1.20.1 --uid 47.4.23 > hmc-forge.log 2>&1
+          export LIBGL_ALWAYS_SOFTWARE=1 ALSOFT_DRIVERS=null
+          sudo apt-get update -qq; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb libgl1-mesa-dri zstd >/dev/null
+          xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' java -Dhmc.check.xvfb=true -jar headlessmc-launcher-2.10.0.jar --command launch '.*1\\.20\\.1.*47\\.4\\.23.*' -regex -offline -keep --jvm '-Xms2G -Xmx4G -Djava.awt.headless=true' > seed-client.log 2>&1
+          LOG="$R/run/logs/latest.log"; test -s "$LOG"; cp "$LOG" seed-latest.log
+          grep -F 'Running game tests...' "$LOG"
+          grep -E 'Offline.*logged in with entity id|Offline joined the game' "$LOG"
+          grep -F 'Starting integrated minecraft server version 1.20.1' "$LOG"
+          ! grep -Eiq 'ModLoadingException|Failed to create mod instance|Mixin apply failed|Preparing crash report' "$LOG"
+          rm -f "$R/run/mods/mc-runtime-test.jar"
+          test -f "$R/run/saves/New World/level.dat"
+      - name: Seal runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          R="$RUNNER_TEMP/css5-client"; rm -rf "$R/run/logs" "$R/run/crash-reports"
+          cat > "$R/RUNTIME.txt" <<'EOF'
+          Real packaged Minecraft 1.20.1 / Forge 47.4.23 client runtime with a seeded integrated world.
+          VM-faithful launch set: Epic Fight + Better Combat + Punchy + TaCZ + Spark + Observable/dependencies.
+          Exact YSM is separately sealed because YSM itself refuses virtual machines.
+          Combat Style Suite is intentionally absent so this artifact can be cloned for byte-identical baseline/candidate performance runs.
+          EOF
+          cd "$RUNNER_TEMP"; tar --zstd -cf css5-client-runtime.tar.zst css5-client; sha256sum css5-client-runtime.tar.zst > css5-client-runtime.tar.zst.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-sealed-client-runtime
+          path: |
+            ${{ runner.temp }}/css5-client-runtime.tar.zst
+            ${{ runner.temp }}/css5-client-runtime.tar.zst.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
