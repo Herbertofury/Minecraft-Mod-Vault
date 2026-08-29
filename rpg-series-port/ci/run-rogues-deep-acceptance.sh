@@ -33,5 +33,19 @@ done
 bash "$CI/run-rogues-acceptance.sh"
 bash "$CI/run-rogues-release-certification.sh"
 bash "$CI/run-rogues-server-behavior.sh"
+# The player QA deliberately teleports a real survival client between isolated
+# semantic arenas. Vanilla's airborne watchdog can interpret those scripted
+# teleports as sustained floating before the client has acknowledged the new
+# ground position. This is test-world infrastructure, not a gameplay setting:
+# allow flight only on the ephemeral packaged QA server so the native client is
+# not disconnected before Rogues' input/effect semantics can be observed.
+PLAYER_PROPERTIES="$ROOT/rpg-series-port/rogues-forge-1.20.1/.fresh-rogues-forge-server/server.properties"
+[[ -f "$PLAYER_PROPERTIES" ]] || { echo '[Rogues deep acceptance] packaged player-QA server.properties missing' >&2; exit 2; }
+if grep -q '^allow-flight=' "$PLAYER_PROPERTIES"; then
+  sed -i 's/^allow-flight=.*/allow-flight=true/' "$PLAYER_PROPERTIES"
+else
+  printf '\nallow-flight=true\n' >> "$PLAYER_PROPERTIES"
+fi
+grep -Fqx 'allow-flight=true' "$PLAYER_PROPERTIES" || { echo '[Rogues deep acceptance] failed to harden scripted player arena against vanilla floating kick' >&2; exit 2; }
 bash "$CI/run-rogues-player-behavior-ci-preflight.sh"
 echo '[Rogues deep acceptance] FULL_DEEP_BEHAVIOR_PASS: exact release identity, packaged Forge server, native LWJGL client + real join, current spell/equipment data, Charge, Stealth, Bear Trap, ROOT-vs-SHOCK real-player semantics, and positive controls all passed.'
