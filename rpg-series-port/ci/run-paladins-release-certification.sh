@@ -2,10 +2,10 @@
 set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 PORT="$ROOT/rpg-series-port/paladins-forge-1.20.1"
-CERTIFIER="$ROOT/rpg-series-port/ci/certify-paladins-run199.py"
+CERTIFIER="$ROOT/rpg-series-port/ci/certify-paladins-run261.py"
 FRESH="$PORT/.fresh-paladins-forge-server"
-EXPECTED_JAR_SHA="95e8f9e074dd1c432f9486c922173b76a3b3bc57667b28fe154e47dba5c374ee"
-EXPECTED_SOURCE_SHA="fb0e5812857a2fd46de488cd17a80011ef5d18795ff96fa1a3ebed5fd19a4377"
+EXPECTED_JAR_SHA="38d011a0435cda0385485b18f7f2736b8cf4f98fec01ebc12d69ea74fc0fd8e7"
+EXPECTED_SOURCE_SHA="a49b351b085cb7a423244fb8da74ac1f5b4b389d3849d89d61ea0047e0964ade"
 
 pick_one() {
   local dir="$1" pattern="$2" label="$3"
