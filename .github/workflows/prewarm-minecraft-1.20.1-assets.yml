@@ -1,0 +1,160 @@
+name: Prewarm Minecraft 1.20.1 Assets
+
+on:
+  push:
+    branches:
+      - ops/mojang-assets-1.20.1
+    paths:
+      - .github/workflows/prewarm-minecraft-1.20.1-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Download and verify official Mojang 1.20.1 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/assets/indexes work/assets/objects out
+          python3 - <<'PY'
+          import concurrent.futures, hashlib, json, os, pathlib, urllib.request, time
+
+          MC = '1.20.1'
+          root = pathlib.Path('work/assets')
+          indexes = root / 'indexes'
+          objects = root / 'objects'
+          out = pathlib.Path('out')
+          manifest_url = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
+
+          def get(url, timeout=60):
+              req = urllib.request.Request(url, headers={'User-Agent': 'Minecraft-Dev-Kit-Asset-Prewarm/1.0'})
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  return r.read()
+
+          manifest_bytes = get(manifest_url)
+          manifest = json.loads(manifest_bytes)
+          version = next(v for v in manifest['versions'] if v['id'] == MC)
+          version_bytes = get(version['url'])
+          if hashlib.sha1(version_bytes).hexdigest() != version['sha1']:
+              raise SystemExit('version JSON SHA-1 mismatch')
+          version_json = json.loads(version_bytes)
+          asset = version_json['assetIndex']
+          index_bytes = get(asset['url'])
+          if hashlib.sha1(index_bytes).hexdigest() != asset['sha1']:
+              raise SystemExit('asset index SHA-1 mismatch')
+          index_name = asset['id']
+          index_path = indexes / f'{index_name}.json'
+          index_path.write_bytes(index_bytes)
+          asset_index = json.loads(index_bytes)
+
+          unique = {}
+          for logical, meta in asset_index['objects'].items():
+              h = meta['hash']
+              size = int(meta['size'])
+              if h in unique and unique[h] != size:
+                  raise SystemExit(f'conflicting size for {h}')
+              unique[h] = size
+
+          def ensure(item):
+              h, size = item
+              dst = objects / h[:2] / h
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              if dst.exists() and dst.stat().st_size == size:
+                  b = dst.read_bytes()
+                  if hashlib.sha1(b).hexdigest() == h:
+                      return ('cached', h, size)
+              url = f'https://resources.download.minecraft.net/{h[:2]}/{h}'
+              last = None
+              for attempt in range(5):
+                  try:
+                      b = get(url, timeout=120)
+                      if len(b) != size:
+                          raise ValueError(f'size mismatch expected={size} got={len(b)}')
+                      if hashlib.sha1(b).hexdigest() != h:
+                          raise ValueError('SHA-1 mismatch')
+                      tmp = dst.with_suffix('.tmp')
+                      tmp.write_bytes(b)
+                      os.replace(tmp, dst)
+                      return ('downloaded', h, size)
+                  except Exception as e:
+                      last = e
+                      time.sleep(1.5 * (attempt + 1))
+              raise RuntimeError(f'{h}: {last}')
+
+          total = len(unique)
+          completed = 0
+          bytes_total = sum(unique.values())
+          with concurrent.futures.ThreadPoolExecutor(max_workers=24) as ex:
+              futures = [ex.submit(ensure, item) for item in unique.items()]
+              for fut in concurrent.futures.as_completed(futures):
+                  fut.result()
+                  completed += 1
+                  if completed % 250 == 0 or completed == total:
+                      print(f'verified {completed}/{total}', flush=True)
+
+          # Full second-pass verification from disk, independent of downloader success.
+          bad = []
+          verified_bytes = 0
+          for h, size in unique.items():
+              p = objects / h[:2] / h
+              if not p.is_file() or p.stat().st_size != size:
+                  bad.append((h, 'missing-or-size'))
+                  continue
+              digest = hashlib.sha1(p.read_bytes()).hexdigest()
+              if digest != h:
+                  bad.append((h, digest))
+              else:
+                  verified_bytes += size
+          if bad:
+              raise SystemExit(f'asset verification failures: {bad[:10]} count={len(bad)}')
+
+          (out / 'version_manifest_v2.json').write_bytes(manifest_bytes)
+          (out / f'{MC}.json').write_bytes(version_bytes)
+          report = {
+              'minecraft': MC,
+              'asset_index_id': index_name,
+              'asset_index_sha1': asset['sha1'],
+              'asset_index_size': asset['size'],
+              'logical_object_entries': len(asset_index['objects']),
+              'unique_object_hashes': total,
+              'verified_object_bytes': verified_bytes,
+              'expected_unique_object_bytes': bytes_total,
+              'complete': verified_bytes == bytes_total and len(bad) == 0,
+              'source_hosts': ['piston-meta.mojang.com', 'resources.download.minecraft.net'],
+          }
+          (out / 'ASSET-VERIFY.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Package reusable cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp out/version_manifest_v2.json work/assets/version_manifest_v2.json
+          cp out/1.20.1.json work/assets/1.20.1.json
+          cp out/ASSET-VERIFY.json work/assets/ASSET-VERIFY.json
+          tar --sort=name --mtime='UTC 2026-08-28' --owner=0 --group=0 --numeric-owner -C work -cf - assets | zstd -T0 -19 -o out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst
+          sha256sum out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst > out/SHA256SUMS.txt
+          sha256sum work/assets/indexes/*.json >> out/SHA256SUMS.txt
+          du -sh work/assets out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst
+          cat out/ASSET-VERIFY.json
+          cat out/SHA256SUMS.txt
+
+      - name: Upload verified cache artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-official-assets-complete
+          path: |
+            out/Minecraft-1.20.1-Official-Assets-Complete.tar.zst
+            out/ASSET-VERIFY.json
+            out/SHA256SUMS.txt
+            out/1.20.1.json
+            out/version_manifest_v2.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
