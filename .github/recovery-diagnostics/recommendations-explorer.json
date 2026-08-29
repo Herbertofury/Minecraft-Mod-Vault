@@ -1,0 +1,65 @@
+{
+  "decodedXzBytes": 81830,
+  "decodedXzSha256": "dd5435cf8017421f90a94ec8626395743e71693bacae5f8f52e7bb0b18a7025d",
+  "error": "Corrupt input data",
+  "errorType": "LZMAError",
+  "expectedBuilderBytes": 23550,
+  "expectedHtmlBytes": 374830,
+  "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
+  "joinedBase64Chars": 109109,
+  "joinedModulo4": 1,
+  "parts": [
+    {
+      "cleanBase64Chars": 15999,
+      "cleanModulo4": 3,
+      "fileBytes": 15999,
+      "name": "xzstage-00.b64",
+      "sha256": "58433216d7ee15951cc5beb6dd0145cdb85a33bf77d6601cf89ea484fa88454b"
+    },
+    {
+      "cleanBase64Chars": 16000,
+      "cleanModulo4": 0,
+      "fileBytes": 16000,
+      "name": "xzstage-01.b64",
+      "sha256": "47eef53577c67ef4134d600f355c61fae643cb5f775376955361040fa0d21442"
+    },
+    {
+      "cleanBase64Chars": 16000,
+      "cleanModulo4": 0,
+      "fileBytes": 16000,
+      "name": "xzstage-02.b64",
+      "sha256": "eb85656b207996016450c0263d0bb8250b70ad94cf29a1ce7f70572853926aa0"
+    },
+    {
+      "cleanBase64Chars": 16000,
+      "cleanModulo4": 0,
+      "fileBytes": 16000,
+      "name": "xzstage-03.b64",
+      "sha256": "4097e5debea2b5e06d3fc7410ea66478263ad5ddef114076565601fdcc701151"
+    },
+    {
+      "cleanBase64Chars": 16000,
+      "cleanModulo4": 0,
+      "fileBytes": 16000,
+      "name": "xzstage-04.b64",
+      "sha256": "5d90709c65937f05aaa54de3d35c67120e35b462bd11874c0272493ee799ec69"
+    },
+    {
+      "cleanBase64Chars": 20554,
+      "cleanModulo4": 2,
+      "fileBytes": 20554,
+      "name": "xzstage-05.b64",
+      "sha256": "dcad07e052d2ec049fadf20d9b42cc94d04db0542cc1c487ccbaf5b0ab3f6884"
+    },
+    {
+      "cleanBase64Chars": 8556,
+      "cleanModulo4": 0,
+      "fileBytes": 8556,
+      "name": "xzstage-06.b64",
+      "sha256": "b41afacc75cf201dd2482a29967c890a96c78797a317f3b9b745b94737c9a984"
+    }
+  ],
+  "result": "FAIL",
+  "schema": "mrv.recommendations-explorer-recovery-diagnostic/1",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 46, in <module>\n  File \"/usr/lib/python3.12/lzma.py\", line 343, in decompress\n    res = decomp.decompress(data)\n          ^^^^^^^^^^^^^^^^^^^^^^^\n_lzma.LZMAError: Corrupt input data\n"
+}
