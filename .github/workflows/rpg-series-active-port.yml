@@ -62,6 +62,10 @@ jobs:
           if-no-files-found: warn
           path: |
             rpg-series-port/active-port-verifier.log
+            rpg-series-integration-client.log
+            rpg-series-integration-server.log
+            rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
+            rpg-series-port/paladins-forge-1.20.1/.fresh-paladins-forge-server/logs/latest.log
             rpg-series-port/*/forge/build/libs/*.jar
             rpg-series-port/*/generated/forge/build/libs/*.jar
             rpg-series-port/*/*.jar
