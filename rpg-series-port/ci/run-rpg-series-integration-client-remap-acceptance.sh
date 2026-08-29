@@ -10,6 +10,16 @@ from pathlib import Path
 import sys
 path=Path(sys.argv[1])
 text=path.read_text()
+old_pal_jar="95e8f9e074dd1c432f9486c922173b76a3b3bc57667b28fe154e47dba5c374ee"
+new_pal_jar="38d011a0435cda0385485b18f7f2736b8cf4f98fec01ebc12d69ea74fc0fd8e7"
+old_pal_source="fb0e5812857a2fd46de488cd17a80011ef5d18795ff96fa1a3ebed5fd19a4377"
+new_pal_source="a49b351b085cb7a423244fb8da74ac1f5b4b389d3849d89d61ea0047e0964ade"
+if text.count(old_pal_jar) != 1:
+    raise SystemExit(f'[RPG integration client remap] expected one stale Paladins JAR authority pin, found {text.count(old_pal_jar)}')
+if text.count(old_pal_source) != 1:
+    raise SystemExit(f'[RPG integration client remap] expected one stale Paladins source authority pin, found {text.count(old_pal_source)}')
+text=text.replace(old_pal_jar,new_pal_jar,1)
+text=text.replace(old_pal_source,new_pal_source,1)
 old=r'''RUN="$ROG/forge/run"; mkdir -p "$RUN/mods" "$RUN/config"; rm -f "$RUN/mods/"*.jar
 cp -f "$PAL_JAR" "$RUN/mods/paladins-forge-3.1.1+1.20.1.jar"
 cp -f "$SHIELD_FORGE" "$RUN/mods/$(basename "$SHIELD_FORGE")"
@@ -47,9 +57,12 @@ text=text.replace(old,new,1)
 text=text.replace(run_old,run_new,1)
 path.write_text(text)
 PY
+grep -Fq '38d011a0435cda0385485b18f7f2736b8cf4f98fec01ebc12d69ea74fc0fd8e7' "$TARGET" || { echo '[RPG integration client remap] repaired Paladins JAR authority pin missing' >&2; exit 2; }
+grep -Fq 'a49b351b085cb7a423244fb8da74ac1f5b4b389d3849d89d61ea0047e0964ade' "$TARGET" || { echo '[RPG integration client remap] repaired Paladins source authority pin missing' >&2; exit 2; }
 grep -Fq 'CLIENT_NAMESPACE_REMAP_HARDENING_PASS' "$TARGET" || { echo '[RPG integration client remap] remap marker missing after patch' >&2; exit 2; }
 grep -Fq -- '--init-script "$CLIENT_INIT"' "$TARGET" || { echo '[RPG integration client remap] init-script launch hook missing after patch' >&2; exit 2; }
 if grep -Fq 'cp -f "$PAL_JAR" "$RUN/mods/paladins-forge-3.1.1+1.20.1.jar"' "$TARGET"; then echo '[RPG integration client remap] production Paladins JAR still bypasses Loom remap' >&2; exit 2; fi
 bash -n "$TARGET"
+echo '[RPG integration client remap] PALADINS_REPAIRED_AUTHORITY_PIN_PASS'
 echo '[RPG integration client remap] CLIENT_NAMESPACE_REMAP_WRAPPER_PASS'
 bash "$NEXT"
