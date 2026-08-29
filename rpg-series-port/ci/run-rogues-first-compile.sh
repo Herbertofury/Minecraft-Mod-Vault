@@ -16,15 +16,24 @@ echo '[Rogues] Forge compile'; gradle --no-daemon --stacktrace -p "$PORT" :forge
 echo '[Rogues] package'; gradle --no-daemon --stacktrace -p "$PORT" :forge:remapJar "${ARGS[@]}"
 JAR="$(resolve "$PORT/forge/build/libs" '*-forge-*.jar')"; [[ -f "$JAR" ]]; unzip -tq "$JAR" >/dev/null; unzip -p "$JAR" META-INF/mods.toml | grep -F 'modId="rogues"' >/dev/null
 python3 - "$JAR" <<'PY'
-import struct,sys,zipfile
+import json,struct,sys,zipfile
+jar=sys.argv[1]
 owned=0
-with zipfile.ZipFile(sys.argv[1]) as z:
+with zipfile.ZipFile(jar) as z:
   for n in z.namelist():
     if not n.endswith('.class'): continue
     d=z.read(n); major=struct.unpack('>H',d[6:8])[0]
     if major>61: raise SystemExit(f'[Rogues] class newer than Java17: {n}={major}')
     if n.startswith('net/rogues/'): owned+=1
-if not owned: raise SystemExit('[Rogues] no owned classes packaged')
+  if not owned: raise SystemExit('[Rogues] no owned classes packaged')
+  refmap=json.loads(z.read('rogues-common-common-refmap.json'))
+  mixin=refmap.get('mappings',{}).get('net/rogues/mixin/LivingEntityStealth',{})
+  mapped=mixin.get('updatePotionVisibility','')
+  if not mapped:
+    raise SystemExit('[Rogues] production linkage gate: LivingEntityStealth.updatePotionVisibility missing from packaged refmap')
+  if ';m_8034_()V' not in mapped:
+    raise SystemExit(f'[Rogues] production linkage gate: unexpected updatePotionVisibility mapping: {mapped}')
 print(f'[Rogues] Java17 package gate passed with {owned} owned classes')
+print(f'[Rogues] production linkage gate passed: updatePotionVisibility -> {mapped}')
 PY
 sha256sum "$JAR" | tee "$PORT/rogues-forge-1.20.1.sha256"; echo '[Rogues] FIRST_COMPILE_PACKAGE_PASS'
