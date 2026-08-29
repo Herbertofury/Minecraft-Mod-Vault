@@ -30,7 +30,20 @@ jobs:
           deb http://archive.ubuntu.com/ubuntu noble-updates main universe
           deb http://security.ubuntu.com/ubuntu noble-security main universe
           EOSOURCES
+          sudo mount -t proc proc "$ROOT/proc"
+          sudo mount --rbind /sys "$ROOT/sys"
+          sudo mount --make-rslave "$ROOT/sys"
+          sudo mount --rbind /dev "$ROOT/dev"
+          sudo mount --make-rslave "$ROOT/dev"
+          cleanup_chroot_mounts() {
+            sudo umount -R "$ROOT/dev" 2>/dev/null || true
+            sudo umount -R "$ROOT/sys" 2>/dev/null || true
+            sudo umount "$ROOT/proc" 2>/dev/null || true
+          }
+          trap cleanup_chroot_mounts EXIT
           sudo chroot "$ROOT" /bin/bash -lc 'set -e; apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb xauth libgl1-mesa-dri libglx-mesa0 libgl1 libx11-6 libxext6 libxi6 libxrandr2 libxcursor1 libxinerama1 libxrender1 libxxf86vm1 libasound2t64 iproute2 procps kmod linux-image-generic ca-certificates; apt-get clean; rm -rf /var/lib/apt/lists/*'
+          cleanup_chroot_mounts
+          trap - EXIT
 
           sudo mkdir -p "$ROOT/opt/css5" "$ROOT/mnt/host"
           cat > /tmp/css5-init.sh <<'EOS'
