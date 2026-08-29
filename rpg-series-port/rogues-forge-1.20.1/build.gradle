@@ -18,4 +18,13 @@ subprojects {
     java { toolchain { languageVersion = JavaLanguageVersion.of(17) }; withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
     tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
+    if (project.name == 'forge') {
+        tasks.named('remapJar').configure {
+            outputs.upToDateWhen { false }
+            outputs.cacheIf { false }
+            doLast {
+                exec { commandLine 'python3', rootProject.file('canonicalize_release.py').absolutePath, archiveFile.get().asFile.absolutePath }
+            }
+        }
+    }
 }
