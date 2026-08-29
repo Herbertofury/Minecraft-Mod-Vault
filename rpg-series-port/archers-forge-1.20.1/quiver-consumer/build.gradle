@@ -1,0 +1,48 @@
+plugins {
+    id 'dev.architectury.loom' version '1.7.435'
+    id 'architectury-plugin' version '3.4.164'
+}
+
+architectury { platformSetupLoomIde(); forge() }
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.architectury.dev/' }
+    maven { url = 'https://maven.minecraftforge.net/' }
+    maven { url = 'https://maven.fabricmc.net/' }
+}
+
+def bundleApiJar = providers.gradleProperty('bundle_api_jar').orNull
+if (bundleApiJar == null || bundleApiJar.trim().isEmpty()) {
+    throw new GradleException('Pass -Pbundle_api_jar=/absolute/path/to/bundle-api-forge-1.1.0+1.20.1.jar')
+}
+
+dependencies {
+    minecraft 'com.mojang:minecraft:1.20.1'
+    mappings 'net.fabricmc:yarn:1.20.1+build.10:v2'
+    forge 'net.minecraftforge:forge:1.20.1-47.4.23'
+    modImplementation files(bundleApiJar)
+}
+
+base { archivesName = 'archers-quiver-consumer-forge' }
+version = '3.1.1-consumer-test'
+group = 'net.archers.validation'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') { expand(version: project.version) }
+}
