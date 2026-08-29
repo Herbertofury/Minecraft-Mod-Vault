@@ -81,7 +81,10 @@ jobs:
           timeout 240s xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' java -Dhmc.check.xvfb=true -jar headlessmc-launcher-2.10.0.jar --command launch '.*1\\.20\\.1.*47\\.4\\.23.*' -regex -offline -keep --jvm '-Xms2G -Xmx4G -Djava.awt.headless=true' > production-client.log 2>&1
           rc=$?; set -e; echo "production_client_exit=$rc" | tee production-client-exit.txt
           LOG="$ROOT/run/logs/latest.log"; test -s "$LOG"; cp "$LOG" latest-production.log; tail -400 "$LOG" || true
-          grep -F 'Successfully finished.' "$LOG"
+          # mc-runtime-test writes its final completion marker through the launcher console, while Forge's latest.log owns mod/runtime evidence.
+          grep -F 'Successfully finished.' production-client.log
+          grep -E 'Offline.*logged in with entity id|Offline joined the game' "$LOG"
+          grep -F 'Starting integrated minecraft server version 1.20.1' "$LOG"
           for p in 'epicfight|epic fight' 'bettercombat|better combat' 'punchy' 'tacz|timeless' 'spark' 'observable'; do grep -Eiq "$p" "$LOG"; done
           ! grep -Eiq 'ModLoadingException|Failed to create mod instance|Mixin apply failed|Reported exception thrown|Preparing crash report' "$LOG"
           case "$rc" in 0|124) ;; *) exit "$rc";; esac
