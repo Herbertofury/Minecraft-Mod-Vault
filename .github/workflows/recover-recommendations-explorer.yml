@@ -1,0 +1,87 @@
+name: Recover Recommendations Explorer
+
+on:
+  push:
+    paths:
+      - '.github/mrv-explorer-staging/xzstage-06.b64'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recover-recommendations-explorer
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Reconstruct verified Explorer and reproducible builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tools/recommendations-explorer
+          : > /tmp/explorer.xz.b64
+          for i in 00 01 02 03 04 05 06; do
+            f=".github/mrv-explorer-staging/xzstage-${i}.b64"
+            test -s "$f"
+            cat "$f" >> /tmp/explorer.xz.b64
+          done
+          base64 -d /tmp/explorer.xz.b64 > /tmp/explorer.xz
+          xz -dc /tmp/explorer.xz > "Minecraft Recommendations Vault - Explorer.html"
+          test "$(wc -c < 'Minecraft Recommendations Vault - Explorer.html')" = "374830"
+          echo "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b  Minecraft Recommendations Vault - Explorer.html" | sha256sum -c -
+
+          base64 -d .github/mrv-explorer-staging/builder.py.xz.b64 > /tmp/builder.py.xz
+          xz -dc /tmp/builder.py.xz > tools/recommendations-explorer/build_recommendations_explorer.py
+          test "$(wc -c < tools/recommendations-explorer/build_recommendations_explorer.py)" = "23550"
+
+          cat > "Minecraft Recommendations Vault - Explorer.build.json" <<'JSON'
+          {
+            "artifact": "Minecraft Recommendations Vault - Explorer.html",
+            "artifactBytes": 374830,
+            "artifactSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
+            "sourceWorkbook": "Minecraft Recommendations Vault — Master Tracker",
+            "sourceWorkbookBytes": 208292,
+            "sourceWorkbookSha256": "b38a46a8967e1c6e51a34f366b7142a26723e566d9157f1ff4a977e484b68125",
+            "sourceDriveId": "1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg",
+            "sourceModifiedTime": "2026-08-29T22:28:18.260Z",
+            "generatorVersion": "recommendations-explorer/1.0.0",
+            "builtAt": "2026-08-29T23:28:02.395047Z",
+            "sheetCount": 14,
+            "sourceRowCount": 587,
+            "masterItemCount": 186
+          }
+          JSON
+
+          cat > tools/recommendations-explorer/README.md <<'MD'
+          # Recommendations Vault Explorer builder
+
+          `build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet `Minecraft Recommendations Vault — Master Tracker`.
+
+          Usage:
+
+          ```bash
+          python3 tools/recommendations-explorer/build_recommendations_explorer.py /path/to/master-tracker.xlsx "Minecraft Recommendations Vault - Explorer.html"
+          ```
+
+          The builder emits the HTML plus a sibling `.build.json` provenance manifest. The manifest records the source Drive ID, source export SHA-256/size, source modified time, generator version, sheet/row counts, output SHA-256/size, and build time. No dataset caps, viewport culling, or partial-sheet export are used.
+          MD
+
+          rm -rf .github/mrv-explorer-staging
+      - name: Publish exact reconstructed bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Publish verified Recommendations Vault Explorer'
+          git push
