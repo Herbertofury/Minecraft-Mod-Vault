@@ -38,7 +38,7 @@ jobs:
           final_html = Path('Minecraft Recommendations Vault - Explorer.html')
           final_manifest = Path('Minecraft Recommendations Vault - Explorer.build.json')
           diag = {
-              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/2',
+              'schema': 'mrv.recommendations-explorer-recovery-diagnostic/3',
               'expectedHtmlBytes': expected_html_size,
               'expectedHtmlSha256': expected_html_sha,
               'expectedBuilderBytes': expected_builder_size,
@@ -67,9 +67,59 @@ jobs:
                   return None
               return html
 
+          def first_corrupt_base64_group(text: str):
+              # Decode independent 4-char base64 groups and stream their three decoded
+              # bytes through the XZ decoder. Before the deleted base64 character all
+              # groups are exact; after it, grouping shifts. The first XZ error therefore
+              # gives a tight upper bound for the deletion location without brute-forcing
+              # the whole payload.
+              dec = lzma.LZMADecompressor()
+              upto = len(text) - (len(text) % 4)
+              for pos in range(0, upto, 4):
+                  try:
+                      block = base64.b64decode(text[pos:pos + 4], validate=True)
+                      dec.decompress(block)
+                  except Exception as exc:
+                      return pos, type(exc).__name__, str(exc)
+                  if dec.eof:
+                      return pos + 4, 'EOF', 'decoder reached EOF'
+              return upto, 'NO_ERROR', 'no XZ error before incomplete tail'
+
+          def localized_single_char_repair(text: str, approx: int):
+              # Try increasingly wide windows immediately before the observed XZ error.
+              # Wrong insertions fail closed; a candidate is accepted ONLY if the exact
+              # already-recorded HTML byte count and SHA-256 match.
+              windows = (256, 1024, 4096, 16384)
+              seen = set()
+              attempts = 0
+              for window in windows:
+                  lo = max(0, approx - window)
+                  hi = min(len(text), approx + 16)
+                  # The anomalous first staging part is 15,999 chars rather than the
+                  # intended 16,000, so never search beyond its end unless the decoder
+                  # proved corruption later than that boundary.
+                  if approx <= len(parts[0]) + 2048:
+                      hi = min(hi, len(parts[0]) + 1)
+                  for pos in range(lo, hi + 1):
+                      if pos in seen:
+                          continue
+                      seen.add(pos)
+                      for ch in alphabet:
+                          attempts += 1
+                          candidate = text[:pos] + ch + text[pos:]
+                          html = verified_html_from_b64(candidate)
+                          if html is not None:
+                              return html, {
+                                  'kind': 'single-missing-base64-character-localized-by-xz',
+                                  'insertPosition': pos,
+                                  'insertedCharacter': ch,
+                                  'approxCorruptionPosition': approx,
+                                  'attempts': attempts,
+                                  'searchWindow': window,
+                              }
+              return None, {'attempts': attempts, 'approxCorruptionPosition': approx}
+
           try:
-              # A cleanup commit after a prior successful publication also matches the
-              # staging trigger. Treat an already-published exact artifact as a healthy no-op.
               staging_dir = Path('.github/mrv-explorer-staging')
               if not staging_dir.exists():
                   if not final_html.is_file() or not final_manifest.is_file():
@@ -99,39 +149,21 @@ jobs:
               joined = ''.join(parts)
               diag['joinedBase64Chars'] = len(joined)
               diag['joinedModulo4'] = len(joined) % 4
-
               html = verified_html_from_b64(joined)
               repair = None
 
-              # The first captured staging part is 15,999 chars while the following
-              # fixed-size parts are 16,000 chars. The aggregate length is mod-4 == 1,
-              # which proves at least one base64 character was lost. First repair only
-              # plausible chunk boundaries; this is deterministic, bounded, and still
-              # accepted solely by the already-recorded artifact SHA-256 and byte count.
               if html is None and len(joined) % 4 == 1:
-                  offsets = []
-                  cursor = 0
-                  for idx, part in enumerate(parts[:-1]):
-                      cursor += len(part)
-                      offsets.append((idx, cursor))
-                  diag['boundaryRepairCandidates'] = len(offsets) * len(alphabet)
-                  for part_idx, pos in offsets:
-                      for ch in alphabet:
-                          candidate = joined[:pos] + ch + joined[pos:]
-                          html = verified_html_from_b64(candidate)
-                          if html is not None:
-                              repair = {
-                                  'kind': 'single-missing-base64-character-at-boundary',
-                                  'afterPart': part_idx,
-                                  'insertedCharacter': ch,
-                                  'insertPosition': pos,
-                              }
-                              break
-                      if html is not None:
-                          break
+                  approx, error_type, error_text = first_corrupt_base64_group(joined)
+                  diag['firstObservedCorruptGroupStart'] = approx
+                  diag['firstObservedCorruptGroupErrorType'] = error_type
+                  diag['firstObservedCorruptGroupError'] = error_text
+                  html, repair_meta = localized_single_char_repair(joined, approx)
+                  diag['localizedRepairSearch'] = repair_meta
+                  if html is not None:
+                      repair = repair_meta
 
               if html is None:
-                  raise RuntimeError('staged XZ payload could not be reconstructed to the exact expected Explorer after bounded boundary self-heal')
+                  raise RuntimeError('staged XZ payload could not be reconstructed to the exact expected Explorer after localized single-character recovery')
 
               diag['repair'] = repair or {'kind': 'none'}
               diag['actualHtmlBytes'] = len(html)
