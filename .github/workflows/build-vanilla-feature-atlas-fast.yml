@@ -1,0 +1,71 @@
+name: Build Vanilla Feature Atlas Fast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-vanilla-feature-atlas-fast.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  atlas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Accelerate metadata hydration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('devkit-orchestrator/tools/build_vanilla_atlas.py')
+          s=p.read_text()
+          s=s.replace('["git", "clone", "--filter=blob:none", "--no-checkout"]','["git", "clone", "--filter=blob:limit=2m", "--no-checkout"]')
+          s=s.replace('["git", "fetch", "--filter=blob:none", "origin", f"{b}:refs/remotes/origin/{b}"]','["git", "fetch", "--filter=blob:limit=2m", "origin", f"{b}:refs/remotes/origin/{b}"]')
+          needle='clone_repo("https://github.com/PrismarineJS/minecraft-data.git", minecraft_data, depth=1)\n'
+          repl=needle+'    run(["git", "checkout", "--detach", "HEAD"], cwd=minecraft_data, capture=False)\n'
+          if repl not in s:
+              if needle not in s: raise SystemExit('checkout patch anchor missing')
+              s=s.replace(needle,repl)
+          p.write_text(s)
+          PY
+          python3 -m py_compile devkit-orchestrator/tools/build_vanilla_atlas.py
+      - name: Build atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 devkit-orchestrator/tools/build_vanilla_atlas.py --out out/vanilla-atlas --work .atlas-work --workers 32 --with-provider-inventory
+      - name: Verify and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('out/vanilla-atlas/VANILLA-ATLAS.json').read_text())
+          assert a['schema']==2
+          assert a['latestRelease'] and a['latestSnapshot']
+          assert a['coverage']['officialVersions']>100
+          assert a['coverage']['soundEvents']>500
+          assert a['coverage']['externalAssetPaths']>1000
+          print(json.dumps(json.loads(Path('out/vanilla-atlas/BUILD-RECEIPT.json').read_text()),indent=2))
+          PY
+          tar --sort=name --mtime='UTC 2026-08-28' --owner=0 --group=0 --numeric-owner -C out -cf - vanilla-atlas | zstd -T0 -6 -o out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst
+          sha256sum out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst > out/ATLAS-PACKAGE-SHA256.txt
+          du -sh out/vanilla-atlas out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-vanilla-feature-atlas-fast-2026-08-28
+          path: |
+            out/Minecraft-Vanilla-Feature-Atlas-2026-08-28.tar.zst
+            out/ATLAS-PACKAGE-SHA256.txt
+            out/vanilla-atlas/BUILD-RECEIPT.json
+            out/vanilla-atlas/SOURCES.md
+            out/vanilla-atlas/SHA256SUMS.txt
+            out/vanilla-atlas/VANILLA-ATLAS.json
+          compression-level: 0
+          retention-days: 7
