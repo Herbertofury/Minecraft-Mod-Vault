@@ -30,56 +30,48 @@ PY
   grep -Fq "$NEW_WAIT" "$CI/$script"
   bash -n "$CI/$script"
 done
-# Keep the real-player Stealth visibility fixture tied to the player's actual
-# authoritative server position. A real LWJGL client can briefly reconcile a
-# scripted teleport after the server accepts it; fixed absolute coordinates can
-# therefore stop representing six blocks even though gameplay code is correct.
-# Require the player to settle inside each arena, then anchor a fully-AI skeleton
-# as a boat passenger exactly six blocks from the player's current server-side
-# position. The mount constrains translation without altering movement attributes,
-# target selection, look control, bow logic, or attack cooldowns. Run #235 proved
-# movement_speed=0 is not a valid discriminator because the non-Stealth control
-# never fired; the boat fixture therefore fails closed on a real ranged hit first.
+# Real-player Stealth visibility must prove hostile acquisition without modifying
+# the hostile behavior being measured. Run #235 showed movement_speed=0 suppresses
+# the ordinary attack control, and run #236 showed a boat passenger also suppresses
+# the ordinary attack control. Both are invalid discriminators, not Rogues defects.
+# Instead, use a vanilla melee hostile with unmodified AI at a true six-block
+# server-side offset and sample only its initial pursuit. The ordinary control must
+# measurably close distance while still well outside the configured one-block
+# Stealth reveal range. Under Stealth, the identically spawned hostile must not
+# show directed pursuit and the effect must still be present. This observes target
+# acquisition itself before close-range reveal can contaminate the result.
 PLAYER_QA="$CI/run-rogues-player-behavior-acceptance.sh"
-OLD_CONTROL="send_cmd 'tp @a 20.5 100 0.5 0 0'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'summon minecraft:skeleton 20.5 100 6.5 {Tags:[\"rogp\",\"rogp_control_skeleton\"],Silent:1b,PersistenceRequired:1b}';"
-NEW_CONTROL="send_cmd 'tp @a 20.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 20.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_CONTROL_ARENA_POSITION_READY'; wait_marker 'ROGUES_CONTROL_ARENA_POSITION_READY' 20 'control arena position'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:boat ~ ~ ~6 {Type:\"oak\",Tags:[\"rogp\",\"rogp_control_anchor\"],Invulnerable:1b,Passengers:[{id:\"minecraft:skeleton\",Tags:[\"rogp\",\"rogp_control_skeleton\"],Silent:1b,PersistenceRequired:1b}]}';"
-OLD_STEALTH="send_cmd 'tp @a 30.5 100 0.5 0 0'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'summon minecraft:skeleton 30.5 100 6.5 {Tags:[\"rogp\",\"rogp_stealth_skeleton\"],Silent:1b,PersistenceRequired:1b}';"
-NEW_STEALTH="send_cmd 'tp @a 30.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 30.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_STEALTH_ARENA_POSITION_READY'; wait_marker 'ROGUES_STEALTH_ARENA_POSITION_READY' 20 'Stealth arena position'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:boat ~ ~ ~6 {Type:\"oak\",Tags:[\"rogp\",\"rogp_stealth_anchor\"],Invulnerable:1b,Passengers:[{id:\"minecraft:skeleton\",Tags:[\"rogp\",\"rogp_stealth_skeleton\"],Silent:1b,PersistenceRequired:1b}]}';"
-python3 - "$PLAYER_QA" "$OLD_CONTROL" "$NEW_CONTROL" "$OLD_STEALTH" "$NEW_STEALTH" <<'PY'
+python3 - "$PLAYER_QA" <<'PY'
 from pathlib import Path
 import sys
-path=Path(sys.argv[1]); old_control,new_control,old_stealth,new_stealth=sys.argv[2:]
+path=Path(sys.argv[1])
 text=path.read_text()
-for label, old in (("control six-block arena", old_control), ("Stealth six-block arena", old_stealth)):
-    if text.count(old) != 1:
-        raise SystemExit(f'[Rogues deep acceptance] expected exactly one {label} QA seam, found {text.count(old)}')
-text=text.replace(old_control,new_control,1).replace(old_stealth,new_stealth,1)
-path.write_text(text)
+old="""send_cmd 'tp @a 20.5 100 0.5 0 0'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'summon minecraft:skeleton 20.5 100 6.5 {Tags:[\"rogp\",\"rogp_control_skeleton\"],Silent:1b,PersistenceRequired:1b}'; sleep 6; send_cmd 'execute store result score stealth_control_hp rogp run data get entity @a[limit=1] Health 10'; send_cmd 'execute if score stealth_control_hp rogp matches ..199 run say ROGUES_STEALTH_VISIBILITY_CONTROL_PASS'; wait_marker 'ROGUES_STEALTH_VISIBILITY_CONTROL_PASS' 20 'non-stealth hostile acquisition control'; send_cmd 'kill @e[tag=rogp_control_skeleton]'; send_cmd 'effect give @a minecraft:instant_health 1 10 true'; send_cmd 'tp @a 30.5 100 0.5 0 0'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'summon minecraft:skeleton 30.5 100 6.5 {Tags:[\"rogp\",\"rogp_stealth_skeleton\"],Silent:1b,PersistenceRequired:1b}'; sleep 6; send_cmd 'execute store result score stealth_hp rogp run data get entity @a[limit=1] Health 10'; send_cmd 'execute store success score stealth_present rogp run effect clear @a[limit=1] rogues:stealth'; send_cmd 'execute if score stealth_hp rogp matches 200 if score stealth_present rogp matches 1 run say ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS'; wait_marker 'ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS' 20 'stealth hostile visibility reduction'; send_cmd 'kill @e[tag=rogp_stealth_skeleton]'"""
+new="""send_cmd 'tp @a 20.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 20.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_CONTROL_ARENA_POSITION_READY'; wait_marker 'ROGUES_CONTROL_ARENA_POSITION_READY' 20 'control arena position'; send_cmd 'execute at @a[limit=1] run summon minecraft:husk ~ ~ ~6 {Tags:[\"rogp\",\"rogp_control_husk\"],Silent:1b,PersistenceRequired:1b}'; send_cmd 'execute store result score control_start_z rogp run data get entity @e[type=minecraft:husk,tag=rogp_control_husk,limit=1,sort=nearest] Pos[2] 100'; sleep 0.5; send_cmd 'execute store result score control_now_z rogp run data get entity @e[type=minecraft:husk,tag=rogp_control_husk,limit=1,sort=nearest] Pos[2] 100'; send_cmd 'scoreboard players operation control_delta_z rogp = control_start_z rogp'; send_cmd 'scoreboard players operation control_delta_z rogp -= control_now_z rogp'; send_cmd 'execute if score control_delta_z rogp matches 25.. if score control_now_z rogp matches 250.. run say ROGUES_STEALTH_VISIBILITY_CONTROL_PASS'; wait_marker 'ROGUES_STEALTH_VISIBILITY_CONTROL_PASS' 20 'non-stealth hostile initial pursuit control'; send_cmd 'kill @e[tag=rogp_control_husk]'; send_cmd 'tp @a 30.5 100 0.5 0 0'; sleep 2; send_cmd 'execute positioned 30.5 100 0.5 if entity @a[distance=..1.0,limit=1] run say ROGUES_STEALTH_ARENA_POSITION_READY'; wait_marker 'ROGUES_STEALTH_ARENA_POSITION_READY' 20 'Stealth arena position'; send_cmd 'effect give @a rogues:stealth 30 0 true'; send_cmd 'execute at @a[limit=1] run summon minecraft:husk ~ ~ ~6 {Tags:[\"rogp\",\"rogp_stealth_husk\"],Silent:1b,PersistenceRequired:1b}'; send_cmd 'execute store result score stealth_start_z rogp run data get entity @e[type=minecraft:husk,tag=rogp_stealth_husk,limit=1,sort=nearest] Pos[2] 100'; sleep 0.5; send_cmd 'execute store result score stealth_now_z rogp run data get entity @e[type=minecraft:husk,tag=rogp_stealth_husk,limit=1,sort=nearest] Pos[2] 100'; send_cmd 'scoreboard players operation stealth_delta_z rogp = stealth_start_z rogp'; send_cmd 'scoreboard players operation stealth_delta_z rogp -= stealth_now_z rogp'; send_cmd 'execute store success score stealth_present rogp run effect clear @a[limit=1] rogues:stealth'; send_cmd 'execute if score stealth_delta_z rogp matches ..20 if score stealth_now_z rogp matches 500.. if score stealth_present rogp matches 1 run say ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS'; wait_marker 'ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS' 20 'stealth hostile initial pursuit suppression'"""
+if text.count(old) != 1:
+    raise SystemExit(f'[Rogues deep acceptance] expected exactly one original hostile visibility QA block, found {text.count(old)}')
+path.write_text(text.replace(old,new,1))
 PY
-grep -Fq 'ROGUES_CONTROL_ARENA_POSITION_READY' "$PLAYER_QA" || { echo '[Rogues deep acceptance] control arena stabilization patch missing' >&2; exit 2; }
-grep -Fq 'ROGUES_STEALTH_ARENA_POSITION_READY' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth arena stabilization patch missing' >&2; exit 2; }
-grep -Fq 'summon minecraft:boat ~ ~ ~6 {Type:"oak",Tags:["rogp","rogp_control_anchor"]' "$PLAYER_QA" || { echo '[Rogues deep acceptance] control six-block AI-preserving anchor missing' >&2; exit 2; }
-grep -Fq 'summon minecraft:boat ~ ~ ~6 {Type:"oak",Tags:["rogp","rogp_stealth_anchor"]' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth six-block AI-preserving anchor missing' >&2; exit 2; }
-# The Stealth visibility arena owns exactly one tagged skeleton. Keep that entity
-# alive long enough to make the hit-break check a real entity-caused hit, then
-# resolve the source through `execute as ... by @s`. This avoids an ambiguous
-# source-less damage path and proves RemoveOnHit against gameplay semantics.
-OLD_KILL="wait_marker 'ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS' 20 'stealth hostile visibility reduction'; send_cmd 'kill @e[tag=rogp_stealth_skeleton]'"
-NEW_KILL="wait_marker 'ROGUES_STEALTH_VISIBILITY_RUNTIME_PASS' 20 'stealth hostile visibility reduction'"
+grep -Fq 'minecraft:husk ~ ~ ~6' "$PLAYER_QA" || { echo '[Rogues deep acceptance] six-block melee pursuit fixture missing' >&2; exit 2; }
+grep -Fq 'control_delta_z rogp matches 25..' "$PLAYER_QA" || { echo '[Rogues deep acceptance] control pursuit discriminator missing' >&2; exit 2; }
+grep -Fq 'stealth_delta_z rogp matches ..20' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth pursuit discriminator missing' >&2; exit 2; }
+grep -Fq 'stealth_now_z rogp matches 500..' "$PLAYER_QA" || { echo '[Rogues deep acceptance] Stealth safe-distance assertion missing' >&2; exit 2; }
+# Keep the Stealth visibility husk alive long enough to make the hit-break check
+# a real entity-caused hit, then resolve the source through `execute as ... by @s`.
+# This avoids a source-less damage path and proves RemoveOnHit against gameplay
+# semantics while reusing the exact hostile that just exercised visibility.
 OLD_DAMAGE="send_cmd 'damage @a[limit=1] 1 minecraft:generic'; sleep 1;"
-NEW_DAMAGE="send_cmd 'execute as @e[type=minecraft:skeleton,tag=rogp_stealth_skeleton,limit=1,sort=nearest] run damage @p 1 minecraft:generic by @s'; sleep 1; send_cmd 'kill @e[tag=rogp_stealth_skeleton]';"
-python3 - "$PLAYER_QA" "$OLD_KILL" "$NEW_KILL" "$OLD_DAMAGE" "$NEW_DAMAGE" <<'PY'
+NEW_DAMAGE="send_cmd 'execute as @e[type=minecraft:husk,tag=rogp_stealth_husk,limit=1,sort=nearest] run damage @p 1 minecraft:generic by @s'; sleep 1; send_cmd 'kill @e[tag=rogp_stealth_husk]';"
+python3 - "$PLAYER_QA" "$OLD_DAMAGE" "$NEW_DAMAGE" <<'PY'
 from pathlib import Path
 import sys
-path=Path(sys.argv[1]); old_kill,new_kill,old_damage,new_damage=sys.argv[2:]
+path=Path(sys.argv[1]); old_damage,new_damage=sys.argv[2:]
 text=path.read_text()
-for label, old in (("stealth skeleton lifetime", old_kill), ("entity-source damage", old_damage)):
-    if text.count(old) != 1:
-        raise SystemExit(f'[Rogues deep acceptance] expected exactly one {label} QA seam, found {text.count(old)}')
-text=text.replace(old_kill,new_kill,1).replace(old_damage,new_damage,1)
-path.write_text(text)
+if text.count(old_damage) != 1:
+    raise SystemExit(f'[Rogues deep acceptance] expected exactly one entity-source damage QA seam, found {text.count(old_damage)}')
+path.write_text(text.replace(old_damage,new_damage,1))
 PY
-grep -Fq "$NEW_DAMAGE" "$PLAYER_QA" || { echo '[Rogues deep acceptance] entity-source damage QA patch missing' >&2; exit 2; }
+grep -Fq "$NEW_DAMAGE" "$PLAYER_QA" || { echo '[Rogues deep acceptance] husk entity-source damage QA patch missing' >&2; exit 2; }
 bash -n "$PLAYER_QA"
 bash "$CI/run-rogues-acceptance.sh"
 bash "$CI/run-rogues-release-certification.sh"
