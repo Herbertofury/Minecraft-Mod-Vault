@@ -10,6 +10,26 @@ done
 if [[ "$ROGUES_EXPECTED_SOURCE_SHA" != '__CAPTURE_AFTER_FIRST_DEEP__' ]]; then
   sed -i "s/__CAPTURE_AFTER_FIRST_DEEP__/$ROGUES_EXPECTED_SOURCE_SHA/g" "$CI/run-rogues-release-certification.sh"
 fi
+# Bash evaluates all RHS expressions in a `local` command before assigning the
+# earlier names. With `set -u`, the original one-line wait_marker declarations
+# therefore referenced timeout_seconds while it was still unset. Normalize both
+# semantic harnesses before execution and fail closed if the pinned shape drifts.
+OLD_WAIT='wait_marker(){ local marker="$1" timeout_seconds="$2" label="$3" deadline=$((SECONDS+timeout_seconds));'
+NEW_WAIT='wait_marker(){ local marker="$1" timeout_seconds="$2" label="$3"; local deadline=$((SECONDS+timeout_seconds));'
+for script in run-rogues-server-behavior.sh run-rogues-player-behavior-acceptance.sh; do
+  grep -Fq "$OLD_WAIT" "$CI/$script" || { echo "[Rogues deep acceptance] expected wait_marker harness shape missing: $script" >&2; exit 2; }
+  python3 - "$CI/$script" "$OLD_WAIT" "$NEW_WAIT" <<'PY'
+from pathlib import Path
+import sys
+path=Path(sys.argv[1]); old=sys.argv[2]; new=sys.argv[3]
+text=path.read_text()
+if text.count(old) != 1:
+    raise SystemExit(f'[Rogues deep acceptance] expected exactly one wait_marker seam in {path.name}, found {text.count(old)}')
+path.write_text(text.replace(old,new,1))
+PY
+  grep -Fq "$NEW_WAIT" "$CI/$script"
+  bash -n "$CI/$script"
+done
 bash "$CI/run-rogues-acceptance.sh"
 bash "$CI/run-rogues-release-certification.sh"
 bash "$CI/run-rogues-server-behavior.sh"
