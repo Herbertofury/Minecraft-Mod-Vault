@@ -57,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SCRIPT='rpg-series-port/ci/run-more-rpg-library-runtime-stage1.sh'
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-runtime-stage1-diagnostic.sh'
           LOG='rpg-series-port/more-rpg-runtime-stage1.log'
           test -f "$SCRIPT"
           bash -n "$SCRIPT"
