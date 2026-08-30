@@ -12,8 +12,8 @@
   "artifactXzBase64Bytes": 104604,
   "artifactXzBase64Sha256": "29ba40655028a4e91e5e35f4c5d94c634df740ff7b2f1d0cd42e84b522ece6de",
   "buildJson": "Minecraft Recommendations Vault - Explorer.build.json",
-  "buildJsonBytes": 676,
-  "buildJsonSha256": "a05564028d279a7b660a2007f535c7e4bbcc5056b91fbdf6d42e6794d4a77afc",
+  "buildJsonBytes": 673,
+  "buildJsonSha256": "ccf6717a356cf57f14fb3ebd067fe609ca3a1f4cb92827037fbd4be68d6b1e67",
   "parts": [
     {"name":"part-00","bytes":6000,"sha256":"485c189aab4a2f4a672e0521901a1762e4e1786291a3f47900d1776ac79df16d"},
     {"name":"part-01","bytes":6000,"sha256":"54f5bd5a710312a38e7cdb115530b1c726b4fc364e6bc1779b1500e004ada626"},
