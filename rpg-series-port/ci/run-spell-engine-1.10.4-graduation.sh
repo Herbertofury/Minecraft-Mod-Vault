@@ -3,12 +3,14 @@ set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:?}"
 BASE="$ROOT/rpg-series-port/ci/run-spell-engine.sh"
 GRAD="$ROOT/rpg-series-port/ci/run-spell-engine-graduation.sh"
+PASS6C="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6c.py"
 PASS6F="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6f.py"
 PASS6I="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6i.py"
 ENV_FILE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/SPELL_ENGINE_GRADUATION.env"
 
 test -f "$BASE"
 test -f "$GRAD"
+test -f "$PASS6C"
 test -f "$PASS6F"
 test -f "$PASS6I"
 test -f "$ENV_FILE"
@@ -51,6 +53,27 @@ if 'spell-engine-1102' in s:
     raise SystemExit('[Spell Engine 1.10.4] stale 1.10.2 target path remains in active base runner')
 if 'gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build' in s:
     raise SystemExit('[Spell Engine 1.10.4] stale Spell Power build invocation still omits TinyConfig 3.1 inputs')
+p.write_text(s)
+PY
+
+# Spell Engine 1.10.4's loot-inspection crash fix widens LootPool.entries. In modern 1.21.1
+# that field is a List, while Yarn/MC 1.20.1 exposes the same named field as LootPoolEntry[].
+# Preserve the widening and adapt only its JVM descriptor; deleting it would silently regress the
+# exact 1.10.4 behavior this graduation is meant to carry back.
+python3 - "$PASS6C" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1]); s=p.read_text()
+anchor="raw = aw.read_text()\nlines = raw.splitlines()\n"
+insert="""raw = aw.read_text()\nmodern_loot_pool_entries = 'accessible    field    net/minecraft/loot/LootPool    entries    Ljava/util/List;'\ntarget_loot_pool_entries = 'accessible    field    net/minecraft/loot/LootPool    entries    [Lnet/minecraft/loot/entry/LootPoolEntry;'\nif raw.count(modern_loot_pool_entries) != 1:\n    raise SystemExit(f'expected exactly one Spell Engine 1.10.4 LootPool.entries widening, found {raw.count(modern_loot_pool_entries)}')\nraw = raw.replace(modern_loot_pool_entries, target_loot_pool_entries, 1)\naw.write_text(raw)\nlines = raw.splitlines()\n"""
+if s.count(anchor) != 1:
+    raise SystemExit(f'[Spell Engine 1.10.4] pass-6c AW read seam drifted: found {s.count(anchor)}')
+s=s.replace(anchor,insert,1)
+old_tail="if remaining:\n    raise SystemExit(f'access-widener cleanup incomplete: {remaining}')\nprint('Spell Engine compatibility pass 6c applied: removed stale poison/tracker + NeoForge-only loot widenings')\n"
+new_tail="""if remaining:\n    raise SystemExit(f'access-widener cleanup incomplete: {remaining}')\nfinal_aw = aw.read_text()\nif modern_loot_pool_entries in final_aw:\n    raise SystemExit('Spell Engine 1.10.4 LootPool.entries List descriptor survived 1.20.1 adaptation')\nif final_aw.count(target_loot_pool_entries) != 1:\n    raise SystemExit('Spell Engine 1.10.4 LootPool.entries array widening missing or duplicated')\nprint('Spell Engine compatibility pass 6c applied: removed stale poison/tracker + NeoForge-only loot widenings; adapted LootPool.entries widening to 1.20.1 array descriptor')\n"""
+if s.count(old_tail) != 1:
+    raise SystemExit('[Spell Engine 1.10.4] pass-6c tail seam drifted')
+s=s.replace(old_tail,new_tail,1)
 p.write_text(s)
 PY
 
@@ -105,6 +128,6 @@ p.write_text(s)
 PY
 
 bash -n "$BASE"
-python3 -m py_compile "$PASS6F" "$PASS6I"
-echo '[Spell Engine 1.10.4] TARGET_AUTHORITY_SPELL_POWER_AND_LOOT_API_ADAPTATION_PASS sha=8843cea8974afffc7ec42c096cac33327a3af3d8'
+python3 -m py_compile "$PASS6C" "$PASS6F" "$PASS6I"
+echo '[Spell Engine 1.10.4] TARGET_AUTHORITY_SPELL_POWER_LOOT_API_AND_ACCESS_ADAPTATION_PASS sha=8843cea8974afffc7ec42c096cac33327a3af3d8'
 exec bash "$GRAD"
