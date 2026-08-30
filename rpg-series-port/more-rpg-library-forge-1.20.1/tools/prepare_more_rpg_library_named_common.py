@@ -33,6 +33,32 @@ subprocess.run([sys.executable, str(status_wave5a), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave5b), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave5c), str(out)], check=True)
 
+# Modern 2.7.2 intentionally carries datagen output in src/main/generated, and a subset of those paths
+# also exists under src/main/resources. Gradle 8 rejects those overlapping Copy inputs. The generated
+# tree is the newer release authority (for example tier_5_armors adds virtuoso_upgrade_crystal), so
+# remove only static resource files shadowed by an existing generated file. Never hide collisions with
+# a broad duplicatesStrategy: make the authority explicit and fail closed if the pinned known overlap
+# disappears or any overlapping static path survives.
+resources_root = out / 'common/src/main/resources'
+generated_root = out / 'common/src/main/generated'
+if not resources_root.is_dir() or not generated_root.is_dir():
+    raise SystemExit('generated/static More RPG resource roots missing')
+overlays = []
+for generated in sorted(p for p in generated_root.rglob('*') if p.is_file()):
+    rel = generated.relative_to(generated_root)
+    static = resources_root / rel
+    if static.is_file():
+        static.unlink()
+        overlays.append(rel.as_posix())
+known_overlay = 'data/rpg_series/tags/item/loot_tier/tier_5_armors.json'
+if known_overlay not in overlays:
+    raise SystemExit(f'known generated/static resource overlap missing: {known_overlay}')
+for rel in overlays:
+    if (resources_root / rel).exists():
+        raise SystemExit(f'static resource still shadows generated authority: {rel}')
+if len(overlays) < 1:
+    raise SystemExit('expected at least one generated/static resource overlay')
+
 common_gradle = out / 'common/build.gradle'
 if not common_gradle.is_file():
     raise SystemExit('generated common/build.gradle missing')
@@ -70,5 +96,7 @@ if s.count('mixinextras-common') != 2:
 if s.count("exclude 'net/more_rpg_classes/datagen/**'") != 1 or s.count("srcDir 'src/main/generated'") != 1:
     raise SystemExit('runtime/datagen source separation contract missing or duplicated')
 common_gradle.write_text(s)
+print('[More RPG 2.7.2] GENERATED_RESOURCE_OVERLAY_1201_PASS '
+      f'overlaps={len(overlays)} authority=src/main/generated known={known_overlay}')
 print('[More RPG 2.7.2] NAMED_COMMON_FOUNDATION_CLASSPATH_PASS spell_engine+spell_power+ranged+tiny_config=named-common forge-runtime=certified-production mixinextras=common-0.4.1')
 print('[More RPG 2.7.2] GENERATED_RESOURCE_AUTHORITY_PRESERVED runtime_java_excludes=datagen')
