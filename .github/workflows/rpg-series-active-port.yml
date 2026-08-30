@@ -17,7 +17,7 @@ permissions:
 jobs:
   verify-active-port:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v5
@@ -53,6 +53,17 @@ jobs:
           echo "[RPG CI] Active runner: $SCRIPT" | tee "$LOG"
           bash "$SCRIPT" 2>&1 | tee -a "$LOG"
 
+      - name: Run More RPG Stage-1 native runtime graduation
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-runtime-stage1.sh'
+          LOG='rpg-series-port/more-rpg-runtime-stage1.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          echo "[RPG CI] Runtime gate: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+
       - name: Preserve active-port evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,10 +73,15 @@ jobs:
           if-no-files-found: warn
           path: |
             rpg-series-port/active-port-verifier.log
+            rpg-series-port/more-rpg-runtime-stage1.log
             rpg-series-integration-client.log
             rpg-series-integration-server.log
             rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
             rpg-series-port/paladins-forge-1.20.1/.fresh-paladins-forge-server/logs/latest.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-packaged-server-smoke.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-native-client-integrated.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/.fresh-more-rpg-server/logs/latest.log
+            .more-rpg-library-build/forge/run/logs/latest.log
             rpg-series-port/*/forge/build/libs/*.jar
             rpg-series-port/*/generated/forge/build/libs/*.jar
             rpg-series-port/*/*.jar
