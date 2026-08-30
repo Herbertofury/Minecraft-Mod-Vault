@@ -31,7 +31,7 @@ jobs:
           ARTIFACT='Minecraft Recommendations Vault - Explorer Source.zip'
           DRIVE_ID='1vRty6Q7cE7ImM3PUDe4fqXmh2zGXOHLD'
           EXPECTED_BYTES='596027'
-          EXPECTED_SHA='447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461'
+          EXPECTED_SHA='447a8a54d3976e9d41c3028504da74a1ebfc86310a7b03bed52ffc2d75ee58bc'
           TMP="$RUNNER_TEMP/explorer-source.zip"
           URL="https://drive.usercontent.google.com/download?id=${DRIVE_ID}&export=download&confirm=t"
 
@@ -52,7 +52,7 @@ jobs:
             "schema": "minecraft-mod-vault.explorer-source-publication/2",
             "artifact": "Minecraft Recommendations Vault - Explorer Source.zip",
             "artifactBytes": 596027,
-            "artifactSha256": "447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461",
+            "artifactSha256": "447a8a54d3976e9d41c3028504da74a1ebfc86310a7b03bed52ffc2d75ee58bc",
             "driveFileId": "1vRty6Q7cE7ImM3PUDe4fqXmh2zGXOHLD",
             "source": "canonical-connected-google-drive-artifact",
             "downloadPath": "drive.usercontent.google.com/download",
@@ -86,7 +86,7 @@ jobs:
           set -euo pipefail
           ARTIFACT='Minecraft Recommendations Vault - Explorer Source.zip'
           EXPECTED_BYTES='596027'
-          EXPECTED_SHA='447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461'
+          EXPECTED_SHA='447a8a54d3976e9d41c3028504da74a1ebfc86310a7b03bed52ffc2d75ee58bc'
           SHA='${{ steps.commit.outputs.sha }}'
           REMOTE="$RUNNER_TEMP/remote.zip"
           gh api "repos/${GITHUB_REPOSITORY}/contents/${ARTIFACT}?ref=${SHA}" --jq .download_url | xargs curl --fail --location --silent --show-error --output "$REMOTE"
