@@ -41,9 +41,9 @@ s = replace_exact(s, 'SpellPowerTags.DamageTypes.ALL', 'SpellPowerTags.DamageTyp
 # The project-owned 1.20.1 oracle for this exact feature used this UUID/name pair. Preserve the modern
 # re-entrant depth/stack behavior while translating only the modifier identifier representation and
 # constructor signature required by EntityAttributeInstance/EntityAttributeModifier on 1.20.1.
-modern_id = ('@Unique private static final net.minecraft.util.Identifier ARMOR_PIERCING_ID = '
+modern_id = ('@Unique\n    private static final net.minecraft.util.Identifier ARMOR_PIERCING_ID = '
              'new net.minecraft.util.Identifier("more_rpg_classes", "armor_piercing_reduction");')
-target_id = ('@Unique private static final UUID ARMOR_PIERCING_UUID = '
+target_id = ('@Unique\n    private static final UUID ARMOR_PIERCING_UUID = '
              'UUID.fromString("a8f6b5c2-3d4e-4f1a-9b2c-7e8d9f0a1b2c");\n'
              '    @Unique private static final String ARMOR_PIERCING_NAME = "armor_piercing_reduction";')
 s = replace_exact(s, modern_id, target_id, 1,
