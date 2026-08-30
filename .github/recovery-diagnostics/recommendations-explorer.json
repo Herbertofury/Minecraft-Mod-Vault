@@ -1,5 +1,5 @@
 {
-  "error": "exact Explorer not recovered in bounded probe; diagnostic preserves corruption location for next repair",
+  "error": "exact Explorer not recovered in accelerated localized search",
   "errorType": "RuntimeError",
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
@@ -60,12 +60,14 @@
       "sha256": "b41afacc75cf201dd2482a29967c890a96c78797a317f3b9b745b94737c9a984"
     }
   ],
-  "probeAttempts": 17472,
-  "probeRange": [
-    12060,
+  "prefixProbeEnd": 14364,
+  "prefixSurvivors": 0,
+  "result": "FAIL",
+  "schema": "mrv.recommendations-explorer-recovery-diagnostic/5",
+  "searchAttempts": 132160,
+  "searchRange": [
+    10268,
     12332
   ],
-  "result": "FAIL",
-  "schema": "mrv.recommendations-explorer-recovery-diagnostic/4",
-  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 96, in <module>\nRuntimeError: exact Explorer not recovered in bounded probe; diagnostic preserves corruption location for next repair\n"
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 63, in <module>\nRuntimeError: exact Explorer not recovered in accelerated localized search\n"
 }
