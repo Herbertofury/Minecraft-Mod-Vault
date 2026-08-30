@@ -18,7 +18,8 @@ registry_wave4 = Path(__file__).with_name('prepare_more_rpg_library_1201_registr
 status_wave5a = Path(__file__).with_name('prepare_more_rpg_library_1201_status_consumers_wave5a.py')
 api_wave5b = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave5b.py')
 api_wave5c = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave5c.py')
-for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4, status_wave5a, api_wave5b, api_wave5c):
+runtime_trace = Path(__file__).with_name('prepare_more_rpg_library_runtime_trace.py')
+for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4, status_wave5a, api_wave5b, api_wave5c, runtime_trace):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
@@ -32,6 +33,7 @@ subprocess.run([sys.executable, str(registry_wave4), str(out)], check=True)
 subprocess.run([sys.executable, str(status_wave5a), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave5b), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave5c), str(out)], check=True)
+subprocess.run([sys.executable, str(runtime_trace), str(out)], check=True)
 
 # Modern 2.7.2 intentionally carries datagen output in src/main/generated, and a subset of those paths
 # also exists under src/main/resources. Gradle 8 rejects those overlapping Copy inputs. The generated
