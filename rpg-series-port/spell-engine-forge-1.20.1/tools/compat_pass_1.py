@@ -6,10 +6,11 @@ root = Path(sys.argv[1]).resolve()
 java = root / 'common/src/main/java'
 
 # Compile Spell Engine against the already-verified dependency common JARs, never their source trees.
-# This keeps Spell Power and Ranged Weapon API as real separate mods and prevents their classes from
-# being shadowed into the Spell Engine release artifact.
+# This keeps TinyConfig, Spell Power and Ranged Weapon API as real separate mods and prevents their
+# classes from being shadowed into the Spell Engine release artifact.
 build = root / 'common/build.gradle'
 bs = build.read_text()
+bs = re.sub(r"\s*compileOnly fileTree\(dir: rootProject\.file\('../rpg-series-port/tiny-config-forge-1\.20\.1/generated/common/build/libs'\), include: \['\*\.jar'\], exclude: \['\*sources\*'\]\)", '', bs)
 bs = re.sub(r"\s*compileOnly fileTree\(dir: rootProject\.file\('../rpg-series-port/spell_power-forge-1\.20\.1/common/build/libs'\), include: \['\*\.jar'\], exclude: \['\*sources\*'\]\)", '', bs)
 bs = re.sub(r"\s*compileOnly fileTree\(dir: rootProject\.file\('../rpg-series-port/ranged-weapon-api-forge-1\.20\.1/common/build/libs'\), include: \['\*\.jar'\], exclude: \['\*sources\*'\]\)", '', bs)
 bs = re.sub(r"\n\ndef addExternalCompileSources = \{ String envName ->.*?addExternalCompileSources\('RANGED_SOURCE_DIRS'\)\n", '\n', bs, flags=re.S)
@@ -28,6 +29,7 @@ def requireExternalJar = { String envName ->
 }
 
 dependencies {
+ compileOnly files(requireExternalJar('TINY_CONFIG_COMMON_JAR'))
  compileOnly files(requireExternalJar('SPELL_POWER_COMMON_JAR'))
  compileOnly files(requireExternalJar('RANGED_COMMON_JAR'))
 }
@@ -99,6 +101,6 @@ for needle in ('Identifier.of(', 'RegistryByteBuf', 'network.codec.PacketCodec',
     if found: raise SystemExit(f'compat pass failed; {needle!r} remains in {found[:12]}')
 for stale in ('SPELL_POWER_SOURCE_DIRS', 'RANGED_SOURCE_DIRS', 'addExternalCompileSources'):
     if stale in build.read_text(): raise SystemExit(f'compat pass left dependency source injection enabled: {stale}')
-for required in ('SPELL_POWER_COMMON_JAR', 'RANGED_COMMON_JAR'):
+for required in ('TINY_CONFIG_COMMON_JAR', 'SPELL_POWER_COMMON_JAR', 'RANGED_COMMON_JAR'):
     if required not in build.read_text(): raise SystemExit(f'compat pass missing dependency common JAR gate: {required}')
-print('Spell Engine compatibility pass 1 applied: external dependency JAR compile gate + identifiers + 1.20.1 packet envelope + particle type')
+print('Spell Engine compatibility pass 1 applied: certified external dependency JAR compile gates + identifiers + 1.20.1 packet envelope + particle type')
