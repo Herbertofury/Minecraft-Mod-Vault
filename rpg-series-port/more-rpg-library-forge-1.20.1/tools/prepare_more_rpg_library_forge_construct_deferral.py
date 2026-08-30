@@ -41,8 +41,10 @@ if s.count('modBus.addListener(this::construct);') != 1:
     raise SystemExit('Forge construct listener missing or duplicated')
 if s.count('event.enqueueWork(() -> MRPGCMod.init());') != 1:
     raise SystemExit('Forge deferred MRPG init work missing or duplicated')
-if s.count('MRPGCMod.init();') != 1:
-    raise SystemExit('Forge MRPG init call cardinality changed')
+if s.count('        MRPGCMod.init();\n') != 0:
+    raise SystemExit('Forge direct MRPG init survived construction deferral')
+if s.count('MRPGCMod.init()') != 1:
+    raise SystemExit('Forge MRPG init invocation cardinality changed')
 if '[More RPG Runtime Trace]' in s:
     raise SystemExit('diagnostic runtime trace leaked into clean lifecycle repair')
 path.write_text(s, encoding='utf-8')
