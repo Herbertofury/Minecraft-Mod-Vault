@@ -47,7 +47,7 @@ jobs:
               raise SystemExit(f'current Explorer staged base64 mismatch: len={len(staged_b64)} sha256={actual_b64_sha}')
 
           packed = base64.b64decode(staged_b64, validate=True)
-          expected_xz_sha = '79476efde19de63fad496b92a21a1663ede131cbf7c67062ffa088beda2776b6'
+          expected_xz_sha = '64fc3f2bc4d4c4326092a4480fbd75dd1624231d228729e229c571bf45eb84a5'
           actual_xz_sha = hashlib.sha256(packed).hexdigest()
           if len(packed) != 78448 or actual_xz_sha != expected_xz_sha:
               raise SystemExit(f'current Explorer xz mismatch: bytes={len(packed)} sha256={actual_xz_sha}')
