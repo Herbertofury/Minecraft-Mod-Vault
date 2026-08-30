@@ -4,7 +4,14 @@ on:
   push:
     paths:
       - '.github/workflows/build-explorer-from-canonical-sheet.yml'
+      - '.github/mrv-explorer-staging/builder.py.xz.b64'
   workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
+
+concurrency:
+  group: minecraft-recommendations-vault-explorer-sync
+  cancel-in-progress: true
 
 permissions:
   contents: write
