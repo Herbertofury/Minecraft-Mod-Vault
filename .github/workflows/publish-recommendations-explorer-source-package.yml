@@ -1,0 +1,110 @@
+name: Publish Recommendations Explorer Source Package
+
+on:
+  push:
+    paths:
+      - '.github/mrv-explorer-source-staging/READY.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minecraft-recommendations-explorer-source-package
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify exact Drive source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage='.github/mrv-explorer-source-staging'
+          ready="$stage/READY.json"
+          test -s "$ready"
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json
+
+          stage = Path('.github/mrv-explorer-source-staging')
+          ready = json.loads((stage / 'READY.json').read_text(encoding='utf-8'))
+          if ready.get('schema') != 'minecraft-mod-vault.explorer-source-staging/1':
+              raise SystemExit('unexpected staging schema')
+          expected_parts = ready['partCount']
+          parts = [stage / f'part-{i:02d}.b64' for i in range(expected_parts)]
+          if not all(p.is_file() for p in parts):
+              missing = [str(p) for p in parts if not p.is_file()]
+              raise SystemExit(f'missing staging parts: {missing}')
+          encoded = ''.join(p.read_text(encoding='ascii') for p in parts)
+          encoded_bytes = encoded.encode('ascii')
+          if len(encoded_bytes) != ready['base64Bytes']:
+              raise SystemExit(f'base64 size mismatch: {len(encoded_bytes)} != {ready["base64Bytes"]}')
+          if hashlib.sha256(encoded_bytes).hexdigest() != ready['base64Sha256']:
+              raise SystemExit('base64 SHA-256 mismatch')
+          data = base64.b64decode(encoded, validate=True)
+          if len(data) != ready['artifactBytes']:
+              raise SystemExit(f'ZIP size mismatch: {len(data)} != {ready["artifactBytes"]}')
+          digest = hashlib.sha256(data).hexdigest()
+          if digest != ready['artifactSha256']:
+              raise SystemExit(f'ZIP SHA-256 mismatch: {digest}')
+          out = Path(ready['artifact'])
+          out.write_bytes(data)
+          print('SOURCE_PACKAGE_RECONSTRUCTED', len(data), digest)
+          PY
+
+      - name: Publish exact package and clear transport staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'Minecraft Recommendations Vault - Explorer Source.zip'
+          git rm -r .github/mrv-explorer-source-staging
+          git commit -m 'Publish verified Recommendations Vault Explorer source package'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Independently verify exact package from remote branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_REF_NAME}"
+          git show "origin/${GITHUB_REF_NAME}:Minecraft Recommendations Vault - Explorer Source.zip" > /tmp/remote-source.zip
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          p = Path('/tmp/remote-source.zip')
+          data = p.read_bytes()
+          expected_size = 596027
+          expected_sha = '447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461'
+          digest = hashlib.sha256(data).hexdigest()
+          if len(data) != expected_size or digest != expected_sha:
+              raise SystemExit(f'remote source package mismatch: bytes={len(data)} sha256={digest}')
+          receipt = {
+              'schema': 'minecraft-mod-vault.explorer-source-publication-verification/1',
+              'artifact': 'Minecraft Recommendations Vault - Explorer Source.zip',
+              'artifactBytes': len(data),
+              'artifactSha256': digest,
+              'driveFileId': '1vRty6Q7cE7ImM3PUDe4fqXmh2zGXOHLD',
+              'driveArtifactBytes': expected_size,
+              'driveArtifactSha256': expected_sha,
+              'remoteBranchVerification': 'PASS'
+          }
+          Path('Minecraft Recommendations Vault - Explorer Source.verification.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+          print('REMOTE_SOURCE_PACKAGE_VERIFIED', len(data), digest)
+          PY
+
+      - name: Publish remote-verification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add 'Minecraft Recommendations Vault - Explorer Source.verification.json'
+          git commit -m 'Record Explorer source-package remote verification'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
