@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import subprocess
 import sys
 
 if len(sys.argv) != 2:
@@ -48,7 +49,6 @@ for i, call in enumerate(calls, 1):
     replacement = (f'System.err.println("[More RPG Runtime Trace] INIT_{i:02d}_{label}_BEGIN");\n\t\t\t{call}\n'
                    f'\t\t\tSystem.err.println("[More RPG Runtime Trace] INIT_{i:02d}_{label}_END");')
     s = s.replace(call, replacement, 1)
-# The inserted INIT_ENTER line is intentionally followed by the upstream indentation before the first call.
 common.write_text(s, encoding='utf-8')
 
 f = forge.read_text(encoding='utf-8')
@@ -60,5 +60,10 @@ f = f.replace(needle,
     '        MRPGCMod.init();\n'
     '        System.err.println("[More RPG Runtime Trace] FORGE_CONSTRUCTOR_AFTER_MRPG_INIT");\n', 1)
 forge.write_text(f, encoding='utf-8')
-
 print('[More RPG 2.7.2] RUNTIME_STALL_PHASE_TRACE_1201_PASS source=run-351 boundaries=class_init+9_init_calls+forge_constructor')
+
+# Candidate branches may place the independently reviewed Forge construction deferral beside this trace
+# stage. Keep the validation branch behavior unchanged when that optional file is absent.
+deferral = Path(__file__).with_name('prepare_more_rpg_library_forge_construct_deferral.py')
+if deferral.is_file():
+    subprocess.run([sys.executable, str(deferral), str(root)], check=True)
