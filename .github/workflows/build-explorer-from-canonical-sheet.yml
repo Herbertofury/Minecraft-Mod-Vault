@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/build-explorer-from-canonical-sheet.yml'
       - '.github/mrv-explorer-staging/builder.py.xz.b64'
+      - '.github/mrv-explorer-staging/current-explorer/**'
   workflow_dispatch:
   schedule:
     - cron: '23 * * * *'
@@ -58,9 +59,9 @@ jobs:
               raise SystemExit('staged source Drive identity mismatch')
 
           parts = manifest.get('parts') or []
-          if manifest.get('partCount') != 18 or len(parts) != 18:
-              raise SystemExit(f'expected 18 staged payload parts, got {len(parts)}')
-          expected_names = [f'part-{i:02d}' for i in range(18)]
+          if manifest.get('partCount') != len(parts) or not parts:
+              raise SystemExit('staged payload part count mismatch')
+          expected_names = [f'part-{i:02d}' for i in range(len(parts))]
           if [p.get('name') for p in parts] != expected_names:
               raise SystemExit('staged payload part ordering mismatch')
 
@@ -198,6 +199,7 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin "${GITHUB_REF_NAME}"
+          git show "origin/${GITHUB_REF_NAME}:.github/mrv-explorer-staging/current-explorer/manifest.json" > /tmp/remote-manifest.json
           git show "origin/${GITHUB_REF_NAME}:Minecraft Recommendations Vault - Explorer.html" > /tmp/remote-explorer.html
           git show "origin/${GITHUB_REF_NAME}:Minecraft Recommendations Vault - Explorer.build.json" > /tmp/remote-explorer.build.json
           git show "origin/${GITHUB_REF_NAME}:tools/recommendations-explorer/build_recommendations_explorer.py" > /tmp/remote-builder.py
@@ -206,25 +208,29 @@ jobs:
           import hashlib
           import json
 
+          def sha256(data):
+              return hashlib.sha256(data).hexdigest()
+
           def check(path, expected_bytes, expected_sha):
               data = Path(path).read_bytes()
-              digest = hashlib.sha256(data).hexdigest()
+              digest = sha256(data)
               if len(data) != expected_bytes or digest != expected_sha:
                   raise SystemExit(f'remote identity mismatch for {path}: bytes={len(data)} sha256={digest}')
               print('REMOTE_VERIFIED', path, len(data), digest)
               return data
 
-          html = check('/tmp/remote-explorer.html', 374830, 'ea1a6b64bab80bc88521ec138f2e364fbeeebb1d2c2796aaebc520ece9c0f979')
-          build = check('/tmp/remote-explorer.build.json', 676, 'a05564028d279a7b660a2007f535c7e4bbcc5056b91fbdf6d42e6794d4a77afc')
+          manifest = json.loads(Path('/tmp/remote-manifest.json').read_text(encoding='utf-8'))
+          html = check('/tmp/remote-explorer.html', manifest['artifactBytes'], manifest['artifactSha256'])
+          build = check('/tmp/remote-explorer.build.json', manifest['buildJsonBytes'], manifest['buildJsonSha256'])
           check('/tmp/remote-builder.py', 23550, 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b')
           text = html.decode('utf-8')
-          for marker in ('no row caps, viewport culling', 'window.__EXPLORER_TEST__', 'Minecraft Recommendations Vault'):
+          for marker in manifest['verificationMarkers']:
               if marker not in text:
                   raise SystemExit(f'remote Explorer missing marker: {marker}')
           metadata = json.loads(build.decode('utf-8'))
-          if metadata['sourceDriveId'] != '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg':
-              raise SystemExit('remote build metadata source Drive identity mismatch')
-          if metadata['sourceWorkbookSha256'] != '610bc5f74ad4c842a0e7bd690aacf89f932e68a3b7cc016faa382591f3f6dd2a':
-              raise SystemExit('remote build metadata source workbook SHA mismatch')
+          for key in ('artifact','artifactBytes','artifactSha256','sourceDriveId','sourceModifiedTime','sourceWorkbookBytes','sourceWorkbookSha256'):
+              expected = manifest[key]
+              if metadata.get(key) != expected:
+                  raise SystemExit(f'remote build metadata mismatch for {key}: {metadata.get(key)!r} != {expected!r}')
           print('REMOTE_EXPLORER_PUBLICATION_VERIFIED')
           PY
