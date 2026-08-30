@@ -1,0 +1,130 @@
+name: Polish Recommendations Explorer
+
+on:
+  push:
+    paths:
+      - '.github/workflows/polish-recommendations-explorer.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: polish-recommendations-explorer
+  cancel-in-progress: false
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Add visible recently-viewed UX and package exact build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re, zipfile
+
+          html_path=Path('Minecraft Recommendations Vault - Explorer.html')
+          build_path=Path('Minecraft Recommendations Vault - Explorer.build.json')
+          zip_path=Path('Minecraft Recommendations Vault - Explorer Source.zip')
+          sums_path=Path('Minecraft Recommendations Vault - Explorer SHA256.txt')
+          text=html_path.read_text(encoding='utf-8')
+
+          # Idempotent UX patch: the existing build already stores recent IDs; surface them visibly.
+          if 'data-view="recent"' not in text:
+              old='<button data-view="saved">Saved</button><button data-view="changes">Changes</button>'
+              new='<button data-view="saved">Saved</button><button data-view="recent">Recently Viewed</button><button data-view="changes">Changes</button>'
+              if old not in text: raise SystemExit('recent nav anchor not found')
+              text=text.replace(old,new,1)
+
+              anchor='<section id="leaders" class="hidden">'
+              recent='<section id="recent" class="hidden"><div class="toolbar"><h2 style="margin:0">Recently Viewed</h2><span class="count">Your last 20 opened projects, stored locally</span></div><div id="recentcards" class="cards"></div></section>\n'
+              if anchor not in text: raise SystemExit('recent section anchor not found')
+              text=text.replace(anchor,recent+anchor,1)
+
+              old="storeJSON('rv-recent',recent);$('#detailTitle')"
+              new="storeJSON('rv-recent',recent);renderRecent();$('#detailTitle')"
+              if old not in text: raise SystemExit('openDetail recent anchor not found')
+              text=text.replace(old,new,1)
+
+              old="function renderChanges()"
+              new="function renderRecent(){let a=recent.map(id=>DATA.items.find(i=>i.id===id)).filter(Boolean);$('#recentcards').innerHTML=a.length?a.map(card).join(''):'<div class=\"empty\">Open project details and they will appear here.</div>'}\nfunction renderChanges()"
+              if old not in text: raise SystemExit('renderRecent anchor not found')
+              text=text.replace(old,new,1)
+
+              old="['browse','leaders','saved','changes','sources']"
+              new="['browse','leaders','saved','recent','changes','sources']"
+              if old not in text: raise SystemExit('switchView list anchor not found')
+              text=text.replace(old,new,1)
+              old="if(v==='saved')renderSaved()}"
+              new="if(v==='saved')renderSaved();if(v==='recent')renderRecent()}"
+              if old not in text: raise SystemExit('switchView handler anchor not found')
+              text=text.replace(old,new,1)
+              old='renderBrowse();renderLeaders();renderSaved();renderChanges();renderSources();updateCompare();'
+              new='renderBrowse();renderLeaders();renderSaved();renderRecent();renderChanges();renderSources();updateCompare();'
+              if old not in text: raise SystemExit('startup recent anchor not found')
+              text=text.replace(old,new,1)
+
+          html_path.write_text(text,encoding='utf-8')
+          data=html_path.read_bytes()
+          digest=hashlib.sha256(data).hexdigest()
+          build=json.loads(build_path.read_text(encoding='utf-8'))
+          build['artifactBytes']=len(data)
+          build['artifactSha256']=digest
+          build['generatorVersion']='recommendations-explorer/1.0.1'
+          build['qaContract']='visible-recently-viewed+full-source-preservation'
+          build_path.write_text(json.dumps(build,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          # Static integrity: embedded source identity/counts and required UX markers.
+          required=['data-view="recent"','id="recentcards"','function renderRecent()','sourceRowCount":587','masterItemCount":186','no row caps, viewport culling']
+          for marker in required:
+              if marker not in text: raise SystemExit(f'missing required marker: {marker}')
+          scripts=re.findall(r'<script(?: [^>]*)?>(.*?)</script>',text,re.S)
+          Path('/tmp/explorer-inline.js').write_text('\n'.join(s for s in scripts if 'const DB=' in s),encoding='utf-8')
+
+          members=[html_path,build_path,Path('tools/recommendations-explorer/build_recommendations_explorer.py'),Path('tools/recommendations-explorer/README.md'),Path('.github/workflows/build-explorer-from-canonical-sheet.yml'),Path('.github/workflows/polish-recommendations-explorer.yml')]
+          with zipfile.ZipFile(zip_path,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              for p in members:
+                  if p.is_file(): z.write(p,p.as_posix())
+          zdigest=hashlib.sha256(zip_path.read_bytes()).hexdigest()
+          sums_path.write_text(f'{digest}  {html_path.name}\n{zdigest}  {zip_path.name}\n',encoding='utf-8')
+          print('HTML_BYTES',len(data)); print('HTML_SHA256',digest)
+          print('ZIP_BYTES',zip_path.stat().st_size); print('ZIP_SHA256',zdigest)
+          PY
+          node --check /tmp/explorer-inline.js
+          unzip -t 'Minecraft Recommendations Vault - Explorer Source.zip'
+
+      - name: Commit exact polished artifact set
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'Minecraft Recommendations Vault - Explorer.html' \
+                  'Minecraft Recommendations Vault - Explorer.build.json' \
+                  'Minecraft Recommendations Vault - Explorer Source.zip' \
+                  'Minecraft Recommendations Vault - Explorer SHA256.txt'
+          if git diff --cached --quiet; then
+            echo 'Explorer is already polished and packaged.'
+          else
+            git commit -m 'Polish and package Minecraft Recommendations Vault Explorer'
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Verify remote bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_REF_NAME}"
+          for f in 'Minecraft Recommendations Vault - Explorer.html' 'Minecraft Recommendations Vault - Explorer Source.zip' 'Minecraft Recommendations Vault - Explorer SHA256.txt'; do
+            git show "origin/${GITHUB_REF_NAME}:$f" > "/tmp/$f"
+          done
+          (cd /tmp && sha256sum -c 'Minecraft Recommendations Vault - Explorer SHA256.txt')
+          cmp 'Minecraft Recommendations Vault - Explorer.html' '/tmp/Minecraft Recommendations Vault - Explorer.html'
+          cmp 'Minecraft Recommendations Vault - Explorer Source.zip' '/tmp/Minecraft Recommendations Vault - Explorer Source.zip'
+          echo REMOTE_EXPLORER_AND_SOURCE_PACKAGE_VERIFIED
