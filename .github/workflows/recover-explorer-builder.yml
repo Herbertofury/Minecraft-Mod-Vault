@@ -1,0 +1,32 @@
+name: Recover Explorer Builder
+
+on:
+  push:
+    paths:
+      - '.github/workflows/recover-explorer-builder.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Recover exact builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p recovered
+          tr -d '[:space:]' < .github/mrv-explorer-staging/builder.py.xz.b64 | base64 -d | xz -dc > recovered/build_recommendations_explorer.py
+          test "$(wc -c < recovered/build_recommendations_explorer.py)" -eq 23550
+          test "$(sha256sum recovered/build_recommendations_explorer.py | awk '{print $1}')" = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
+          python3 recovered/build_recommendations_explorer.py --help > recovered/help.txt 2>&1 || true
+      - name: Upload exact builder
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-explorer-builder
+          path: recovered/
+          if-no-files-found: error
+          retention-days: 7
