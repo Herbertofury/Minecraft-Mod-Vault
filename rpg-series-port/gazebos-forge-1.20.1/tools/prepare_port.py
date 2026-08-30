@@ -115,7 +115,7 @@ structures = list((out / 'common/src/main/resources/data/gazebo/structures').rgl
 if len(structures) != 17:
     raise SystemExit(f'Gazebos modern structure inventory regression: expected 17 NBTs, got {len(structures)}')
 rs_counts = list((out / 'common/src/main/resources/data/gazebo/rs_pieces_spawn_counts').glob('*.json'))
-rs_additions = list((out / 'common/src/main/resources/data/gazebo/rs_pool_additions').glob('*.json'))
+rs_additions = list((out / 'common/src/main/resources/data/gazebo/rs_pool_additions').rglob('*.json'))
 litho = list((out / 'common/src/main/resources/data/gazebo/lithostitched/worldgen_modifier/village').glob('*.json'))
 if (len(rs_counts), len(rs_additions), len(litho)) != (12, 12, 5):
     raise SystemExit(f'Gazebos modern compat inventory regression: counts={len(rs_counts)} additions={len(rs_additions)} litho={len(litho)}')
