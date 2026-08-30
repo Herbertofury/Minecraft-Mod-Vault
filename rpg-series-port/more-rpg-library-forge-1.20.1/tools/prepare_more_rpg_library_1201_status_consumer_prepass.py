@@ -36,4 +36,35 @@ for rel, expected in owners.items():
 
 if rewritten != 6:
     raise SystemExit(f'#331/#332 status consumer repair incomplete: expected=6 rewritten={rewritten}')
+
+# #348 is the first packaged Forge server run with More RPG's Mixin config actually registered.
+# It proved LivingEntityStealth still targets the modern RegistryEntry/Holder overload at runtime.
+# Minecraft 1.20.1 exposes hasStatusEffect(StatusEffect) instead, so adapt the WrapOperation target
+# and handler parameter together. Keep exact cardinality guards so a future upstream change cannot
+# silently broaden or weaken this production-Mixin repair.
+stealth = java / 'net/more_rpg_classes/mixin/LivingEntityStealth.java'
+text = stealth.read_text(encoding='utf-8')
+import_old = 'import net.minecraft.registry.entry.RegistryEntry;\n'
+target_old = 'target = "Lnet/minecraft/entity/LivingEntity;hasStatusEffect(Lnet/minecraft/registry/entry/RegistryEntry;)Z"'
+target_new = 'target = "Lnet/minecraft/entity/LivingEntity;hasStatusEffect(Lnet/minecraft/entity/effect/StatusEffect;)Z"'
+param_old = 'RegistryEntry<StatusEffect> effect'
+param_new = 'StatusEffect effect'
+for label, seam in (
+    ('RegistryEntry import', import_old),
+    ('WrapOperation target', target_old),
+    ('WrapOperation parameter', param_old),
+):
+    count = text.count(seam)
+    if count != 1:
+        raise SystemExit(f'#348 LivingEntityStealth {label} seam drifted: expected=1 found={count}')
+text = text.replace(import_old, '', 1)
+text = text.replace(target_old, target_new, 1)
+text = text.replace(param_old, param_new, 1)
+if 'RegistryEntry<StatusEffect>' in text or 'minecraft/registry/entry/RegistryEntry' in text:
+    raise SystemExit('#348 LivingEntityStealth RegistryEntry status-effect seam survived repair')
+if text.count(target_new) != 1 or text.count(param_new) != 1:
+    raise SystemExit('#348 LivingEntityStealth raw StatusEffect WrapOperation contract missing or duplicated')
+stealth.write_text(text, encoding='utf-8')
+
 print('[More RPG 2.7.2] STATUS_EFFECT_NON_EFFECT_CONSUMERS_1201_PASS owners=5 calls=6')
+print('[More RPG 2.7.2] LIVING_ENTITY_STEALTH_1201_WRAP_TARGET_PASS target=hasStatusEffect(StatusEffect) source=run-348-packaged-server')
