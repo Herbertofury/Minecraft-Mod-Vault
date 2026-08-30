@@ -27,12 +27,16 @@ jobs:
           import base64, hashlib, json, lzma
 
           root = Path('.')
-          staged = sorted(root.glob('.github/mrv-explorer-staging/xzstage-*.b64'))
-          if [p.name for p in staged] != [f'xzstage-{i:02d}.b64' for i in range(7)]:
-              raise SystemExit(f'unexpected Explorer staging set: {[p.name for p in staged]}')
+          staged = [root / '.github/mrv-explorer-staging' / f'xzstage-{i:02d}.b64' for i in range(6)]
+          missing = [str(p) for p in staged if not p.is_file()]
+          if missing:
+              raise SystemExit(f'missing Explorer staging parts: {missing}')
 
+          # xzstage-00..05 are one base64 stream. A historical xzstage-06 file belongs
+          # to an older superseded staging attempt and must not be concatenated after
+          # the padded end of the verified stream.
           b64 = ''.join(''.join(p.read_text().split()) for p in staged)
-          packed = base64.b64decode(b64 + '=' * ((4 - len(b64) % 4) % 4), validate=True)
+          packed = base64.b64decode(b64, validate=True)
           html_bytes = lzma.decompress(packed)
           expected_size = 374830
           expected_sha = 'e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b'
@@ -48,7 +52,7 @@ jobs:
           Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html_bytes)
 
           builder_b64 = ''.join(Path('.github/mrv-explorer-staging/builder.py.xz.b64').read_text().split())
-          builder = lzma.decompress(base64.b64decode(builder_b64 + '=' * ((4 - len(builder_b64) % 4) % 4), validate=True))
+          builder = lzma.decompress(base64.b64decode(builder_b64, validate=True))
           builder_sha = hashlib.sha256(builder).hexdigest()
           expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
           if len(builder) != 23550 or builder_sha != expected_builder_sha:
