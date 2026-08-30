@@ -9,7 +9,7 @@
   "joinedModulo4": 3,
   "multiCharacterRepairSteps": [
     {
-      "approxCorruptionPosition": 16088,
+      "approxCorruptionPosition": 32028,
       "error": "Corrupt input data",
       "errorType": "LZMAError",
       "result": "NO_SURVIVOR"
@@ -28,7 +28,7 @@
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-01.b64",
-      "sha256": "296c2b2791c1be9659287fab28b661e4fe0fe7f2f44fa3b160265ed1e8919ab3"
+      "sha256": "4b9363286f55ae5db198e25dd96784e7791859a6cad2ba29d5fe7041636f3c63"
     },
     {
       "cleanBase64Chars": 16000,
