@@ -21,7 +21,11 @@ old = '''    def tinyConfig = implementation(files(tinyConfigJar))
 new = '''    def tinyConfigVersion = "3.1.0+1.20.1"
     def tinyConfigGroup = "net.tiny_config.certified"
     def tinyConfigArtifact = "tiny_config-forge"
-    def tinyConfigRepo = file("${buildDir}/certified-tiny-config-maven")
+    // Keep the private artifact-only repository outside forge/build/. The graduation harness performs
+    // :forge:clean and :common:clean in the same Gradle invocation as its independent rebuild; clean
+    // runs after configuration and would otherwise delete a buildDir-hosted repository before Loom's
+    // processIncludeJars resolves it. rootProject/.gradle survives clean but remains build-local state.
+    def tinyConfigRepo = file("${rootProject.projectDir}/.gradle/certified-tiny-config-maven")
     def tinyConfigModuleDir = new File(tinyConfigRepo,
             "${tinyConfigGroup.replace('.', '/')}/${tinyConfigArtifact}/${tinyConfigVersion}")
     tinyConfigModuleDir.mkdirs()
@@ -51,7 +55,7 @@ final = forge_build.read_text()
 for required in (
     "System.getenv('TINY_CONFIG_FORGE_JAR')",
     'net.tiny_config.certified',
-    'certified-tiny-config-maven',
+    'rootProject.projectDir}/.gradle/certified-tiny-config-maven',
     'metadataSources { artifact() }',
     'implementation(tinyConfigCoordinate)',
     'include tinyConfig',
@@ -63,9 +67,10 @@ for required in (
 for forbidden in (
     'implementation(files(tinyConfigJar))',
     'forgeRuntimeLibrary files(tinyConfigJar)',
+    'file("${buildDir}/certified-tiny-config-maven")',
     'com.github.ZsoltMolnarrr:TinyConfig',
 ):
     if forbidden in final:
         raise SystemExit(f'rejected TinyConfig dependency form survived module staging: {forbidden}')
 
-print('Spell Engine compatibility pass 6p applied: certified TinyConfig staged as byte-identical artifact-only local Maven module for Loom nesting')
+print('Spell Engine compatibility pass 6p applied: certified TinyConfig staged as byte-identical clean-surviving artifact-only local Maven module for Loom nesting')
