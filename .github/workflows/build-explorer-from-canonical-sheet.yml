@@ -41,7 +41,7 @@ jobs:
               parts.append(value)
 
           staged_b64 = ''.join(parts)
-          expected_b64_sha = '5ea41a25be982d871f6463414b5e508177348290f449dfee9ecb60e04540d46f'
+          expected_b64_sha = '39588454edf1d747643d3055a586d88d0e4fee1c059c96dbe1c0466c36f270a8'
           actual_b64_sha = hashlib.sha256(staged_b64.encode('ascii')).hexdigest()
           if len(staged_b64) != 104600 or actual_b64_sha != expected_b64_sha:
               raise SystemExit(f'current Explorer staged base64 mismatch: len={len(staged_b64)} sha256={actual_b64_sha}')
