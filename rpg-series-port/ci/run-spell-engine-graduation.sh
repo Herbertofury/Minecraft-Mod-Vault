@@ -43,10 +43,66 @@ if src.count(needle) != 1:
     raise SystemExit(f'[Spell Engine graduation] expected one legacy TinyConfig package gate, found {src.count(needle)}')
 src=src.replace(needle,replacement)
 
+# Extend the historical client-only finish line with a fresh packaged Forge server. Resolve Cloth Config
+# and Player Animator from the exact Gradle artifacts used by the userdev build, then run only untouched
+# packaged mods. CI=true reaches SpellEngineCiSelfTest embedded by compat pass 6i.
+needle='echo "[Spell Engine CI] Forge client bootstrap passed with external RPG dependency mods; JAR: $OUT_JAR"\n'
+server=r'''echo "[Spell Engine CI] Forge client bootstrap passed with external RPG dependency mods; JAR: $OUT_JAR"
+
+echo '[Spell Engine graduation] Fresh packaged Forge server gate'
+find_runtime_mod() {
+  local pattern="$1" modid="$2" jar
+  while IFS= read -r jar; do
+    [[ -f "$jar" ]] || continue
+    if unzip -p "$jar" META-INF/mods.toml 2>/dev/null | grep -Eq "modId[[:space:]]*=[[:space:]]*\\?\"${modid}\\?\""; then
+      printf '%s\n' "$jar"; return 0
+    fi
+  done < <(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2/files-2.1" -type f -name "$pattern" 2>/dev/null | sort)
+  return 1
+}
+CLOTH_FORGE_JAR="$(find_runtime_mod 'cloth-config-forge-*.jar' cloth_config)"
+PLAYER_ANIM_FORGE_JAR="$(find_runtime_mod 'player-animation-lib-forge-*.jar' playeranimator)"
+test -f "$CLOTH_FORGE_JAR" -a -f "$PLAYER_ANIM_FORGE_JAR"
+
+echo "[Spell Engine graduation] packaged deps cloth=$(basename "$CLOTH_FORGE_JAR") playeranim=$(basename "$PLAYER_ANIM_FORGE_JAR")"
+FRESH="$PORT/.fresh-spell-engine-server"; rm -rf "$FRESH"; mkdir -p "$FRESH/mods"
+curl -fsSL 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar' -o "$FRESH/forge-installer.jar"
+(
+  cd "$FRESH"
+  java -jar forge-installer.jar --installServer >/dev/null
+  printf 'eula=true\n' > eula.txt
+  printf '%s\n' '-Xmx3G' > user_jvm_args.txt
+  cp "$OUT_JAR" mods/
+  cp "$SPELL_POWER_FORGE_JAR" mods/spell_power-forge.jar
+  cp "$CLOTH_FORGE_JAR" mods/cloth-config-forge.jar
+  cp "$PLAYER_ANIM_FORGE_JAR" mods/player-animation-lib-forge.jar
+)
+OUT_SHA="$(sha256sum "$OUT_JAR" | awk '{print $1}')"
+[[ "$(sha256sum "$FRESH/mods/$(basename "$OUT_JAR")" | awk '{print $1}')" = "$OUT_SHA" ]]
+PACKAGE_LOG="$PORT/forge-packaged-server-smoke.log"; : > "$PACKAGE_LOG"
+( cd "$FRESH" && exec ./run.sh nogui ) > "$PACKAGE_LOG" 2>&1 & ACTIVE_PID=$!
+PID=$ACTIVE_PID; DEADLINE=$((SECONDS+180)); PASS=0
+while ((SECONDS<DEADLINE)); do
+  LOG="$FRESH/logs/latest.log"; FILES=("$PACKAGE_LOG"); [[ -f "$LOG" ]] && FILES+=("$LOG")
+  if grep -Eiq 'ModLoadingException|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|MixinApplyError|InvalidMixinException|MixinTransformerError|Exception in server tick loop|The game crashed|Spell Engine CI self-test:' "${FILES[@]}"; then
+    stop_tree "$PID"; ACTIVE_PID=""; dump_logs "${FILES[@]}"; exit 1
+  fi
+  if [[ -f "$LOG" ]] && grep -Fq '[Spell Engine CI] Packaged runtime self-test passed:' "$LOG" && grep -Eq 'Done \([0-9.]+s\)!' "$LOG"; then PASS=1; break; fi
+  if ! kill -0 "$PID" 2>/dev/null; then wait "$PID" || true; ACTIVE_PID=""; dump_logs "${FILES[@]}"; exit 1; fi
+  sleep 1
+done
+[[ "$PASS" -eq 1 ]] || { stop_tree "$PID"; ACTIVE_PID=""; dump_logs "$PACKAGE_LOG" "$FRESH/logs/latest.log"; exit 1; }
+stop_tree "$PID"; ACTIVE_PID=""
+echo '[Spell Engine graduation] CANONICAL_PACKAGED_SERVER_AND_SELF_TEST_PASS'
+'''
+if src.count(needle) != 1:
+    raise SystemExit(f'[Spell Engine graduation] expected one historical client finish marker, found {src.count(needle)}')
+src=src.replace(needle,server)
+
 out.write_text(src)
 PY
 
 chmod +x "$PATCHED"
 bash -n "$PATCHED"
-echo '[Spell Engine graduation] TINY_CONFIG_310_PARITY_WRAPPER_READY'
+echo '[Spell Engine graduation] TINY_CONFIG_310_AND_PACKAGED_SERVER_WRAPPER_READY'
 exec bash "$PATCHED"
