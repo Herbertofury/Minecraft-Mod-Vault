@@ -44,6 +44,16 @@ if s.count(old) != 1:
     raise SystemExit(f'expected one packaged-server runtime dependency lookup seam, found {s.count(old)}')
 s = s.replace(old, new, 1)
 
+# The packaged CI self-test writes through direct process stdout, which is captured in PACKAGE_LOG but is
+# not guaranteed to be mirrored into Forge's latest.log. #318 proved both Done(...) and the self-test in
+# the same process while the harness timed out because it searched latest.log only. Keep Done authoritative
+# in latest.log, but accept the self-test marker from the complete captured process/log file set.
+old = '''grep -Fq '[Spell Engine CI] Packaged runtime self-test passed:' "$LOG" && grep -Eq'''
+new = '''grep -Fq '[Spell Engine CI] Packaged runtime self-test passed:' "${FILES[@]}" && grep -Eq'''
+if s.count(old) != 1:
+    raise SystemExit(f'expected one packaged-server self-test readiness seam, found {s.count(old)}')
+s = s.replace(old, new, 1)
+
 runner.write_text(s)
 final = runner.read_text()
 for required in (
@@ -59,7 +69,8 @@ for required in (
     'PACKAGED_SERVER_CLOTH_IDENTITY_PASS',
     'PACKAGED_SERVER_PLAYER_ANIMATOR_IDENTITY_PASS',
     'PACKAGED_SERVER_RUNTIME_DEPENDENCIES_RESOLVED_EXACT',
+    '''Packaged runtime self-test passed:' "${FILES[@]}"''',
 ):
     if required not in final:
         raise SystemExit(f'generated 1.10.4 graduation runner hardening missing: {required}')
-print('[Spell Engine 1.10.4] EXACT_SEAL_NATIVE_TOOLTIP_AND_PACKAGED_SERVER_DEPENDENCY_GATE_PATCHED')
+print('[Spell Engine 1.10.4] EXACT_SEAL_NATIVE_TOOLTIP_PACKAGED_SERVER_DEPS_AND_STDOUT_SELFTEST_GATE_PATCHED')
