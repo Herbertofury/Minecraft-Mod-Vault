@@ -1,0 +1,17 @@
+{
+  "schema": "minecraft-mod-vault.explorer-source-staging-progress/1",
+  "artifact": "Minecraft Recommendations Vault - Explorer Source.zip",
+  "driveFileId": "1vRty6Q7cE7ImM3PUDe4fqXmh2zGXOHLD",
+  "artifactBytes": 596027,
+  "artifactSha256": "447a8a54d3976e9d41c3028504da74a1ebfc86310a7b03bed52ffc2d75ee58bc",
+  "base64Bytes": 794704,
+  "base64Sha256": "1ccb9e6752b3bec7421be71f70caf17df5149dc914ca4c426ad73516fa92c8ae",
+  "transportChunkChars": 19000,
+  "targetPartCount": 42,
+  "verifiedCurrentParts": 0,
+  "existingLegacyParts": 8,
+  "existingLegacyPartsStatus": "INVALID_FOR_CURRENT_ARTIFACT_AND_MUST_BE_REPLACED",
+  "readyManifestStatus": "DO_NOT_ARM_UNTIL_ALL_42_PARTS_VERIFY",
+  "recoveryMode": "AUTONOMOUS_SMALL_CHUNK_RESTAGE_ACROSS_SUPERVISOR_RUNS",
+  "nextPart": 0
+}
