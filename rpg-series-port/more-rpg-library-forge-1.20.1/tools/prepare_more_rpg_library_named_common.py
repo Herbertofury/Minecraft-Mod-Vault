@@ -96,7 +96,26 @@ if s.count('mixinextras-common') != 2:
 if s.count("exclude 'net/more_rpg_classes/datagen/**'") != 1 or s.count("srcDir 'src/main/generated'") != 1:
     raise SystemExit('runtime/datagen source separation contract missing or duplicated')
 common_gradle.write_text(s)
+
+# Forge 47 discovers mod Mixins through the packaged JAR manifest. The common resource contains
+# more-rpg-classes.mixins.json, but without MixinConfigs every More RPG mixin is inert in production.
+forge_gradle = out / 'forge/build.gradle'
+if not forge_gradle.is_file():
+    raise SystemExit('generated forge/build.gradle missing')
+f = forge_gradle.read_text()
+manifest_anchor = "processResources { inputs.property 'version', project.version; filesMatching('META-INF/mods.toml') { expand(project.properties) } }\n"
+manifest_block = """tasks.withType(Jar).configureEach {\n    manifest { attributes 'MixinConfigs': 'more-rpg-classes.mixins.json' }\n}\n"""
+if f.count(manifest_anchor) != 1:
+    raise SystemExit(f'Forge Mixin manifest insertion seam drifted: found {f.count(manifest_anchor)}')
+if 'MixinConfigs' in f:
+    raise SystemExit('Forge Mixin manifest contract unexpectedly pre-exists; inspect authority drift')
+f = f.replace(manifest_anchor, manifest_block + manifest_anchor, 1)
+if f.count("attributes 'MixinConfigs': 'more-rpg-classes.mixins.json'") != 1:
+    raise SystemExit('Forge Mixin manifest contract missing or duplicated after insertion')
+forge_gradle.write_text(f)
+
 print('[More RPG 2.7.2] GENERATED_RESOURCE_OVERLAY_1201_PASS '
       f'overlaps={len(overlays)} authority=src/main/generated known={known_overlay}')
 print('[More RPG 2.7.2] NAMED_COMMON_FOUNDATION_CLASSPATH_PASS spell_engine+spell_power+ranged+tiny_config=named-common forge-runtime=certified-production mixinextras=common-0.4.1')
 print('[More RPG 2.7.2] GENERATED_RESOURCE_AUTHORITY_PRESERVED runtime_java_excludes=datagen')
+print('[More RPG 2.7.2] FORGE_MIXIN_MANIFEST_REGISTRATION_PASS config=more-rpg-classes.mixins.json')
