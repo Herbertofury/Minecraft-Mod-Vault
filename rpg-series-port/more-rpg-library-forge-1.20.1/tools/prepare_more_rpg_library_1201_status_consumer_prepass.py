@@ -10,29 +10,30 @@ if not java.is_dir():
     raise SystemExit(f'missing common Java root: {java}')
 
 # #331 proved five non-effect consumers still use the 1.21 RegistryEntry-valued status-effect API.
-# Pin the exact modern 2.7.2 owners and require one seam in each. The /effect package remains owned by
-# Wave 2 proper, so this prepass cannot broaden into an unchecked global substitution.
-owners = (
-    'net/more_rpg_classes/mixin/LivingEntityStealth.java',
-    'net/more_rpg_classes/mixin/ControlOwnerMixin.java',
-    'net/more_rpg_classes/mixin/LivingEntityMixin.java',
-    'net/more_rpg_classes/mixin/TrackTargetGoalStealth.java',
-    'net/more_rpg_classes/custom/spell_impacts/SpellthiefImpact.java',
-)
+# #332 pinned the exact cardinality: four owners have one seam each and SpellthiefImpact has two.
+# Keep those per-owner counts exact. The /effect package remains owned by Wave 2 proper, so this
+# prepass cannot broaden into an unchecked global substitution.
+owners = {
+    'net/more_rpg_classes/mixin/LivingEntityStealth.java': 1,
+    'net/more_rpg_classes/mixin/ControlOwnerMixin.java': 1,
+    'net/more_rpg_classes/mixin/LivingEntityMixin.java': 1,
+    'net/more_rpg_classes/mixin/TrackTargetGoalStealth.java': 1,
+    'net/more_rpg_classes/custom/spell_impacts/SpellthiefImpact.java': 2,
+}
 needle = '.getEffectType().value()'
 replacement = '.getEffectType()'
 rewritten = 0
-for rel in owners:
+for rel, expected in owners.items():
     path = java / rel
     if not path.is_file():
-        raise SystemExit(f'missing pinned #331 status consumer: {rel}')
+        raise SystemExit(f'missing pinned #331/#332 status consumer: {rel}')
     text = path.read_text(encoding='utf-8')
     count = text.count(needle)
-    if count != 1:
-        raise SystemExit(f'#331 status consumer seam drifted: {rel} expected=1 found={count}')
-    path.write_text(text.replace(needle, replacement, 1), encoding='utf-8')
-    rewritten += 1
+    if count != expected:
+        raise SystemExit(f'#331/#332 status consumer seam drifted: {rel} expected={expected} found={count}')
+    path.write_text(text.replace(needle, replacement), encoding='utf-8')
+    rewritten += count
 
-if rewritten != 5:
-    raise SystemExit(f'#331 status consumer repair incomplete: expected=5 rewritten={rewritten}')
-print('[More RPG 2.7.2] STATUS_EFFECT_NON_EFFECT_CONSUMERS_1201_PASS owners=5')
+if rewritten != 6:
+    raise SystemExit(f'#331/#332 status consumer repair incomplete: expected=6 rewritten={rewritten}')
+print('[More RPG 2.7.2] STATUS_EFFECT_NON_EFFECT_CONSUMERS_1201_PASS owners=5 calls=6')
