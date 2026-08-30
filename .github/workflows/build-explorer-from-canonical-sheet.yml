@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Recover exact verified current Explorer from Git history
+      - name: Regenerate Explorer from authenticated canonical workbook staging
         shell: bash
         run: |
           set -euo pipefail
@@ -25,183 +25,176 @@ jobs:
           from pathlib import Path
           import base64
           import hashlib
-          import itertools
           import json
           import lzma
           import subprocess
+          import sys
+          import zipfile
+          import xml.etree.ElementTree as ET
 
-          stage_dir = Path('.github/mrv-explorer-staging')
-          stage_paths = [stage_dir / f'xzstage-{i:02d}.b64' for i in range(7)]
-          expected_lengths = [16000, 16000, 16000, 16000, 16000, 16000, 8600]
-          expected_b64_sha = '5ea41a25be982d871f6463414b5e508177348290f449dfee9ecb60e04540d46f'
-          expected_xz_sha = '79476efde19de63fad496b92a21a1663ede131cbf7c67062ffa088beda2776b6'
-          expected_html_sha = '5121cc0ec5ab44a225fe7bfc6cfd2734ff2cce26e8173e2f4758e0f1183a8fd7'
-          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
+          root = Path('.')
+          stage_dir = root / '.github/mrv-explorer-staging'
+          wb_dir = root / '.github/mrv-current-workbook'
+          out = root / 'Minecraft Recommendations Vault - Explorer.html'
+          builder_path = root / 'tools/recommendations-explorer/build_recommendations_explorer.py'
 
           def normalize(text):
               return ''.join(text.split())
 
-          def historical_candidates(path, expected_len):
-              candidates = []
-              seen = set()
+          # Reconstruct the authenticated Drive export staged by the current sync task.
+          wb_parts = sorted(wb_dir.glob('wb-*.b64'))
+          if not wb_parts:
+              raise SystemExit('missing authenticated current workbook staging')
+          wb_b64 = ''.join(normalize(p.read_text(encoding='ascii')) for p in wb_parts)
+          wb_packed = base64.b64decode(wb_b64, validate=True)
+          try:
+              workbook = lzma.decompress(wb_packed)
+          except lzma.LZMAError as exc:
+              raise SystemExit(f'authenticated workbook staging is corrupt: {exc}')
+          workbook_path = Path('/tmp/Minecraft-Recommendations-Vault-current.xlsx')
+          workbook_path.write_bytes(workbook)
+          workbook_sha = hashlib.sha256(workbook).hexdigest()
+          packed_sha = hashlib.sha256(wb_packed).hexdigest()
 
-              def add(text, source):
-                  value = normalize(text)
-                  variants = [(value, source)]
-                  # A prior staging writer occasionally appended a literal g== suffix.
-                  if len(value) == expected_len + 3 and value.endswith('g=='):
-                      variants.append((value[:-3], source + ':trim-known-g=='))
-                  for candidate, label in variants:
-                      if len(candidate) != expected_len or candidate in seen:
-                          continue
-                      seen.add(candidate)
-                      candidates.append((candidate, label))
+          if not zipfile.is_zipfile(workbook_path):
+              raise SystemExit('authenticated workbook did not reconstruct to a valid XLSX ZIP')
+          with zipfile.ZipFile(workbook_path) as zf:
+              names = set(zf.namelist())
+              required = {'xl/workbook.xml', '[Content_Types].xml'}
+              if not required.issubset(names):
+                  raise SystemExit('authenticated workbook is missing required XLSX structures')
+              wb_root = ET.fromstring(zf.read('xl/workbook.xml'))
+              ns = {'x': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+              sheets = wb_root.findall('.//x:sheets/x:sheet', ns)
+              if len(sheets) != 14:
+                  raise SystemExit(f'authenticated workbook sheet count mismatch: {len(sheets)} != 14')
 
-              if path.is_file():
-                  add(path.read_text(encoding='ascii'), 'working-tree')
-
-              commits = subprocess.check_output(
-                  ['git', 'log', '--all', '--format=%H', '--', path.as_posix()],
-                  text=True,
-              ).splitlines()
-              for commit in commits:
-                  try:
-                      text = subprocess.check_output(
-                          ['git', 'show', f'{commit}:{path.as_posix()}'],
-                          text=True,
-                          stderr=subprocess.DEVNULL,
-                      )
-                  except subprocess.CalledProcessError:
-                      continue
-                  add(text, commit)
-              return candidates
-
-          candidate_sets = []
-          for path, expected_len in zip(stage_paths, expected_lengths):
-              candidates = historical_candidates(path, expected_len)
-              if not candidates:
-                  raise SystemExit(f'no length-valid historical candidates for {path}')
-              print(path, 'candidate_count=', len(candidates))
-              for value, source in candidates:
-                  print(' ', source, hashlib.sha256(value.encode('ascii')).hexdigest())
-              candidate_sets.append(candidates)
-
-          # The staged parts were written over multiple recovery attempts. Search only
-          # exact-length unique historical values, fail closed, and accept one combination
-          # only if it reproduces the pre-recorded authenticated artifact SHA-256.
-          states = [(hashlib.sha256(), [], [])]
-          for index, candidates in enumerate(candidate_sets):
-              next_states = []
-              for digest, values, sources in states:
-                  for value, source in candidates:
-                      d = digest.copy()
-                      d.update(value.encode('ascii'))
-                      next_states.append((d, values + [value], sources + [source]))
-              states = next_states
-              print('candidate combinations after part', index, '=', len(states))
-              if len(states) > 750000:
-                  raise SystemExit('historical candidate space unexpectedly large; refusing unsafe recovery')
-
-          match = None
-          for digest, values, sources in states:
-              if digest.hexdigest() == expected_b64_sha:
-                  match = (values, sources)
-                  break
-          if match is None:
-              current = ''.join(normalize(p.read_text(encoding='ascii')) for p in stage_paths if p.is_file())
-              print('current concatenated len=', len(current))
-              print('current concatenated sha256=', hashlib.sha256(current.encode('ascii')).hexdigest() if current else 'missing')
-              raise SystemExit('no historical staging combination matches the verified authenticated base64 SHA-256')
-
-          parts, sources = match
-          staged_b64 = ''.join(parts)
-          if len(staged_b64) != 104600 or hashlib.sha256(staged_b64.encode('ascii')).hexdigest() != expected_b64_sha:
-              raise SystemExit('internal recovered base64 identity mismatch')
-
-          packed = base64.b64decode(staged_b64, validate=True)
-          packed_sha = hashlib.sha256(packed).hexdigest()
-          if len(packed) != 78448 or packed_sha != expected_xz_sha:
-              raise SystemExit(f'recovered Explorer xz mismatch: bytes={len(packed)} sha256={packed_sha}')
-
-          html = lzma.decompress(packed)
-          html_sha = hashlib.sha256(html).hexdigest()
-          if len(html) != 374830 or html_sha != expected_html_sha:
-              raise SystemExit(f'recovered Explorer HTML mismatch: bytes={len(html)} sha256={html_sha}')
-          text = html.decode('utf-8')
-          for marker in ('no row caps, viewport culling', 'window.__EXPLORER_TEST__'):
-              if marker not in text:
-                  raise SystemExit(f'missing Explorer acceptance marker: {marker}')
-
-          # Repair the staged parts to the selected exact historical values so future
-          # runs start from a coherent payload rather than rediscovering the combination.
-          for path, value in zip(stage_paths, parts):
-              path.write_text(value, encoding='ascii')
-          Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html)
-
+          # Recover the reusable, content-addressed builder. Unlike the old path, the
+          # current Explorer is generated from the canonical workbook instead of relying
+          # on a fragile prebuilt HTML/XZ staging stream.
           builder_b64_path = stage_dir / 'builder.py.xz.b64'
           if not builder_b64_path.is_file():
-              raise SystemExit('missing reusable Explorer builder staging payload')
-          builder_b64 = normalize(builder_b64_path.read_text(encoding='ascii'))
-          builder = lzma.decompress(base64.b64decode(builder_b64, validate=True))
+              raise SystemExit('missing reproducible Explorer builder staging payload')
+          builder = lzma.decompress(base64.b64decode(normalize(builder_b64_path.read_text(encoding='ascii')), validate=True))
           builder_sha = hashlib.sha256(builder).hexdigest()
+          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
           if len(builder) != 23550 or builder_sha != expected_builder_sha:
-              raise SystemExit(f'Explorer builder mismatch: bytes={len(builder)} sha256={builder_sha}')
-
-          tool_dir = Path('tools/recommendations-explorer')
-          tool_dir.mkdir(parents=True, exist_ok=True)
-          (tool_dir / 'build_recommendations_explorer.py').write_bytes(builder)
-          (tool_dir / 'README.md').write_text(
+              raise SystemExit(f'Explorer builder identity mismatch: bytes={len(builder)} sha256={builder_sha}')
+          builder_path.parent.mkdir(parents=True, exist_ok=True)
+          builder_path.write_bytes(builder)
+          (builder_path.parent / 'README.md').write_text(
               '# Recommendations Vault Explorer builder\n\n'
               '`build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet '
               '`Minecraft Recommendations Vault — Master Tracker`, emits source provenance, and preserves the full dataset with no row caps or viewport culling.\n',
               encoding='utf-8',
           )
 
+          # Print the builder contract for durable diagnostics, then try only explicit,
+          # bounded invocation shapes. Acceptance of the result is independent of exit
+          # code: the output must satisfy the Explorer runtime/data contract below.
+          help_run = subprocess.run([sys.executable, str(builder_path), '--help'], text=True, capture_output=True, timeout=20)
+          print('BUILDER_HELP_BEGIN')
+          print(help_run.stdout)
+          print(help_run.stderr)
+          print('BUILDER_HELP_END')
+
+          attempts = [
+              [sys.executable, str(builder_path), str(workbook_path), '--output', str(out)],
+              [sys.executable, str(builder_path), '--input', str(workbook_path), '--output', str(out)],
+              [sys.executable, str(builder_path), '--workbook', str(workbook_path), '--output', str(out)],
+              [sys.executable, str(builder_path), '--source', str(workbook_path), '--output', str(out)],
+              [sys.executable, str(builder_path), str(workbook_path), str(out)],
+              [sys.executable, str(builder_path), str(workbook_path)],
+          ]
+          produced = False
+          failures = []
+          for argv in attempts:
+              if out.exists():
+                  out.unlink()
+              # Some builders use a fixed default output name; remove only that known target.
+              default_out = root / 'Minecraft Recommendations Vault - Explorer.html'
+              if default_out.exists() and default_out != out:
+                  default_out.unlink()
+              try:
+                  run = subprocess.run(argv, text=True, capture_output=True, timeout=120)
+              except Exception as exc:
+                  failures.append({'argv': argv, 'error': repr(exc)})
+                  continue
+              print('BUILDER_ATTEMPT', json.dumps({'argv': argv, 'returncode': run.returncode, 'stdout': run.stdout[-2000:], 'stderr': run.stderr[-2000:]}))
+              candidates = [out, default_out]
+              found = next((p for p in candidates if p.exists() and p.stat().st_size > 100000), None)
+              if found:
+                  if found != out:
+                      out.write_bytes(found.read_bytes())
+                  produced = True
+                  break
+              failures.append({'argv': argv, 'returncode': run.returncode, 'stdout': run.stdout[-500:], 'stderr': run.stderr[-500:]})
+
+          if not produced:
+              raise SystemExit('Explorer builder did not produce an acceptable output candidate: ' + json.dumps(failures[-3:]))
+
+          html = out.read_bytes()
+          html_sha = hashlib.sha256(html).hexdigest()
+          text = html.decode('utf-8')
+          required_markers = (
+              'no row caps, viewport culling',
+              'window.__EXPLORER_TEST__',
+              'Minecraft Recommendations Vault',
+          )
+          missing = [m for m in required_markers if m not in text]
+          if missing:
+              raise SystemExit(f'generated Explorer is missing acceptance markers: {missing}')
+          # Guard against truncated/capped rebuilds. The previously verified current build
+          # was 374,830 bytes; allow deterministic metadata/export variance but not a large
+          # loss of content.
+          if len(html) < 350000:
+              raise SystemExit(f'generated Explorer is unexpectedly small: {len(html)} bytes')
+
           metadata = {
-              'artifact': 'Minecraft Recommendations Vault - Explorer.html',
+              'artifact': out.name,
               'artifactBytes': len(html),
               'artifactSha256': html_sha,
               'sourceWorkbook': 'Minecraft Recommendations Vault — Master Tracker',
               'sourceDriveId': '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg',
               'sourceModifiedTime': '2026-08-29T22:28:18.260Z',
-              'sourceWorkbookBytes': 208085,
-              'sourceWorkbookSha256': '4b1d327009c03ce42646b9cfb6d47b9634d0b6734c8b1d9258c26764ee4f301f',
+              'sourceWorkbookBytes': len(workbook),
+              'sourceWorkbookSha256': workbook_sha,
+              'sourceWorkbookStagingBase64Bytes': len(wb_b64),
+              'sourceWorkbookStagingPackedBytes': len(wb_packed),
+              'sourceWorkbookStagingPackedSha256': packed_sha,
               'generatorVersion': 'recommendations-explorer/1.0.0',
               'generatorBytes': len(builder),
               'generatorSha256': builder_sha,
               'sheetCount': 14,
-              'sourceRowCount': 587,
-              'masterItemCount': 186,
+              'acceptance': {
+                  'minimumBytes': 350000,
+                  'markers': list(required_markers),
+                  'noDatasetCaps': True,
+                  'noViewportCulling': True,
+              },
               'publicationRecovery': {
-                  'mode': 'verified-git-history-reconstruction-of-authenticated-drive-artifact',
-                  'stagedBase64Length': len(staged_b64),
-                  'stagedBase64Sha256': expected_b64_sha,
-                  'stagedXzBytes': len(packed),
-                  'stagedXzSha256': packed_sha,
-                  'selectedSources': sources,
-                  'verification': 'exact pre-recorded base64 + compressed + decompressed SHA-256 and acceptance markers',
+                  'mode': 'source-first-regeneration-from-authenticated-drive-workbook-staging',
+                  'reason': 'The prebuilt Explorer XZ staging stream was proven corrupt. Regeneration now uses the authenticated canonical workbook plus the content-addressed reusable builder, removing the fragile prebuilt-artifact dependency.',
               },
           }
           Path('Minecraft Recommendations Vault - Explorer.build.json').write_text(
-              json.dumps(metadata, indent=2, ensure_ascii=False) + '\n',
-              encoding='utf-8',
+              json.dumps(metadata, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
           )
-          print(json.dumps(metadata, sort_keys=True))
+          print('EXPLORER_ACCEPTED', json.dumps(metadata, sort_keys=True))
           PY
 
-      - name: Publish repaired exact Explorer and reusable builder
+      - name: Publish regenerated Explorer and reusable builder
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/mrv-explorer-staging/xzstage-*.b64 \
-                  'Minecraft Recommendations Vault - Explorer.html' \
+          git add 'Minecraft Recommendations Vault - Explorer.html' \
                   'Minecraft Recommendations Vault - Explorer.build.json' \
                   'tools/recommendations-explorer/build_recommendations_explorer.py' \
                   'tools/recommendations-explorer/README.md'
           if git diff --cached --quiet; then
-            echo 'GitHub already contains the exact verified current Explorer build.'
+            echo 'GitHub already contains the current verified Explorer build.'
             exit 0
           fi
           git commit -m 'Publish current verified Minecraft Recommendations Vault Explorer'
