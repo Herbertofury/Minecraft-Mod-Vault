@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -20,30 +21,64 @@ type providerClient struct {
 
 func newProviderClient(h *http.Client) *providerClient {
 	if h == nil {
-		h = &http.Client{Timeout: 45 * time.Second}
+		tr := http.DefaultTransport.(*http.Transport).Clone()
+		tr.ResponseHeaderTimeout = 30 * time.Second
+		tr.TLSHandshakeTimeout = 15 * time.Second
+		tr.ExpectContinueTimeout = 2 * time.Second
+		tr.IdleConnTimeout = 90 * time.Second
+		tr.MaxIdleConns = 32
+		tr.MaxIdleConnsPerHost = 8
+		h = &http.Client{Transport: tr}
 	}
 	return &providerClient{http: h, modrinth: "https://api.modrinth.com/v2", curseforge: "https://api.curseforge.com/v1", github: "https://api.github.com"}
 }
 func (p *providerClient) request(ctx context.Context, method, raw string, headers map[string]string, out any) error {
-	req, e := http.NewRequestWithContext(ctx, method, raw, nil)
-	if e != nil {
-		return e
-	}
-	req.Header.Set("User-Agent", "MinecraftDevKitOrchestrator/2.0")
-	for k, v := range headers {
-		if v != "" {
-			req.Header.Set(k, v)
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, method, raw, nil)
+		if err != nil {
+			return err
 		}
+		req.Header.Set("User-Agent", devKitUserAgent())
+		req.Header.Set("Accept", "application/json")
+		for k, v := range headers {
+			if v != "" {
+				req.Header.Set(k, v)
+			}
+		}
+		resp, err := p.http.Do(req)
+		if err != nil {
+			lastErr = err
+			if attempt < 3 {
+				time.Sleep(retryDelay(nil, attempt))
+				continue
+			}
+			break
+		}
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
+		_ = resp.Body.Close()
+		if readErr != nil {
+			lastErr = readErr
+			if attempt < 3 {
+				time.Sleep(retryDelay(resp, attempt))
+				continue
+			}
+			break
+		}
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			lastErr = fmt.Errorf("%s: http %d: %s", raw, resp.StatusCode, strings.TrimSpace(string(body)))
+			if shouldRetryStatus(resp.StatusCode) && attempt < 3 {
+				time.Sleep(retryDelay(resp, attempt))
+				continue
+			}
+			break
+		}
+		if err := json.Unmarshal(body, out); err != nil {
+			return err
+		}
+		return nil
 	}
-	resp, e := p.http.Do(req)
-	if e != nil {
-		return e
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("%s: http %d", raw, resp.StatusCode)
-	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	return lastErr
 }
 func (p *providerClient) resolve(ctx context.Context, ref ProviderRef, target Target) (Candidate, error) {
 	switch strings.ToLower(ref.Type) {
@@ -53,6 +88,8 @@ func (p *providerClient) resolve(ctx context.Context, ref ProviderRef, target Ta
 		return p.resolveCurseForge(ctx, ref, target)
 	case "github":
 		return p.resolveGitHub(ctx, ref, target)
+	case "github-branch":
+		return p.resolveGitHubBranch(ctx, ref, target)
 	case "url":
 		if ref.URL == "" {
 			return Candidate{}, fmt.Errorf("url provider missing url")
@@ -137,7 +174,10 @@ func (p *providerClient) resolveModrinth(ctx context.Context, ref ProviderRef, t
 			srcArch = "https://github.com/" + repo + "/archive/refs/heads/main.zip"
 			srcRef = "main"
 		}
-		return Candidate{Provider: "modrinth", ProjectID: proj.ID, VersionID: v.ID, Version: v.VersionNumber, Filename: f.Filename, URL: f.URL, PageURL: "https://modrinth.com/project/" + proj.Slug + "/version/" + v.ID, Published: v.DatePublished, SHA256: f.Hashes["sha256"], SHA512: f.Hashes["sha512"], SHA1: f.Hashes["sha1"], Size: f.Size, GameVersions: v.GameVersions, Loaders: v.Loaders, Dependencies: deps, SourceURL: proj.SourceURL, SourceArchive: srcArch, SourceRef: srcRef, ReleaseChannel: v.VersionType}, nil
+		c := Candidate{Provider: "modrinth", ProjectID: proj.ID, VersionID: v.ID, Version: v.VersionNumber, Filename: f.Filename, URL: f.URL, PageURL: "https://modrinth.com/project/" + proj.Slug + "/version/" + v.ID, Published: v.DatePublished, SHA256: f.Hashes["sha256"], SHA512: f.Hashes["sha512"], SHA1: f.Hashes["sha1"], Size: f.Size, GameVersions: v.GameVersions, Loaders: v.Loaders, Dependencies: deps, SourceURL: proj.SourceURL, SourceArchive: srcArch, SourceRef: srcRef, ReleaseChannel: v.VersionType}
+		c.AlternateURLs = appendUniqueURL(c.AlternateURLs, modrinthCanonicalCDNURL(c))
+		c.AlternateURLs = appendUniqueURL(c.AlternateURLs, modrinthMavenURL(c))
+		return c, nil
 	}
 	return Candidate{}, fmt.Errorf("no compatible Modrinth release for %s (%s/%s)", id, target.Minecraft, target.Loader)
 }
@@ -191,7 +231,22 @@ func (p *providerClient) resolveCurseForge(ctx context.Context, ref ProviderRef,
 		return Candidate{}, e
 	}
 	for _, f := range out.Data {
-		if f.DownloadURL == "" || !cfChannelAllowed(f.ReleaseType, target.Channel) {
+		if !cfChannelAllowed(f.ReleaseType, target.Channel) {
+			continue
+		}
+		if f.DownloadURL == "" {
+			var dl struct {
+				Data string `json:"data"`
+			}
+			raw := p.curseforge + "/mods/" + url.PathEscape(id) + "/files/" + strconv.FormatInt(f.ID, 10) + "/download-url"
+			if e := p.request(ctx, "GET", raw, map[string]string{"x-api-key": p.cfKey}, &dl); e == nil {
+				f.DownloadURL = strings.TrimSpace(dl.Data)
+			}
+		}
+		if f.DownloadURL == "" {
+			f.DownloadURL = curseForgeCDNURL(strconv.FormatInt(f.ID, 10), f.FileName)
+		}
+		if f.DownloadURL == "" {
 			continue
 		}
 		deps := []Dependency{}
@@ -204,13 +259,15 @@ func (p *providerClient) resolveCurseForge(ctx context.Context, ref ProviderRef,
 		for _, h := range f.Hashes {
 			hashes[h.Algo] = h.Value
 		}
-		return Candidate{Provider: "curseforge", ProjectID: d, VersionID: strconv.FormatInt(f.ID, 10), Version: first(f.DisplayName, f.FileName), Filename: f.FileName, URL: f.DownloadURL, Published: f.FileDate, SHA1: hashes[1], Size: f.FileLength, GameVersions: f.GameVersions, Loaders: []string{target.Loader}, Dependencies: deps, ReleaseChannel: cfReleaseName(f.ReleaseType)}, nil
+		c := Candidate{Provider: "curseforge", ProjectID: id, VersionID: strconv.FormatInt(f.ID, 10), Version: first(f.DisplayName, f.FileName), Filename: f.FileName, URL: f.DownloadURL, Published: f.FileDate, SHA1: hashes[1], Size: f.FileLength, GameVersions: f.GameVersions, Loaders: []string{target.Loader}, Dependencies: deps, ReleaseChannel: cfReleaseName(f.ReleaseType)}
+		c.AlternateURLs = appendUniqueURL(c.AlternateURLs, curseForgeCDNURL(c.VersionID, c.Filename))
+		return c, nil
 	}
 	return Candidate{}, fmt.Errorf("no compatible CurseForge release for %s", id)
 }
 func cfChannelAllowed(t int, w string) bool {
 	w = strings.ToLower(w)
-	if w == "" || want == "release" {
+	if w == "" || w == "release" {
 		return t == 1
 	}
 	if w == "beta" {
@@ -231,7 +288,7 @@ func cfReleaseName(t int) string {
 type ghAsset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
-	Size               int64   `json:"size"`
+	Size               int64  `json:"size"`
 }
 type ghRelease struct {
 	TagName     string    `json:"tag_name"`
@@ -287,6 +344,51 @@ func (p *providerClient) resolveGitHub(ctx context.Context, ref ProviderRef, tar
 	}
 	return Candidate{}, fmt.Errorf("no compatible GitHub release asset for %s", repo)
 }
+
+type ghRepoMeta struct {
+	DefaultBranch string `json:"default_branch"`
+}
+type ghBranchMeta struct {
+	Commit struct {
+		SHA string `json:"sha"`
+	} `json:"commit"`
+}
+
+func (p *providerClient) resolveGitHubBranch(ctx context.Context, ref ProviderRef, target Target) (Candidate, error) {
+	repo := first(ref.Repo, ref.Project)
+	if r, ok := githubRepo(repo); ok {
+		repo = r
+	}
+	if !strings.Contains(repo, "/") {
+		return Candidate{}, fmt.Errorf("github-branch provider missing owner/repo")
+	}
+	hdr := map[string]string{"Accept": "application/vnd.github+json"}
+	if p.ghToken != "" {
+		hdr["Authorization"] = "Bearer " + p.ghToken
+	}
+	branch := ref.Branch
+	if branch == "" {
+		var meta ghRepoMeta
+		if err := p.request(ctx, "GET", p.github+"/repos/"+repo, hdr, &meta); err != nil {
+			return Candidate{}, err
+		}
+		branch = first(meta.DefaultBranch, "main")
+	}
+	var b ghBranchMeta
+	if err := p.request(ctx, "GET", p.github+"/repos/"+repo+"/branches/"+url.PathEscape(branch), hdr, &b); err != nil {
+		return Candidate{}, err
+	}
+	if b.Commit.SHA == "" {
+		return Candidate{}, fmt.Errorf("github branch %s/%s missing commit sha", repo, branch)
+	}
+	short := b.Commit.SHA
+	if len(short) > 12 {
+		short = short[:12]
+	}
+	name := strings.ReplaceAll(repo, "/", "-") + "-" + branch + "-" + short + ".zip"
+	return Candidate{Provider: "github-branch", ProjectID: repo, VersionID: b.Commit.SHA, Version: b.Commit.SHA, Filename: name, URL: "https://github.com/" + repo + "/archive/" + b.Commit.SHA + ".zip", PageURL: "https://github.com/" + repo + "/tree/" + branch, SourceURL: "https://github.com/" + repo, SourceArchive: "https://github.com/" + repo + "/archive/" + b.Commit.SHA + ".zip", SourceRef: b.Commit.SHA, ReleaseChannel: "branch"}, nil
+}
+
 func targetAllowsPrerelease(t Target) bool {
 	x := strings.ToLower(t.Channel)
 	return x == "beta" || x == "alpha" || x == "nightly"

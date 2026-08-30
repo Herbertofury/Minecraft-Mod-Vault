@@ -63,6 +63,7 @@ type Candidate struct {
 	Version        string       `json:"version"`
 	Filename       string       `json:"filename"`
 	URL            string       `json:"url"`
+	AlternateURLs  []string     `json:"alternateUrls,omitempty"`
 	PageURL        string       `json:"pageUrl,omitempty"`
 	Published      time.Time    `json:"published,omitempty"`
 	SHA256         string       `json:"sha256,omitempty"`

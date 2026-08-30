@@ -1,6 +1,54 @@
-# Minecraft Dev Kit Orchestrator 2.2.0 — Live Source, Tool & Port-Heritage Manager
+# Minecraft Dev Kit Orchestrator 2.7.0 — Compatibility Atlas, Live Source, Tool, Cache & Native-Client Manager
 
 `mmv-devkit` keeps the Minecraft development laboratory current and makes mod conversions defendable. It tracks canonical upstream identities for tools, mods, APIs and libraries; resolves target-compatible releases; independently resolves the newest upstream feature authority; follows required dependencies; mirrors source; preserves stable Google Drive file IDs; and blocks conversion completion when original or newest-upstream content was lost or corrupted.
+
+2.5 adds the **Compatibility Atlas**: a plugin-driven, version-aware memory for optional mod APIs. It learns exact class/method descriptors from runtime JARs, keeps source-only evidence separate, compares API lanes across Minecraft/mod/loader versions, generates soft-linked adapter scaffolds, audits accidental hard links, and builds the complete none/any-subset/all-installed matrix for core modpack integrations. The 2.3 portable-build/native-rendering primitives and 2.4 exact-provider fetch remain intact.
+
+## Compatibility Atlas (2.6.3)
+
+Initialize the built-in plugin pack, ingest every runtime/source lane you possess, then plan or verify a target mod:
+
+```text
+mmv-devkit compat init --root DEVKIT
+mmv-devkit compat ingest --root DEVKIT --plugin tacz --artifact tacz-1.20.1-1.1.8-release.jar
+mmv-devkit compat ingest --root DEVKIT --plugin bettercombat --artifact BetterCombat-26.2.zip
+mmv-devkit compat diff --root DEVKIT --plugin epicfight --from 20.14.17 --to 21.17.3.1 --json
+mmv-devkit compat matrix --root DEVKIT --mods tacz,bettercombat,punchy,epicfight,ragdoll,create,valkyrienskies,clockwork,eureka,ysm
+mmv-devkit compat plan --root DEVKIT --target PROJECT --mods epicfight,bettercombat,punchy,ysm --mc 1.20.1 --loader forge
+mmv-devkit compat scaffold --root DEVKIT --target PROJECT --mods tacz,bettercombat --package com.example.compat
+mmv-devkit compat verify --root DEVKIT --target PROJECT --mods epicfight,bettercombat,punchy,ysm --mc 1.20.1 --loader forge
+```
+
+The durable state lives under `.mmv/compat/`:
+
+- `atlas.json` stores learned version lanes, artifact SHA-256, evidence strength, exact runtime class/method descriptors, semantic-anchor resolutions, and API fingerprints.
+- `plugins/*.json` defines one independent compatibility plugin per provider mod. Built-ins currently cover **TaCZ, Better Combat, Punchy, Epic Fight, Ragdoll/Reactions, Create, Valkyrien Skies, Clockwork, Eureka, and Yes Steve Model**. Plugin-level `supportedLoaders` describes the known loader family while each learned lane remains exact to its artifact. **Better Combat is explicitly Fabric + Forge + NeoForge capable; the 1.20.1 1.9.0 lane supports Forge and NeoForge.**
+- `compat init` never overwrites a customized plugin. `--refresh` writes a changed built-in beside it as `*.upstream.json` for deliberate merging.
+- Runtime JAR lanes are `RUNTIME_BYTECODE`; source ZIP/JAR lanes are `SOURCE_EVIDENCE`. Source evidence can guide a port but cannot be promoted to production descriptor proof.
+- `compat diff` reports complete added/removed symbol sets, semantic-anchor moves/signature drift, and migration guidance between learned lanes.
+- `compat matrix` includes the empty case, every valid subset, and the all-installed case. Dependency-invalid combinations are retained and explained instead of silently skipped.
+- `compat plan/verify` rejects direct optional-provider package links in Java/Kotlin/Scala sources while ignoring comments/string literals used by safe reflection/Mixins.
+- `compat scaffold` generates `Class.forName`-based adapters and never imports an optional provider class.
+
+This is intentionally a **memory atlas**, not a single-version patcher: learning a new mod/Minecraft/loader lane adds evidence without erasing old mappings. API drift becomes a comparison result rather than a reason to rewrite history.
+
+## Portable cache + native client QA
+
+Large Gradle/Forge caches and Minecraft client assets are now treated as verifiable artifacts rather than opaque folders.
+
+```text
+mmv-devkit archive-split --file BIG.zip --out-dir BIG.zip-SPLIT --part-mib 85
+mmv-devkit cache-reassemble --manifest BIG.zip-SPLIT/BIG.zip-SPLIT-MANIFEST.json --extract GRADLE_HOME
+mmv-devkit cache-doctor --cache GRADLE_HOME --mc 1.20.1 --forge 47.4.23 --forgegradle 6.0.54 --expect-min-files 1600
+mmv-devkit client-assets --gradle-home GRADLE_HOME --mc 1.20.1 --workers 16
+mmv-devkit client-natives --gradle-home GRADLE_HOME --platform linux --out PROJECT/build/mmv-natives-linux
+```
+
+`archive-split` writes an ordered split manifest with SHA-256 and exact byte size for the original plus every part. `cache-reassemble` verifies all of it before use, rejects traversal/symlink/duplicate-normalized entries, normalizes Windows backslash ZIP paths, and resumes extraction by CRC32 so a terminated extraction cannot masquerade as a complete cache. `cache-doctor` verifies the actual cache surfaces needed by a target instead of trusting file count or folder existence alone.
+
+`client-assets` reads the exact Mojang asset index from cached Minecraft version metadata and downloads content-addressed objects from Mojang's official CDN. Every index and asset is size/hash verified, correct existing files are reused, and `--verify-only` is network-free. No Microsoft/Minecraft credentials are required.
+
+`client-natives` extracts the actual native libraries from cached LWJGL classifier JARs for `linux`, `windows`, or `macos`. This is important for portable ForgeGradle caches that were generated on another OS and therefore contain a cached client POM selecting the wrong platform classifiers.
 
 ## The two-version rule
 
@@ -161,3 +209,37 @@ heritage -> implement/backport -> build -> port-guard -> TestGrid runtime proof 
 ```
 
 A build that passes TestGrid but fails `port-guard` is incomplete because it lost source content or newest-upstream features. A build that passes `port-guard` but fails TestGrid is incomplete because structural fidelity alone does not prove runtime correctness. Both gates are required.
+
+## Exact mod artifact fetch (2.7.0)
+
+`fetch-mod` retrieves an exact provider release to the local filesystem without requiring Google Drive. It is intended for porting, forensic parity work, reproducible QA, and dependency recovery where "latest compatible" is not precise enough.
+
+```bash
+mmv-devkit fetch-mod --provider modrinth --project 9qn2AQBc --version VCCCalGp --out refs/AoA3-1.16.5-3.6.11.jar --receipt refs/aoa-fetch.json
+mmv-devkit fetch-mod --provider curseforge --project 311054 --file 4431558 --out refs/AoA3-1.16.5-3.6.11.jar --receipt refs/aoa-fetch.json
+```
+
+Safety properties: canonical project/version provenance checking, provider SHA-512/SHA-256/SHA-1 verification when available, provider size verification, streaming to disk instead of whole-artifact buffering, interrupted-transfer resume with HTTP Range, bounded retries/backoff, redirect-safe provider headers, deterministic fallback URLs, atomic verified promotion, and cleanup/no replacement when verification fails. Modrinth accepts either a canonical project ID or slug and verifies the exact version belongs to the resolved canonical project. If the primary Modrinth file URL fails, the resolver can retry the canonical CDN route and the Modrinth Maven artifact for JAR primaries.
+
+CurseForge direct CDN downloads require `CURSEFORGE_API_KEY` (aliases `CF_API_KEY` and `CURSEFORGE_KEY` are also accepted). The key is attached as `x-api-key` to both metadata/download-url requests and the CDN transfer, and is preserved across redirects. If a CurseForge file record omits `downloadUrl`, the Dev Kit requests the dedicated download-url endpoint and can deterministically reconstruct the official `edge.forgecdn.net/files/{id}/{subId}/{filename}` route from exact file metadata.
+
+## Vanilla Feature Atlas + Backport Ownership 2.6.4
+
+The `vanilla-atlas` command family prevents cross-version vanilla dependencies from being stubbed or silently discarded. It models vanilla lineage as versioned feature families and produces fail-closed ownership decisions. Future vanilla may be owned only by target vanilla, one proven external provider, or the canonical `futurevanillabackport` provider; individual ports do not privately embed duplicate vanilla implementations.
+
+**2.6.3 makes the ordering explicit:** finish and certify the full target-native mod port first. `plan-backport` is an always-generated post-port **offer**, default OFF. Planning can happen earlier, but implementation authorization requires explicit `--opt-in` plus a passing base `port-guard` report via `--port-report`. The certified base artifact remains intact. Every offer exposes the exact dependency closure and labels future vanilla as an optional enhancement or a requirement for exact source-version parity where applicable.
+
+Sound identity is explicitly three-layered: registered `SoundEvent`, `sounds.json` definition, and external OGG object(s). A registered event with no definition is preserved as a real historical state rather than misreported as a missing asset.
+
+```text
+mmv-devkit vanilla-atlas verify --atlas VANILLA-ATLAS.json
+mmv-devkit vanilla-atlas query --atlas VANILLA-ATLAS.json --id minecraft:item.goat_horn.play --target 1.20.1
+mmv-devkit vanilla-atlas sound-status --atlas VANILLA-ATLAS.json --id minecraft:item.goat_horn.play --target 1.20.1
+mmv-devkit vanilla-atlas diff --atlas VANILLA-ATLAS.json --from 1.20.1 --to 26.2 --kind sound_event
+mmv-devkit vanilla-atlas providers --atlas VANILLA-ATLAS.json --mods-dir mods
+mmv-devkit vanilla-atlas plan-backport --atlas VANILLA-ATLAS.json --target 1.20.1 --source 26.2 --feature <id> --mods-dir mods
+# After base port-guard passes and the user opts in:
+mmv-devkit vanilla-atlas plan-backport --atlas VANILLA-ATLAS.json --target 1.20.1 --source 26.2 --feature <id> --port-report port-guard-report.json --opt-in --json
+```
+
+The reproducible builder in `tools/build_vanilla_atlas.py` uses Mojang's version metadata/asset indexes as official authority, misode/mcmeta for generated registry/data/resource history, PrismarineJS/minecraft-data for normalized older observations, and Vanilla Backport only as compatibility-provider evidence. Heavy vanilla bytes are hydrated and hash-verified on demand instead of duplicated for every version.
