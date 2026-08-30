@@ -14,29 +14,23 @@ status_consumer_prepass = Path(__file__).with_name('prepare_more_rpg_library_120
 api_wave2 = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave2.py')
 loot_wave3 = Path(__file__).with_name('prepare_more_rpg_library_1201_loot_wave3.py')
 loot_wave3_import_fix = Path(__file__).with_name('prepare_more_rpg_library_1201_loot_wave3_import_fix.py')
-for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix):
+registry_wave4 = Path(__file__).with_name('prepare_more_rpg_library_1201_registry_wave4.py')
+for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
-# Preserve all existing full-source and loader-neutral preparation invariants first.
 subprocess.run([sys.executable, str(loader_neutral), str(modern), str(old), str(out)], check=True)
-
-# Apply only proven 1.21 -> 1.20.1 API seams. Each stage is fail-closed; loot persistence is kept as
-# its own Wave 3 so serializer changes cannot mask status/worldgen failures from Wave 2. The import
-# ordering repair is intentionally isolated so Wave 3 semantic markers remain independently auditable.
 subprocess.run([sys.executable, str(api_pass), str(out)], check=True)
 subprocess.run([sys.executable, str(status_consumer_prepass), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave2), str(out)], check=True)
 subprocess.run([sys.executable, str(loot_wave3), str(out)], check=True)
 subprocess.run([sys.executable, str(loot_wave3_import_fix), str(out)], check=True)
+subprocess.run([sys.executable, str(registry_wave4), str(out)], check=True)
 
 common_gradle = out / 'common/build.gradle'
 if not common_gradle.is_file():
     raise SystemExit('generated common/build.gradle missing')
 s = common_gradle.read_text()
-
-# The common project uses Yarn named mappings. Feeding final Forge/SRG production artifacts into this
-# classpath poisons dependency signatures and produces hundreds of false downstream source errors.
 pairs = [
     ('spell_engine_forge_jar', 'spell_engine_common_jar'),
     ('spell_power_forge_jar', 'spell_power_common_jar'),
@@ -49,19 +43,16 @@ for old_prop, new_prop in pairs:
     if s.count(needle) != 1:
         raise SystemExit(f'common dependency seam drifted for {old_prop}: found {s.count(needle)}')
     s = s.replace(needle, repl, 1)
-
 anchor = '''    modImplementation("dev.kosmx.player-anim:player-animation-lib-fabric:${rootProject.player_anim_version}")\n'''
 insert = '''    implementation("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}")\n    annotationProcessor("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}")\n'''
 if s.count(anchor) != 1:
     raise SystemExit(f'common MixinExtras insertion seam drifted: found {s.count(anchor)}')
 s = s.replace(anchor, insert + anchor, 1)
-
 source_anchor = '''loom {\n    accessWidenerPath = file('src/main/resources/more-rpg-classes.accesswidener')\n}\n'''
 source_block = '''sourceSets {\n    main {\n        java { exclude 'net/more_rpg_classes/datagen/**' }\n        resources { srcDir 'src/main/generated' }\n    }\n}\n'''
 if s.count(source_anchor) != 1:
     raise SystemExit(f'common source-set insertion seam drifted: found {s.count(source_anchor)}')
 s = s.replace(source_anchor, source_block + source_anchor, 1)
-
 for old_prop, _ in pairs:
     if old_prop in s:
         raise SystemExit(f'production Forge dependency still leaks into common compile classpath: {old_prop}')
@@ -73,7 +64,5 @@ if s.count('mixinextras-common') != 2:
 if s.count("exclude 'net/more_rpg_classes/datagen/**'") != 1 or s.count("srcDir 'src/main/generated'") != 1:
     raise SystemExit('runtime/datagen source separation contract missing or duplicated')
 common_gradle.write_text(s)
-
-print('[More RPG 2.7.2] NAMED_COMMON_FOUNDATION_CLASSPATH_PASS '
-      'spell_engine+spell_power+ranged+tiny_config=named-common forge-runtime=certified-production mixinextras=common-0.4.1')
+print('[More RPG 2.7.2] NAMED_COMMON_FOUNDATION_CLASSPATH_PASS spell_engine+spell_power+ranged+tiny_config=named-common forge-runtime=certified-production mixinextras=common-0.4.1')
 print('[More RPG 2.7.2] GENERATED_RESOURCE_AUTHORITY_PRESERVED runtime_java_excludes=datagen')
