@@ -143,4 +143,11 @@ for required in (
     if required not in client_final:
         raise SystemExit(f'Spell Engine Forge client parity missing: {required}')
 
-print('Spell Engine compatibility pass 6o applied: 1.10.4 Critical Strike API + fallback loot + access fix + tooltip key runtime parity gated')
+# The certified TinyConfig bytes must remain exact, but Loom include(...) needs a module component.
+# Apply the local artifact-only Maven staging only after all 1.10.4 behavior assertions are green.
+pass6p = Path(__file__).with_name('compat_pass_6p.py')
+if not pass6p.is_file():
+    raise SystemExit(f'missing certified TinyConfig module-staging pass: {pass6p}')
+subprocess.run([sys.executable, str(pass6p), str(root), str(baseline)], check=True)
+
+print('Spell Engine compatibility pass 6o applied: 1.10.4 Critical Strike API + fallback loot + access fix + tooltip key runtime parity gated; certified TinyConfig module staging activated')
