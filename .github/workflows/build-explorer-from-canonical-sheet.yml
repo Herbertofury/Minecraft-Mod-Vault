@@ -24,8 +24,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Regenerate Explorer from canonical Google Sheet
-        id: regenerate
+      - name: Reconstruct and verify Explorer from authenticated staging
+        id: reconstruct
         shell: bash
         run: |
           set +e
@@ -35,155 +35,113 @@ jobs:
           import hashlib
           import json
           import lzma
-          import subprocess
-          import sys
-          import urllib.request
-          import zipfile
-          import xml.etree.ElementTree as ET
 
           root = Path('.')
-          stage_dir = root / '.github/mrv-explorer-staging'
+          stage = root / '.github/mrv-explorer-staging/current-explorer'
+          builder_stage = root / '.github/mrv-explorer-staging/builder.py.xz.b64'
           out = root / 'Minecraft Recommendations Vault - Explorer.html'
-          builder_path = root / 'tools/recommendations-explorer/build_recommendations_explorer.py'
-          source_id = '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg'
-          source_url = f'https://docs.google.com/spreadsheets/d/{source_id}/export?format=xlsx'
-          workbook_path = Path('/tmp/Minecraft-Recommendations-Vault-current.xlsx')
+          build_out = root / 'Minecraft Recommendations Vault - Explorer.build.json'
+          builder_out = root / 'tools/recommendations-explorer/build_recommendations_explorer.py'
+          readme_out = root / 'tools/recommendations-explorer/README.md'
 
-          def normalize(text):
-              return ''.join(text.split())
+          def sha256(data: bytes) -> str:
+              return hashlib.sha256(data).hexdigest()
 
-          request = urllib.request.Request(source_url, headers={'User-Agent': 'Mozilla/5.0 GitHub-Actions-Explorer-Sync/1.0'})
+          manifest_path = stage / 'manifest.json'
+          if not manifest_path.is_file():
+              raise SystemExit('missing authenticated Explorer staging manifest; the canonical Drive sheet is private, so public-runner source fetch is intentionally not used')
+          manifest_bytes = manifest_path.read_bytes()
+          manifest = json.loads(manifest_bytes.decode('utf-8'))
+          if manifest.get('schema') != 'minecraft-mod-vault.explorer-staged-payload/1':
+              raise SystemExit('unexpected Explorer staging schema')
+          if manifest.get('sourceDriveId') != '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg':
+              raise SystemExit('staged source Drive identity mismatch')
+
+          parts = manifest.get('parts') or []
+          if manifest.get('partCount') != 18 or len(parts) != 18:
+              raise SystemExit(f'expected 18 staged payload parts, got {len(parts)}')
+          expected_names = [f'part-{i:02d}' for i in range(18)]
+          if [p.get('name') for p in parts] != expected_names:
+              raise SystemExit('staged payload part ordering mismatch')
+
+          chunks = []
+          for record in parts:
+              path = stage / record['name']
+              data = path.read_bytes()
+              if len(data) != record['bytes']:
+                  raise SystemExit(f"{record['name']} byte mismatch: {len(data)} != {record['bytes']}")
+              digest = sha256(data)
+              if digest != record['sha256']:
+                  raise SystemExit(f"{record['name']} SHA-256 mismatch: {digest}")
+              chunks.append(data)
+          encoded = b''.join(chunks)
+          if len(encoded) != manifest['artifactXzBase64Bytes'] or sha256(encoded) != manifest['artifactXzBase64Sha256']:
+              raise SystemExit('combined staged base64 identity mismatch')
+
           try:
-              with urllib.request.urlopen(request, timeout=60) as response:
-                  workbook = response.read()
-                  print('SOURCE_HTTP_STATUS', response.status)
-                  print('SOURCE_CONTENT_TYPE', response.headers.get('Content-Type'))
-                  print('SOURCE_FINAL_URL', response.geturl())
+              compressed = base64.b64decode(encoded, validate=True)
           except Exception as exc:
-              raise SystemExit(f'canonical Google Sheet export request failed: {exc!r}')
-
-          workbook_path.write_bytes(workbook)
-          workbook_sha = hashlib.sha256(workbook).hexdigest()
-          print('SOURCE_BYTES', len(workbook))
-          print('SOURCE_SHA256', workbook_sha)
-          if not zipfile.is_zipfile(workbook_path):
-              prefix = workbook[:500].decode('utf-8', errors='replace')
-              raise SystemExit('canonical Google Sheet export is not XLSX; response prefix=' + repr(prefix))
-
-          with zipfile.ZipFile(workbook_path) as zf:
-              names = set(zf.namelist())
-              required = {'xl/workbook.xml', '[Content_Types].xml'}
-              if not required.issubset(names):
-                  raise SystemExit('canonical workbook is missing required XLSX structures')
-              wb_root = ET.fromstring(zf.read('xl/workbook.xml'))
-              ns = {'x': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-              sheets = wb_root.findall('.//x:sheets/x:sheet', ns)
-              sheet_names = [s.attrib['name'] for s in sheets]
-              print('SOURCE_SHEETS', json.dumps(sheet_names, ensure_ascii=False))
-              if len(sheets) != 14:
-                  raise SystemExit(f'canonical workbook sheet count mismatch: {len(sheets)} != 14')
-              required_sheet_names = {
-                  'Dashboard','Category Leaders','Master Catalog','Monster Girls','Animated Packs','CIT Packs',
-                  'Client-Safe','Change Log','Sources & Rules','3D Packs','Launchers & Managers','World Tools',
-                  'Conversion Stack','Mod Conversion Stack'
-              }
-              if set(sheet_names) != required_sheet_names:
-                  raise SystemExit('canonical workbook sheet-name set mismatch')
-
-          builder_b64_path = stage_dir / 'builder.py.xz.b64'
-          if not builder_b64_path.is_file():
-              raise SystemExit('missing reproducible Explorer builder staging payload')
+              raise SystemExit(f'staged payload base64 decode failed: {exc!r}')
+          if len(compressed) != manifest['artifactXzBytes'] or sha256(compressed) != manifest['artifactXzSha256']:
+              raise SystemExit('staged XZ payload identity mismatch')
           try:
-              builder = lzma.decompress(base64.b64decode(normalize(builder_b64_path.read_text(encoding='ascii')), validate=True))
+              html = lzma.decompress(compressed)
           except Exception as exc:
-              raise SystemExit(f'Explorer builder staging payload is corrupt: {exc!r}')
-          builder_sha = hashlib.sha256(builder).hexdigest()
-          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
-          if len(builder) != 23550 or builder_sha != expected_builder_sha:
-              raise SystemExit(f'Explorer builder identity mismatch: bytes={len(builder)} sha256={builder_sha}')
-          builder_path.parent.mkdir(parents=True, exist_ok=True)
-          builder_path.write_bytes(builder)
-          (builder_path.parent / 'README.md').write_text(
+              raise SystemExit(f'staged XZ payload decompression failed: {exc!r}')
+          if len(html) != manifest['artifactBytes'] or sha256(html) != manifest['artifactSha256']:
+              raise SystemExit('reconstructed Explorer identity mismatch')
+          text = html.decode('utf-8')
+          for marker in manifest['verificationMarkers']:
+              if marker not in text:
+                  raise SystemExit(f'reconstructed Explorer missing acceptance marker: {marker}')
+          out.write_bytes(html)
+
+          staged_build = stage / manifest['buildJson']
+          build_bytes = staged_build.read_bytes()
+          if len(build_bytes) != manifest['buildJsonBytes'] or sha256(build_bytes) != manifest['buildJsonSha256']:
+              raise SystemExit('staged Explorer build metadata identity mismatch')
+          build = json.loads(build_bytes.decode('utf-8'))
+          required_build = {
+              'artifact': manifest['artifact'],
+              'artifactBytes': manifest['artifactBytes'],
+              'artifactSha256': manifest['artifactSha256'],
+              'sourceDriveId': manifest['sourceDriveId'],
+              'sourceModifiedTime': manifest['sourceModifiedTime'],
+              'sourceWorkbookBytes': manifest['sourceWorkbookBytes'],
+              'sourceWorkbookSha256': manifest['sourceWorkbookSha256'],
+          }
+          for key, expected in required_build.items():
+              if build.get(key) != expected:
+                  raise SystemExit(f'build metadata mismatch for {key}: {build.get(key)!r} != {expected!r}')
+          build_out.write_bytes(build_bytes)
+
+          if not builder_stage.is_file():
+              raise SystemExit('missing exact reusable Explorer builder staging payload')
+          normalized = ''.join(builder_stage.read_text(encoding='ascii').split())
+          builder = lzma.decompress(base64.b64decode(normalized, validate=True))
+          builder_digest = sha256(builder)
+          if len(builder) != 23550 or builder_digest != 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b':
+              raise SystemExit(f'Explorer builder identity mismatch: bytes={len(builder)} sha256={builder_digest}')
+          builder_out.parent.mkdir(parents=True, exist_ok=True)
+          builder_out.write_bytes(builder)
+          readme_out.write_text(
               '# Recommendations Vault Explorer builder\n\n'
               '`build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet '
               '`Minecraft Recommendations Vault — Master Tracker`, emits source provenance, and preserves the full dataset with no row caps or viewport culling.\n',
               encoding='utf-8',
           )
 
-          help_run = subprocess.run([sys.executable, str(builder_path), '--help'], text=True, capture_output=True, timeout=30)
-          print('BUILDER_HELP_RETURN', help_run.returncode)
-          print('BUILDER_HELP_STDOUT', help_run.stdout[-6000:])
-          print('BUILDER_HELP_STDERR', help_run.stderr[-3000:])
-
-          attempts = [
-              [sys.executable, str(builder_path), str(workbook_path), '--output', str(out)],
-              [sys.executable, str(builder_path), '--input', str(workbook_path), '--output', str(out)],
-              [sys.executable, str(builder_path), '--workbook', str(workbook_path), '--output', str(out)],
-              [sys.executable, str(builder_path), '--source', str(workbook_path), '--output', str(out)],
-              [sys.executable, str(builder_path), str(workbook_path), str(out)],
-              [sys.executable, str(builder_path), str(workbook_path)],
-          ]
-          produced = False
-          failures = []
-          for argv in attempts:
-              if out.exists():
-                  out.unlink()
-              try:
-                  run = subprocess.run(argv, text=True, capture_output=True, timeout=180)
-              except Exception as exc:
-                  failures.append({'argv': argv, 'error': repr(exc)})
-                  continue
-              print('BUILDER_ATTEMPT', json.dumps({'argv': argv, 'returncode': run.returncode, 'stdout': run.stdout[-3000:], 'stderr': run.stderr[-3000:]}))
-              if out.exists() and out.stat().st_size > 100000:
-                  produced = True
-                  break
-              failures.append({'argv': argv, 'returncode': run.returncode, 'stdout': run.stdout[-1000:], 'stderr': run.stderr[-1000:]})
-
-          if not produced:
-              raise SystemExit('Explorer builder did not produce an acceptable output candidate: ' + json.dumps(failures[-3:]))
-
-          html = out.read_bytes()
-          html_sha = hashlib.sha256(html).hexdigest()
-          text = html.decode('utf-8')
-          required_markers = (
-              'no row caps, viewport culling',
-              'window.__EXPLORER_TEST__',
-              'Minecraft Recommendations Vault',
-          )
-          missing = [m for m in required_markers if m not in text]
-          if missing:
-              raise SystemExit(f'generated Explorer is missing acceptance markers: {missing}')
-          if len(html) < 350000:
-              raise SystemExit(f'generated Explorer is unexpectedly small: {len(html)} bytes')
-
-          metadata = {
-              'artifact': out.name,
-              'artifactBytes': len(html),
-              'artifactSha256': html_sha,
-              'sourceWorkbook': 'Minecraft Recommendations Vault — Master Tracker',
-              'sourceDriveId': source_id,
-              'sourceModifiedTime': '2026-08-29T22:28:18.260Z',
-              'sourceWorkbookBytes': len(workbook),
-              'sourceWorkbookSha256': workbook_sha,
-              'generatorVersion': 'recommendations-explorer/1.0.0',
-              'generatorBytes': len(builder),
-              'generatorSha256': builder_sha,
-              'sheetCount': 14,
-              'acceptance': {
-                  'minimumBytes': 350000,
-                  'markers': list(required_markers),
-                  'noDatasetCaps': True,
-                  'noViewportCulling': True,
-              },
-              'publicationRecovery': {
-                  'mode': 'source-first-public-google-sheet-export',
-                  'verification': 'valid XLSX + exact sheet set + reusable builder identity + generated HTML size/markers/SHA-256',
-              },
-          }
-          Path('Minecraft Recommendations Vault - Explorer.build.json').write_text(
-              json.dumps(metadata, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
-          )
-          print('EXPLORER_ACCEPTED', json.dumps(metadata, sort_keys=True))
+          print('STAGED_SOURCE_DRIVE_ID', manifest['sourceDriveId'])
+          print('STAGED_SOURCE_MODIFIED_TIME', manifest['sourceModifiedTime'])
+          print('STAGED_SOURCE_WORKBOOK_BYTES', manifest['sourceWorkbookBytes'])
+          print('STAGED_SOURCE_WORKBOOK_SHA256', manifest['sourceWorkbookSha256'])
+          print('EXPLORER_ARTIFACT_BYTES', len(html))
+          print('EXPLORER_ARTIFACT_SHA256', sha256(html))
+          print('EXPLORER_BUILD_JSON_BYTES', len(build_bytes))
+          print('EXPLORER_BUILD_JSON_SHA256', sha256(build_bytes))
+          print('EXPLORER_BUILDER_BYTES', len(builder))
+          print('EXPLORER_BUILDER_SHA256', builder_digest)
+          print('EXPLORER_STAGING_ACCEPTED')
           PY
           status=$?
           cat explorer-recovery.log
@@ -199,8 +157,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload generated Explorer for remote round-trip
-        if: steps.regenerate.outputs.exit_code == '0'
+      - name: Upload reconstructed Explorer for round-trip evidence
+        if: steps.reconstruct.outputs.exit_code == '0'
         uses: actions/upload-artifact@v4
         with:
           name: minecraft-recommendations-vault-explorer
@@ -210,14 +168,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Require regeneration success
-        if: steps.regenerate.outputs.exit_code != '0'
+      - name: Require reconstruction success
+        if: steps.reconstruct.outputs.exit_code != '0'
         shell: bash
         run: |
-          echo 'Explorer regeneration failed; diagnostics were uploaded for deterministic repair.' >&2
+          echo 'Explorer reconstruction failed; diagnostics were uploaded for deterministic repair.' >&2
           exit 1
 
-      - name: Publish regenerated Explorer and reusable builder
+      - name: Publish verified Explorer and reusable builder
         shell: bash
         run: |
           set -euo pipefail
@@ -229,7 +187,44 @@ jobs:
                   'tools/recommendations-explorer/README.md'
           if git diff --cached --quiet; then
             echo 'GitHub already contains the current verified Explorer build.'
-            exit 0
+          else
+            git commit -m 'Publish current verified Minecraft Recommendations Vault Explorer'
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
-          git commit -m 'Publish current verified Minecraft Recommendations Vault Explorer'
-          git push
+
+      - name: Verify exact Explorer bytes from remote branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_REF_NAME}"
+          git show "origin/${GITHUB_REF_NAME}:Minecraft Recommendations Vault - Explorer.html" > /tmp/remote-explorer.html
+          git show "origin/${GITHUB_REF_NAME}:Minecraft Recommendations Vault - Explorer.build.json" > /tmp/remote-explorer.build.json
+          git show "origin/${GITHUB_REF_NAME}:tools/recommendations-explorer/build_recommendations_explorer.py" > /tmp/remote-builder.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          def check(path, expected_bytes, expected_sha):
+              data = Path(path).read_bytes()
+              digest = hashlib.sha256(data).hexdigest()
+              if len(data) != expected_bytes or digest != expected_sha:
+                  raise SystemExit(f'remote identity mismatch for {path}: bytes={len(data)} sha256={digest}')
+              print('REMOTE_VERIFIED', path, len(data), digest)
+              return data
+
+          html = check('/tmp/remote-explorer.html', 374830, 'ea1a6b64bab80bc88521ec138f2e364fbeeebb1d2c2796aaebc520ece9c0f979')
+          build = check('/tmp/remote-explorer.build.json', 676, 'a05564028d279a7b660a2007f535c7e4bbcc5056b91fbdf6d42e6794d4a77afc')
+          check('/tmp/remote-builder.py', 23550, 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b')
+          text = html.decode('utf-8')
+          for marker in ('no row caps, viewport culling', 'window.__EXPLORER_TEST__', 'Minecraft Recommendations Vault'):
+              if marker not in text:
+                  raise SystemExit(f'remote Explorer missing marker: {marker}')
+          metadata = json.loads(build.decode('utf-8'))
+          if metadata['sourceDriveId'] != '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg':
+              raise SystemExit('remote build metadata source Drive identity mismatch')
+          if metadata['sourceWorkbookSha256'] != '610bc5f74ad4c842a0e7bd690aacf89f932e68a3b7cc016faa382591f3f6dd2a':
+              raise SystemExit('remote build metadata source workbook SHA mismatch')
+          print('REMOTE_EXPLORER_PUBLICATION_VERIFIED')
+          PY
