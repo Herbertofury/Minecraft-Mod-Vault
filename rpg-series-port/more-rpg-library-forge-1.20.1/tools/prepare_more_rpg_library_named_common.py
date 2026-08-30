@@ -10,17 +10,19 @@ old = Path(sys.argv[2]).resolve()
 out = Path(sys.argv[3]).resolve()
 loader_neutral = Path(__file__).with_name('prepare_more_rpg_library_loader_neutral.py')
 api_pass = Path(__file__).with_name('prepare_more_rpg_library_1201_api_pass.py')
+status_consumer_prepass = Path(__file__).with_name('prepare_more_rpg_library_1201_status_consumer_prepass.py')
 api_wave2 = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave2.py')
-for tool in (loader_neutral, api_pass, api_wave2):
+for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
 # Preserve all existing full-source and loader-neutral preparation invariants first.
 subprocess.run([sys.executable, str(loader_neutral), str(modern), str(old), str(out)], check=True)
 
-# Apply only proven 1.21 -> 1.20.1 API seams. Both waves are fail-closed and own surviving-symbol
-# checks, so upstream drift cannot silently weaken the target contract.
+# Apply only proven 1.21 -> 1.20.1 API seams. The #331 prepass owns exactly the five non-effect
+# status consumers; Wave 2 keeps ownership of the effect package and the global survival gate.
 subprocess.run([sys.executable, str(api_pass), str(out)], check=True)
+subprocess.run([sys.executable, str(status_consumer_prepass), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave2), str(out)], check=True)
 
 common_gradle = out / 'common/build.gradle'
