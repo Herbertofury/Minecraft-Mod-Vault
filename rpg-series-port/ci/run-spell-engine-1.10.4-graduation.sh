@@ -13,11 +13,11 @@ source "$ENV_FILE"
 [[ "$SPELL_ENGINE_TARGET_VERSION" = '1.10.4' ]]
 [[ "$SPELL_ENGINE_1104_TARGET_SHA" = '8843cea8974afffc7ec42c096cac33327a3af3d8' ]]
 
-# Uplift only the historical 1.10.2 authority/path/artifact labels in this CI workspace and
-# repair the historical dependency-build invocation to honor Spell Power's now-certified
-# TinyConfig 3.1 compile/runtime inputs. All actual compatibility, deterministic build,
-# client, packaged-server, first-green and frozen-replay gates remain owned by the audited
-# graduation harness.
+# Uplift only target authority/path/release labeling in this CI workspace and repair the
+# historical Spell Power dependency-build invocation. The historical source-package seam
+# intentionally remains untouched here because the audited graduation harness owns its
+# deterministic replacement. This ordering prevents the two fail-closed wrappers from
+# competing over the same literal.
 python3 - "$BASE" <<'PY'
 from pathlib import Path
 import sys
@@ -27,8 +27,6 @@ repls=[
     ('TARGET_SHA=bc02f7a49da950503010020da491f6bdc5871df7',
      'TARGET_SHA=8843cea8974afffc7ec42c096cac33327a3af3d8', 1),
     ('spell-engine-1102', 'spell-engine-1104', 2),
-    ('spell-engine-1.10.2-forge-1.20.1-source-ci.zip',
-     'spell-engine-1.10.4-forge-1.20.1-source-ci.zip', 3),
     ('spell_engine-forge-1.10.2+1.20.1.jar',
      'spell_engine-forge-1.10.4+1.20.1.jar', 1),
     ('gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build',
@@ -40,6 +38,10 @@ for old,new,expected in repls:
         raise SystemExit(f'[Spell Engine 1.10.4] expected {expected} occurrences of {old!r}, found {actual}')
     s=s.replace(old,new)
 
+# Graduation harness must still see its historical source-package seam exactly three times.
+source_name='spell-engine-1.10.2-forge-1.20.1-source-ci.zip'
+if s.count(source_name) != 3:
+    raise SystemExit(f'[Spell Engine 1.10.4] graduation-owned source seam drifted: expected 3, found {s.count(source_name)}')
 if 'bc02f7a49da950503010020da491f6bdc5871df7' in s:
     raise SystemExit('[Spell Engine 1.10.4] stale 1.10.2 target SHA remains in active base runner')
 if 'spell-engine-1102' in s:
