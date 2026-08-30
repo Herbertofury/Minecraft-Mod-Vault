@@ -1,0 +1,47 @@
+name: More RPG - Final Gate Preflight
+
+on:
+  push:
+    branches:
+      - staging/more-rpg-final-graduation-a242
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Validate final gate scripts and workflow contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts=(
+            rpg-series-port/ci/verify-more-rpg-external-school-ownership.sh
+            rpg-series-port/ci/run-more-rpg-library-runtime-stage1.sh
+            rpg-series-port/ci/run-more-rpg-library-restart-persistence.sh
+            rpg-series-port/ci/run-more-rpg-library-hud-transform-proof.sh
+            rpg-series-port/ci/preserve-more-rpg-transformed-hud-evidence.sh
+            rpg-series-port/ci/run-more-rpg-library-production-client.sh
+            rpg-series-port/ci/run-more-rpg-library-production-client-hardened.sh
+            rpg-series-port/ci/run-more-rpg-library-reproducibility.sh
+          )
+          for script in "${scripts[@]}"; do
+            test -f "$script"
+            bash -n "$script"
+          done
+          workflow='.github/workflows/rpg-series-active-port.yml'
+          grep -Fq "run-more-rpg-library-runtime-stage1.sh" "$workflow"
+          grep -Fq "run-more-rpg-library-production-client-hardened.sh" "$workflow"
+          grep -Fq "run-more-rpg-library-reproducibility.sh" "$workflow"
+          if grep -Fq "run-more-rpg-library-runtime-stage1-diagnostic.sh" "$workflow"; then
+            echo 'temporary diagnostic wrapper leaked into final workflow' >&2
+            exit 1
+          fi
+          ruby -e 'require "yaml"; YAML.load_file(ARGV[0]); puts "workflow-yaml-parse-pass"' "$workflow"
+          git diff --check a24292d623c7a9c5c9401ce113b960c6be84ddac..HEAD
+          echo '[More RPG 2.7.2] FINAL_GATE_STATIC_PREFLIGHT_PASS'
