@@ -8,6 +8,8 @@ ENV_FILE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/SPELL_ENGINE_GRADUATIO
 test -f "$BASE"
 test -f "$ENV_FILE"
 source "$ENV_FILE"
+export SPELL_ENGINE_EXPECTED_JAR_SHA SPELL_ENGINE_EXPECTED_SOURCE_SHA
+export SPELL_POWER_160_EXPECTED_JAR_SHA RANGED_WEAPON_API_234_EXPECTED_JAR_SHA TINY_CONFIG_310_EXPECTED_JAR_SHA
 
 python3 - "$BASE" "$PATCHED" <<'PY'
 from pathlib import Path
@@ -35,10 +37,17 @@ if src.count(needle) != 1:
     raise SystemExit(f'[Spell Engine graduation] expected one dependency export seam, found {src.count(needle)}')
 src=src.replace(needle,replacement)
 
+# Replace timestamp-sensitive `zip` packaging with a byte-deterministic archive.
+needle='''rm -f "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"\n(cd "$WORK" && zip -qr "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" . -x '*/build/*' '*/run/*' '.gradle/*')\nunzip -t "$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip" >/dev/null\n'''
+replacement='''SOURCE_ZIP="$ROOT/spell-engine-1.10.2-forge-1.20.1-source-ci.zip"\nrm -f "$SOURCE_ZIP"\npython3 - "$WORK" "$SOURCE_ZIP" <<'PYSOURCE'\nfrom pathlib import Path\nimport sys, zipfile\nroot=Path(sys.argv[1]); out=Path(sys.argv[2])\nfiles=[]\nfor p in root.rglob('*'):\n    if not p.is_file(): continue\n    rel=p.relative_to(root)\n    parts=rel.parts\n    if '.gradle' in parts or 'build' in parts or 'run' in parts: continue\n    files.append((rel,p))\nwith zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:\n    for rel,p in sorted(files,key=lambda x:x[0].as_posix()):\n        info=zipfile.ZipInfo(rel.as_posix(),(1980,1,1,0,0,0))\n        info.compress_type=zipfile.ZIP_DEFLATED; info.external_attr=(0o100644 << 16)\n        z.writestr(info,p.read_bytes())\nPYSOURCE\nunzip -t "$SOURCE_ZIP" >/dev/null\nSOURCE_SHA="$(sha256sum "$SOURCE_ZIP" | awk '{print $1}')"\necho "[Spell Engine graduation] DETERMINISTIC_SOURCE_PACKAGE_PASS sha=$SOURCE_SHA"\n'''
+if src.count(needle) != 1:
+    raise SystemExit(f'[Spell Engine graduation] expected one historical source-package seam, found {src.count(needle)}')
+src=src.replace(needle,replacement)
+
 # The old runner only checked that some TinyConfig was nested. Graduation requires the certified 3.1.0
 # payload and explicitly rejects the historical 2.x workaround.
 needle="unzip -l \"$OUT_JAR\" | grep -F 'META-INF/jars/TinyConfig-'\n"
-replacement='''if unzip -Z1 "$OUT_JAR" | grep -Eiq 'META-INF/jars/[^/]*(tiny.?config|TinyConfig)[^/]*2\\.'; then\n  echo 'Obsolete TinyConfig 2.x leaked into Spell Engine 1.10.2 release' >&2; exit 1\nfi\nTINY_NESTED="$(unzip -Z1 "$OUT_JAR" | grep -Ei '^META-INF/jars/.*tiny.?config.*\\.jar$' | head -n 1 || true)"\n[[ -n "$TINY_NESTED" ]] || { echo 'Spell Engine release lost upstream TinyConfig JarJar payload' >&2; exit 1; }\nunzip -p "$OUT_JAR" "$TINY_NESTED" > "$PORT/tiny-config-embedded-check.jar"\nunzip -tq "$PORT/tiny-config-embedded-check.jar" >/dev/null\n[[ "$(sha256sum "$PORT/tiny-config-embedded-check.jar" | awk '{print $1}')" = "$TINY_CONFIG_310_EXPECTED_JAR_SHA" ]] || {\n  echo 'Spell Engine embedded TinyConfig is not the certified 3.1.0 Forge artifact' >&2; exit 1;\n}\necho '[Spell Engine graduation] CERTIFIED_TINY_CONFIG_310_EMBEDDED_PASS'\n'''
+replacement='''FIRST_SHA="$(sha256sum "$OUT_JAR" | awk '{print $1}')"\nif unzip -Z1 "$OUT_JAR" | grep -Eiq 'META-INF/jars/[^/]*(tiny.?config|TinyConfig)[^/]*2\\.'; then\n  echo 'Obsolete TinyConfig 2.x leaked into Spell Engine 1.10.2 release' >&2; exit 1\nfi\nTINY_NESTED="$(unzip -Z1 "$OUT_JAR" | grep -Ei '^META-INF/jars/.*tiny.?config.*\\.jar$' | head -n 1 || true)"\n[[ -n "$TINY_NESTED" ]] || { echo 'Spell Engine release lost upstream TinyConfig JarJar payload' >&2; exit 1; }\nunzip -p "$OUT_JAR" "$TINY_NESTED" > "$PORT/tiny-config-embedded-check.jar"\nunzip -tq "$PORT/tiny-config-embedded-check.jar" >/dev/null\n[[ "$(sha256sum "$PORT/tiny-config-embedded-check.jar" | awk '{print $1}')" = "$TINY_CONFIG_310_EXPECTED_JAR_SHA" ]] || {\n  echo 'Spell Engine embedded TinyConfig is not the certified 3.1.0 Forge artifact' >&2; exit 1;\n}\necho '[Spell Engine graduation] CERTIFIED_TINY_CONFIG_310_EMBEDDED_PASS'\n\n# Independent clean rebuild must reproduce the sealed release byte-for-byte.\ngradle --no-daemon --stacktrace -p "$WORK" clean :forge:build\nJAR2="$(find "$WORK/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*dev-shadow*' ! -name '*sources*' | head -n 1)"\nSECOND_SHA="$(sha256sum "$JAR2" | awk '{print $1}')"\n[[ "$FIRST_SHA" = "$SECOND_SHA" ]]\ncmp -s "$JAR2" "$OUT_JAR"\necho "[Spell Engine graduation] CLEAN_REBUILD_IDENTITY_PASS sha=$FIRST_SHA"\n'''
 if src.count(needle) != 1:
     raise SystemExit(f'[Spell Engine graduation] expected one legacy TinyConfig package gate, found {src.count(needle)}')
 src=src.replace(needle,replacement)
@@ -77,8 +86,7 @@ curl -fsSL 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.
   cp "$CLOTH_FORGE_JAR" mods/cloth-config-forge.jar
   cp "$PLAYER_ANIM_FORGE_JAR" mods/player-animation-lib-forge.jar
 )
-OUT_SHA="$(sha256sum "$OUT_JAR" | awk '{print $1}')"
-[[ "$(sha256sum "$FRESH/mods/$(basename "$OUT_JAR")" | awk '{print $1}')" = "$OUT_SHA" ]]
+[[ "$(sha256sum "$FRESH/mods/$(basename "$OUT_JAR")" | awk '{print $1}')" = "$FIRST_SHA" ]]
 PACKAGE_LOG="$PORT/forge-packaged-server-smoke.log"; : > "$PACKAGE_LOG"
 ( cd "$FRESH" && exec ./run.sh nogui ) > "$PACKAGE_LOG" 2>&1 & ACTIVE_PID=$!
 PID=$ACTIVE_PID; DEADLINE=$((SECONDS+180)); PASS=0
@@ -94,6 +102,15 @@ done
 [[ "$PASS" -eq 1 ]] || { stop_tree "$PID"; ACTIVE_PID=""; dump_logs "$PACKAGE_LOG" "$FRESH/logs/latest.log"; exit 1; }
 stop_tree "$PID"; ACTIVE_PID=""
 echo '[Spell Engine graduation] CANONICAL_PACKAGED_SERVER_AND_SELF_TEST_PASS'
+
+if [[ "$SPELL_ENGINE_EXPECTED_JAR_SHA" = '__CAPTURE_AFTER_FIRST_FULL_GREEN__' || "$SPELL_ENGINE_EXPECTED_SOURCE_SHA" = '__CAPTURE_AFTER_FIRST_FULL_GREEN__' ]]; then
+  echo "[Spell Engine graduation] SPELL_ENGINE_FIRST_GREEN_CAPTURE jar=$FIRST_SHA source=$SOURCE_SHA"
+else
+  [[ "$FIRST_SHA" = "$SPELL_ENGINE_EXPECTED_JAR_SHA" ]]
+  [[ "$SOURCE_SHA" = "$SPELL_ENGINE_EXPECTED_SOURCE_SHA" ]]
+  echo "[Spell Engine graduation] CROSS_RUN_RELEASE_IDENTITY_PASS jar=$FIRST_SHA source=$SOURCE_SHA"
+  echo '[Spell Engine graduation] SPELL_ENGINE_GRADUATION_PASS'
+fi
 '''
 if src.count(needle) != 1:
     raise SystemExit(f'[Spell Engine graduation] expected one historical client finish marker, found {src.count(needle)}')
@@ -104,5 +121,5 @@ PY
 
 chmod +x "$PATCHED"
 bash -n "$PATCHED"
-echo '[Spell Engine graduation] TINY_CONFIG_310_AND_PACKAGED_SERVER_WRAPPER_READY'
+echo '[Spell Engine graduation] TINY_CONFIG_310_PACKAGED_SERVER_AND_FREEZE_WRAPPER_READY'
 exec bash "$PATCHED"
