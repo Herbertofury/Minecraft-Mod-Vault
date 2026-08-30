@@ -20,6 +20,18 @@ register_ref = 'return Registry.registerReference(Registries.ATTRIBUTE, new Iden
 if s.count(register_ref) != 1:
     raise SystemExit(f'More RPG attribute registerReference seam drifted: found={s.count(register_ref)}')
 
+# Upstream 2.7.2 has exactly two declarations without whitespace after the generic holder token.
+# Normalize only those exact fields before converting the holder type so the backport cannot silently
+# concatenate EntityAttribute with a field name.
+compact_fields = (
+    'RegistryEntry<EntityAttribute>RAGE_MODIFIER',
+    'RegistryEntry<EntityAttribute>SPELL_VAMPIRE',
+)
+for compact in compact_fields:
+    if s.count(compact) != 1:
+        raise SystemExit(f'More RPG compact attribute declaration seam drifted: {compact} found={s.count(compact)}')
+    s = s.replace(compact, compact.replace('>', '> '), 1)
+
 s = s.replace('import net.minecraft.registry.entry.RegistryEntry;\n', '', 1)
 s = s.replace(holder, 'EntityAttribute')
 s = s.replace(register_ref, 'return Registry.register(Registries.ATTRIBUTE, new Identifier(MOD_ID, name), attribute);', 1)
@@ -28,9 +40,12 @@ if 'RegistryEntry<EntityAttribute>' in s or 'registerReference(Registries.ATTRIB
     raise SystemExit('modern 1.21 entity-attribute holder API survived Wave 4')
 if s.count('public static final EntityAttribute') != 19:
     raise SystemExit('Wave 4 changed More RPG 2.7.2 attribute cardinality')
+if 'EntityAttributeRAGE_MODIFIER' in s or 'EntityAttributeSPELL_VAMPIRE' in s:
+    raise SystemExit('Wave 4 compact declaration normalization failed')
 if s.count('return Registry.register(Registries.ATTRIBUTE, new Identifier(MOD_ID, name), attribute);') != 1:
     raise SystemExit('target 1.20.1 raw attribute registration missing or duplicated')
 path.write_text(s)
 
 print('[More RPG 2.7.2] ATTRIBUTE_REGISTRY_1201_WAVE4_PASS attributes=19 holder=raw registration=Registry.register')
+print('[More RPG 2.7.2] ATTRIBUTE_REGISTRY_COMPACT_DECLARATIONS_NORMALIZED fields=2')
 print('[More RPG 2.7.2] MODERN_ATTRIBUTE_SET_PRESERVED removed_legacy_attributes=not_resurrected')
