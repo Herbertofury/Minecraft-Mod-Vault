@@ -1,0 +1,96 @@
+name: Publish Explorer Source Package From Drive
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/mrv-explorer-source-drive-sync/READY.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-explorer-source-from-drive
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download and verify canonical Drive artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTIFACT='Minecraft Recommendations Vault - Explorer Source.zip'
+          DRIVE_ID='1vRty6Q7cE7ImM3PUDe4fqXmh2zGXOHLD'
+          EXPECTED_BYTES='596027'
+          EXPECTED_SHA='447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461'
+          TMP="$RUNNER_TEMP/explorer-source.zip"
+          URL="https://drive.usercontent.google.com/download?id=${DRIVE_ID}&export=download&confirm=t"
+
+          curl --fail --location --silent --show-error --retry 4 --retry-delay 2 --output "$TMP" "$URL"
+          BYTES="$(wc -c < "$TMP" | tr -d ' ')"
+          SHA="$(sha256sum "$TMP" | awk '{print $1}')"
+          test "$BYTES" = "$EXPECTED_BYTES"
+          test "$SHA" = "$EXPECTED_SHA"
+          unzip -t "$TMP" >/dev/null
+          mv "$TMP" "$ARTIFACT"
+
+      - name: Write verification receipt and remove trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > 'Minecraft Recommendations Vault - Explorer Source.verification.json' <<'JSON'
+          {
+            "schema": "minecraft-mod-vault.explorer-source-publication/2",
+            "artifact": "Minecraft Recommendations Vault - Explorer Source.zip",
+            "artifactBytes": 596027,
+            "artifactSha256": "447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461",
+            "driveFileId": "1vRty6Q7cE7ImM3PUDe4fqXmh2zGXOHLD",
+            "source": "canonical-connected-google-drive-artifact",
+            "downloadPath": "drive.usercontent.google.com/download",
+            "zipIntegrity": "PASS",
+            "githubRoundTripVerification": "PENDING_COMMIT"
+          }
+          JSON
+          rm -rf .github/mrv-explorer-source-drive-sync
+
+      - name: Commit publication
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          if git diff --cached --quiet; then
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m 'Publish verified Explorer source package from Drive'
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Remote round-trip verification
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARTIFACT='Minecraft Recommendations Vault - Explorer Source.zip'
+          EXPECTED_BYTES='596027'
+          EXPECTED_SHA='447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461'
+          SHA='${{ steps.commit.outputs.sha }}'
+          REMOTE="$RUNNER_TEMP/remote.zip"
+          gh api "repos/${GITHUB_REPOSITORY}/contents/${ARTIFACT}?ref=${SHA}" --jq .download_url | xargs curl --fail --location --silent --show-error --output "$REMOTE"
+          test "$(wc -c < "$REMOTE" | tr -d ' ')" = "$EXPECTED_BYTES"
+          test "$(sha256sum "$REMOTE" | awk '{print $1}')" = "$EXPECTED_SHA"
+          unzip -t "$REMOTE" >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}/contents/Minecraft%20Recommendations%20Vault%20-%20Explorer%20Source.verification.json?ref=${SHA}" --jq .sha >/dev/null
