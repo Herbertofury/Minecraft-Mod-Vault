@@ -25,6 +25,14 @@ replacements = [
         "FATAL='\\[TinyConfig CI\\]|MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Exception in server tick loop|The game crashed'",
         "FATAL='\\[TinyConfig CI\\]|ResolutionException|export package|MixinApplyError|InvalidMixinException|MixinTransformerError|Failed to create mod instance|NoClassDefFoundError|ClassNotFoundException|Exception in server tick loop|The game crashed'"
     ),
+    (
+        '    public static final class Plain {\n',
+        '    private static final class PlatformProbe extends Platform {\n        private static Path configDir() { return util().getConfigDir(); }\n    }\n\n    public static final class Plain {\n'
+    ),
+    (
+        'Path platformConfig = Platform.util().getConfigDir().toAbsolutePath().normalize();',
+        'Path platformConfig = PlatformProbe.configDir().toAbsolutePath().normalize();'
+    ),
 ]
 for old, new in replacements:
     count = src.count(old)
@@ -35,5 +43,5 @@ Path(sys.argv[2]).write_text(src)
 PY
 
 chmod +x "$PATCHED"
-echo '[TinyConfig v2] QA harness isolated from product package; executing original acceptance contract'
+echo '[TinyConfig v2] QA harness isolated from product package; protected platform probe uses legal subclass access'
 exec bash "$PATCHED"
