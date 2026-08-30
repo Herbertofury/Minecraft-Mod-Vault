@@ -1,46 +1,65 @@
 {
-  "error": "exact Explorer not recovered in accelerated localized search",
+  "error": "exact Explorer not recovered after verified multi-character repair search",
   "errorType": "RuntimeError",
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
   "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
+  "inferredMissingBase64Chars": 2,
   "joinedBase64Chars": 109110,
   "joinedModulo4": 2,
+  "multiCharacterRepairSteps": [
+    {
+      "approxCorruptionPosition": 80048,
+      "attempts": 33856,
+      "insertPosition": 79880,
+      "insertedCharacter": "W",
+      "nextErrorPosition": 81488,
+      "nextErrorType": "LZMAError",
+      "span": 512,
+      "survivors": 107
+    },
+    {
+      "approxCorruptionPosition": 81488,
+      "error": "Corrupt input data",
+      "errorType": "LZMAError",
+      "result": "NO_SURVIVOR"
+    }
+  ],
   "parts": [
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-00.b64",
-      "sha256": "6d29a84dfcc9d40ef309923ee70d246d4fd82cc2ca55ae591386f7529bbcf1f4"
+      "sha256": "d2f1ddab48c4c621a9ebcd0407247b48e859e8f46eb38c272a0393eb3db89475"
     },
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-01.b64",
-      "sha256": "8c566e097a5b79da23d5c31d80688eacf1a126904344fe0f68ae0c486d5b3f0b"
+      "sha256": "296c2b2791c1be9659287fab28b661e4fe0fe7f2f44fa3b160265ed1e8919ab3"
     },
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-02.b64",
-      "sha256": "a02dfff9f310dca04aa85911afbfa881db6946bde47b39f074b11298a9f10de3"
+      "sha256": "879c8c062ce603de63137d88c4ea03867e035c20c9fa238073fd6341ac4cc95c"
     },
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-03.b64",
-      "sha256": "4097e5debea2b5e06d3fc7410ea66478263ad5ddef114076565601fdcc701151"
+      "sha256": "49566496b6a89668a350fedbdc14c503183ad00d274acb7c905df9d6d1fe39f0"
     },
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-04.b64",
-      "sha256": "3926824f451e84f84834ad8bd442c412b9ef572846456cdfee4460b8f9ef085b"
+      "sha256": "71895416d6edbf30d1e79f8ce3d2fcbe33ea19261ee69786b89b22a0449abd0a"
     },
     {
       "cleanBase64Chars": 20554,
@@ -58,6 +77,6 @@
     }
   ],
   "result": "FAIL",
-  "schema": "mrv.recommendations-explorer-recovery-diagnostic/5",
-  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 63, in <module>\nRuntimeError: exact Explorer not recovered in accelerated localized search\n"
+  "schema": "mrv.recommendations-explorer-recovery-diagnostic/6",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 102, in <module>\nRuntimeError: exact Explorer not recovered after verified multi-character repair search\n"
 }
