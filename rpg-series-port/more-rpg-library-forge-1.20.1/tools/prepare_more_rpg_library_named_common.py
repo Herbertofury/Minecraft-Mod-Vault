@@ -17,7 +17,8 @@ loot_wave3_import_fix = Path(__file__).with_name('prepare_more_rpg_library_1201_
 registry_wave4 = Path(__file__).with_name('prepare_more_rpg_library_1201_registry_wave4.py')
 status_wave5a = Path(__file__).with_name('prepare_more_rpg_library_1201_status_consumers_wave5a.py')
 api_wave5b = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave5b.py')
-for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4, status_wave5a, api_wave5b):
+api_wave5c = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave5c.py')
+for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4, status_wave5a, api_wave5b, api_wave5c):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
@@ -30,6 +31,7 @@ subprocess.run([sys.executable, str(loot_wave3_import_fix), str(out)], check=Tru
 subprocess.run([sys.executable, str(registry_wave4), str(out)], check=True)
 subprocess.run([sys.executable, str(status_wave5a), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave5b), str(out)], check=True)
+subprocess.run([sys.executable, str(api_wave5c), str(out)], check=True)
 
 common_gradle = out / 'common/build.gradle'
 if not common_gradle.is_file():
