@@ -18,10 +18,11 @@ jobs:
           fetch-depth: 0
 
       - name: Regenerate Explorer from authenticated canonical workbook staging
+        id: regenerate
         shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
+          set +e
+          python3 - <<'PY' > explorer-recovery.log 2>&1
           from pathlib import Path
           import base64
           import hashlib
@@ -41,7 +42,6 @@ jobs:
           def normalize(text):
               return ''.join(text.split())
 
-          # Reconstruct the authenticated Drive export staged by the current sync task.
           wb_parts = sorted(wb_dir.glob('wb-*.b64'))
           if not wb_parts:
               raise SystemExit('missing authenticated current workbook staging')
@@ -69,9 +69,6 @@ jobs:
               if len(sheets) != 14:
                   raise SystemExit(f'authenticated workbook sheet count mismatch: {len(sheets)} != 14')
 
-          # Recover the reusable, content-addressed builder. Unlike the old path, the
-          # current Explorer is generated from the canonical workbook instead of relying
-          # on a fragile prebuilt HTML/XZ staging stream.
           builder_b64_path = stage_dir / 'builder.py.xz.b64'
           if not builder_b64_path.is_file():
               raise SystemExit('missing reproducible Explorer builder staging payload')
@@ -89,9 +86,6 @@ jobs:
               encoding='utf-8',
           )
 
-          # Print the builder contract for durable diagnostics, then try only explicit,
-          # bounded invocation shapes. Acceptance of the result is independent of exit
-          # code: the output must satisfy the Explorer runtime/data contract below.
           help_run = subprocess.run([sys.executable, str(builder_path), '--help'], text=True, capture_output=True, timeout=20)
           print('BUILDER_HELP_BEGIN')
           print(help_run.stdout)
@@ -111,7 +105,6 @@ jobs:
           for argv in attempts:
               if out.exists():
                   out.unlink()
-              # Some builders use a fixed default output name; remove only that known target.
               default_out = root / 'Minecraft Recommendations Vault - Explorer.html'
               if default_out.exists() and default_out != out:
                   default_out.unlink()
@@ -144,9 +137,6 @@ jobs:
           missing = [m for m in required_markers if m not in text]
           if missing:
               raise SystemExit(f'generated Explorer is missing acceptance markers: {missing}')
-          # Guard against truncated/capped rebuilds. The previously verified current build
-          # was 374,830 bytes; allow deterministic metadata/export variance but not a large
-          # loss of content.
           if len(html) < 350000:
               raise SystemExit(f'generated Explorer is unexpectedly small: {len(html)} bytes')
 
@@ -182,6 +172,26 @@ jobs:
           )
           print('EXPLORER_ACCEPTED', json.dumps(metadata, sort_keys=True))
           PY
+          status=$?
+          cat explorer-recovery.log
+          printf 'exit_code=%s\n' "$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload Explorer recovery diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: explorer-recovery-diagnostics
+          path: explorer-recovery.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Require regeneration success
+        if: steps.regenerate.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          echo 'Explorer regeneration failed; diagnostics were uploaded for deterministic repair.' >&2
+          exit 1
 
       - name: Publish regenerated Explorer and reusable builder
         shell: bash
