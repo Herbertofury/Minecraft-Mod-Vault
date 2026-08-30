@@ -4,7 +4,7 @@
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
   "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
-  "joinedBase64Chars": 104556,
+  "joinedBase64Chars": 104600,
   "joinedModulo4": 0,
   "parts": [
     {
@@ -50,11 +50,11 @@
       "sha256": "4be156ed9af357f102088bf839d565609df6c85319af1b83d91accf4665c80fe"
     },
     {
-      "cleanBase64Chars": 8556,
+      "cleanBase64Chars": 8600,
       "cleanModulo4": 0,
-      "fileBytes": 8556,
+      "fileBytes": 8600,
       "name": "xzstage-06.b64",
-      "sha256": "e2a08ddbce5d13952abeffaddafdb6faf4b2fa230e56fcd0a86f30ed190078ce"
+      "sha256": "4aca3c1cd3b525b9309918300da697a991c5df220f32c8a747b28e404d3d2a20"
     }
   ],
   "result": "FAIL",
