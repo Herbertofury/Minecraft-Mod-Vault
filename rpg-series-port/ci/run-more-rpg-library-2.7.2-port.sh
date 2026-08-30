@@ -6,6 +6,7 @@ ENV="$PORT/MORE_RPG_LIBRARY_PORT.env"
 WORK="$ROOT/.more-rpg-library-build"
 UP="$ROOT/.more-rpg-library-upstream"
 source "$ENV"
+echo '[More RPG 2.7.2] ACTIVE_NATIVE_FORGE_1201_GRADUATION_LANE'
 
 rm -rf "$WORK" "$UP"
 mkdir -p "$UP"
