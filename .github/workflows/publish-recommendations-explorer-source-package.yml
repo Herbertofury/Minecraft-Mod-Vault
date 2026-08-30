@@ -82,7 +82,7 @@ jobs:
           p = Path('/tmp/remote-source.zip')
           data = p.read_bytes()
           expected_size = 596027
-          expected_sha = '447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461'
+          expected_sha = '447a8a54d3976e9d41c3028504da74a1ebfc86310a7b03bed52ffc2d75ee58bc'
           digest = hashlib.sha256(data).hexdigest()
           if len(data) != expected_size or digest != expected_sha:
               raise SystemExit(f'remote source package mismatch: bytes={len(data)} sha256={digest}')
