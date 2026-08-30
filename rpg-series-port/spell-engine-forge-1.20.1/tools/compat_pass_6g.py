@@ -13,26 +13,38 @@ addition = '''    // Spell Engine common Mixins use MixinExtras at runtime. Embe
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$rootProject.mixinextras_version"))
     implementation(include("io.github.llamalad7:mixinextras-forge:$rootProject.mixinextras_version"))
 
-    // The common project compiles against TinyConfig, but `common { transitive = false }` intentionally
-    // keeps dependency mods/libraries out of the transformed common artifact. Forge dev runs therefore
-    // need TinyConfig explicitly on the Forge runtime classpath, and release JARs need it embedded.
-    // Mirror the already runtime-proven Spell Power 1.20.1 packaging pattern.
-    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+    // Spell Engine upstream intentionally JarJars TinyConfig. The 1.21.1 Maven/JitPack artifact is
+    // Java 21 and cannot be used by Forge 1.20.1/Java 17. The graduation runner reconstructs the
+    // certified native Forge 1.20.1 TinyConfig 3.1.0 artifact and exports its exact path. Embed and
+    // run against that exact file rather than resolving a different bytecode target from the network.
+    def tinyConfigPath = System.getenv('TINY_CONFIG_FORGE_JAR')
+    if (tinyConfigPath == null || tinyConfigPath.isBlank()) {
+        throw new GradleException('Missing certified TINY_CONFIG_FORGE_JAR')
+    }
+    def tinyConfigJar = file(tinyConfigPath)
+    if (!tinyConfigJar.isFile()) {
+        throw new GradleException("Certified TinyConfig Forge JAR does not exist: ${tinyConfigJar}")
+    }
+    def tinyConfig = implementation(files(tinyConfigJar))
     include tinyConfig
-    forgeRuntimeLibrary tinyConfig
+    forgeRuntimeLibrary files(tinyConfigJar)
 '''
 if 'mixinextras-forge' not in s:
     if anchor not in s:
         raise SystemExit('Forge dependency anchor missing')
     s = s.replace(anchor, anchor + addition)
-elif 'forgeRuntimeLibrary tinyConfig' not in s:
+elif 'TINY_CONFIG_FORGE_JAR' not in s:
     if anchor not in s:
         raise SystemExit('Forge dependency anchor missing for TinyConfig repair')
     tiny = '''
-    // TinyConfig is required by SpellEngineMod static config managers at runtime.
-    def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:$rootProject.tiny_config_version")
+    // Use the exact certified Java-17 Forge 1.20.1 TinyConfig artifact reconstructed by graduation.
+    def tinyConfigPath = System.getenv('TINY_CONFIG_FORGE_JAR')
+    if (tinyConfigPath == null || tinyConfigPath.isBlank()) throw new GradleException('Missing certified TINY_CONFIG_FORGE_JAR')
+    def tinyConfigJar = file(tinyConfigPath)
+    if (!tinyConfigJar.isFile()) throw new GradleException("Certified TinyConfig Forge JAR does not exist: ${tinyConfigJar}")
+    def tinyConfig = implementation(files(tinyConfigJar))
     include tinyConfig
-    forgeRuntimeLibrary tinyConfig
+    forgeRuntimeLibrary files(tinyConfigJar)
 '''
     s = s.replace(anchor, anchor + tiny)
 forge_build.write_text(s)
@@ -194,12 +206,22 @@ final = forge_build.read_text()
 for required in (
     'mixinextras-common',
     'implementation(include("io.github.llamalad7:mixinextras-forge:',
-    'def tinyConfig = implementation("com.github.ZsoltMolnarrr:TinyConfig:',
+    "System.getenv('TINY_CONFIG_FORGE_JAR')",
+    'def tinyConfig = implementation(files(tinyConfigJar))',
     'include tinyConfig',
-    'forgeRuntimeLibrary tinyConfig',
+    'forgeRuntimeLibrary files(tinyConfigJar)',
 ):
     if required not in final:
         raise SystemExit(f'Forge runtime dependency missing: {required}')
+for forbidden in (
+    'com.github.ZsoltMolnarrr:TinyConfig',
+    "include files(requireExternalModJar('SPELL_POWER_FORGE_JAR'))",
+    "include files(requireExternalModJar('RANGED_FORGE_JAR'))",
+    'SPELL_POWER_SOURCE_DIRS',
+    'RANGED_SOURCE_DIRS',
+):
+    if forbidden in final:
+        raise SystemExit(f'pass6g would resolve wrong TinyConfig, embed or source-inject a separate dependency: {forbidden}')
 final_mixins = json.loads(mixins.read_text())
 if 'loot.LootTableAccessor' in final_mixins.get('mixins', []) or 'loot.LootTableAccessor' in final_mixins.get('client', []):
     raise SystemExit('pass6g left split-descriptor LootTableAccessor active')
@@ -250,4 +272,4 @@ for required in (
 ):
     if required not in final_effect:
         raise SystemExit(f'pass6g missing 1.20.1 removal hook: {required}')
-print('Spell Engine compatibility pass 6g applied: Forge runtimes + UUID/removal bridges + SRG loot + split registries + base melee + metadata')
+print('Spell Engine compatibility pass 6g applied: certified TinyConfig runtime + UUID/removal bridges + SRG loot + split registries + base melee + metadata')
