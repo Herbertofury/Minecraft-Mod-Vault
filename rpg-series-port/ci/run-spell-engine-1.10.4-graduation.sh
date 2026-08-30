@@ -4,11 +4,13 @@ ROOT="${GITHUB_WORKSPACE:?}"
 BASE="$ROOT/rpg-series-port/ci/run-spell-engine.sh"
 GRAD="$ROOT/rpg-series-port/ci/run-spell-engine-graduation.sh"
 PASS6F="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6f.py"
+PASS6I="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6i.py"
 ENV_FILE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/SPELL_ENGINE_GRADUATION.env"
 
 test -f "$BASE"
 test -f "$GRAD"
 test -f "$PASS6F"
+test -f "$PASS6I"
 test -f "$ENV_FILE"
 source "$ENV_FILE"
 
@@ -83,7 +85,26 @@ s=s.replace(old_guard,new_guard)
 p.write_text(s)
 PY
 
+# Pass 6i's original invariants described 1.10.2's direct pool.entries loops. 1.10.4 intentionally
+# broadened tag caching to exact injectors + regex injectors + fallback references through entryLists,
+# and buildPool now receives List<Pool.Entry>. Preserve and assert that newer structure rather than
+# forcing it back to the historical shape.
+python3 - "$PASS6I" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1]); s=p.read_text()
+old1="if loot_helper.read_text().count('for (var itemInjectorEntry: pool.entries)') != 1: raise SystemExit('pass6i changed LootConfig tag-cache entries')"
+new1="lh_final = loot_helper.read_text()\nfor required in ('lootConfig.injectors.values().forEach(pool -> entryLists.add(pool.entries));', 'lootConfig.regex_injectors.values().forEach(pool -> entryLists.add(pool.entries));', 'for (var entries: entryLists)', 'for (var itemInjectorEntry: entries)'):\n    if required not in lh_final: raise SystemExit(f'pass6i lost Spell Engine 1.10.4 tag-cache parity: {required}')"
+old2="if loot_helper.read_text().count('for (var entry: pool.entries)') != 1: raise SystemExit('pass6i changed LootConfig buildPool entries')"
+new2="if lh_final.count('for (var entry: entries)') != 1: raise SystemExit('pass6i changed Spell Engine 1.10.4 buildPool entries')"
+for old,new,label in ((old1,new1,'tag-cache'),(old2,new2,'buildPool')):
+    if s.count(old) != 1:
+        raise SystemExit(f'[Spell Engine 1.10.4] pass-6i {label} guard seam drifted: found {s.count(old)}')
+    s=s.replace(old,new)
+p.write_text(s)
+PY
+
 bash -n "$BASE"
-python3 -m py_compile "$PASS6F"
+python3 -m py_compile "$PASS6F" "$PASS6I"
 echo '[Spell Engine 1.10.4] TARGET_AUTHORITY_SPELL_POWER_AND_LOOT_API_ADAPTATION_PASS sha=8843cea8974afffc7ec42c096cac33327a3af3d8'
 exec bash "$GRAD"
