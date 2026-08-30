@@ -35,13 +35,11 @@ if s.count(old) != 1:
     raise SystemExit(f'expected one native-client readiness seam, found {s.count(old)}')
 s = s.replace(old, new, 1)
 
-# The generic packaged-server harness tries to rediscover cached runtime mods by parsing mods.toml with
-# an over-escaped regex. #315 proved the native client itself resolves the exact Cloth Config and Player
-# Animator versions, then the server harness exits before launch at those cache lookups. Resolve the same
-# immutable production artifacts from the exact Maven repositories/coordinates already declared by the build,
-# validate ZIP integrity and literal mod IDs, and never feed Loom's named/remapped dev copies to a packaged server.
+# Use the exact production artifacts from the Maven repositories/coordinates already declared by the
+# generated build. Validate ZIP integrity and the exact Forge mod IDs with TOML-aware whitespace matching;
+# do not feed Loom's named/remapped dev copies to a packaged server.
 old = '''CLOTH_FORGE_JAR="$(find_runtime_mod 'cloth-config-forge-*.jar' cloth_config)"\nPLAYER_ANIM_FORGE_JAR="$(find_runtime_mod 'player-animation-lib-forge-*.jar' playeranimator)"\ntest -f "$CLOTH_FORGE_JAR" -a -f "$PLAYER_ANIM_FORGE_JAR"\n'''
-new = '''SERVER_DEPS="$PORT/.packaged-server-deps"\nrm -rf "$SERVER_DEPS"; mkdir -p "$SERVER_DEPS"\nCLOTH_FORGE_JAR="$SERVER_DEPS/cloth-config-forge-11.1.106.jar"\nPLAYER_ANIM_FORGE_JAR="$SERVER_DEPS/player-animation-lib-forge-1.0.2+1.19.4.jar"\ncurl -fsSL 'https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config-forge/11.1.106/cloth-config-forge-11.1.106.jar' -o "$CLOTH_FORGE_JAR"\ncurl -fsSL 'https://maven.kosmx.dev/dev/kosmx/player-anim/player-animation-lib-forge/1.0.2+1.19.4/player-animation-lib-forge-1.0.2+1.19.4.jar' -o "$PLAYER_ANIM_FORGE_JAR"\nunzip -tq "$CLOTH_FORGE_JAR" >/dev/null\nunzip -tq "$PLAYER_ANIM_FORGE_JAR" >/dev/null\nunzip -p "$CLOTH_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="cloth_config"' >/dev/null\nunzip -p "$PLAYER_ANIM_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="playeranimator"' >/dev/null\necho "[Spell Engine graduation] packaged dependency SHA cloth=$(sha256sum "$CLOTH_FORGE_JAR" | awk '{print $1}') playeranim=$(sha256sum "$PLAYER_ANIM_FORGE_JAR" | awk '{print $1}')"\necho '[Spell Engine graduation] PACKAGED_SERVER_RUNTIME_DEPENDENCIES_RESOLVED_EXACT'\n'''
+new = '''SERVER_DEPS="$PORT/.packaged-server-deps"\nrm -rf "$SERVER_DEPS"; mkdir -p "$SERVER_DEPS"\nCLOTH_FORGE_JAR="$SERVER_DEPS/cloth-config-forge-11.1.106.jar"\nPLAYER_ANIM_FORGE_JAR="$SERVER_DEPS/player-animation-lib-forge-1.0.2+1.19.4.jar"\necho '[Spell Engine graduation] PACKAGED_SERVER_CLOTH_DOWNLOAD_BEGIN'\ncurl -fsSL 'https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config-forge/11.1.106/cloth-config-forge-11.1.106.jar' -o "$CLOTH_FORGE_JAR"\nunzip -tq "$CLOTH_FORGE_JAR" >/dev/null\nunzip -p "$CLOTH_FORGE_JAR" META-INF/mods.toml | grep -Eq '^[[:space:]]*modId[[:space:]]*=[[:space:]]*"cloth_config"[[:space:]]*$'\necho '[Spell Engine graduation] PACKAGED_SERVER_CLOTH_IDENTITY_PASS'\necho '[Spell Engine graduation] PACKAGED_SERVER_PLAYER_ANIMATOR_DOWNLOAD_BEGIN'\ncurl -fsSL 'https://maven.kosmx.dev/dev/kosmx/player-anim/player-animation-lib-forge/1.0.2+1.19.4/player-animation-lib-forge-1.0.2+1.19.4.jar' -o "$PLAYER_ANIM_FORGE_JAR"\nunzip -tq "$PLAYER_ANIM_FORGE_JAR" >/dev/null\nunzip -p "$PLAYER_ANIM_FORGE_JAR" META-INF/mods.toml | grep -Eq '^[[:space:]]*modId[[:space:]]*=[[:space:]]*"playeranimator"[[:space:]]*$'\necho '[Spell Engine graduation] PACKAGED_SERVER_PLAYER_ANIMATOR_IDENTITY_PASS'\necho "[Spell Engine graduation] packaged dependency SHA cloth=$(sha256sum "$CLOTH_FORGE_JAR" | awk '{print $1}') playeranim=$(sha256sum "$PLAYER_ANIM_FORGE_JAR" | awk '{print $1}')"\necho '[Spell Engine graduation] PACKAGED_SERVER_RUNTIME_DEPENDENCIES_RESOLVED_EXACT'\n'''
 if s.count(old) != 1:
     raise SystemExit(f'expected one packaged-server runtime dependency lookup seam, found {s.count(old)}')
 s = s.replace(old, new, 1)
@@ -58,6 +56,8 @@ for required in (
     "[Spell Engine CI] TOOLTIP_DETAILS_KEY_REGISTERED",
     "https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config-forge/11.1.106/cloth-config-forge-11.1.106.jar",
     "https://maven.kosmx.dev/dev/kosmx/player-anim/player-animation-lib-forge/1.0.2+1.19.4/player-animation-lib-forge-1.0.2+1.19.4.jar",
+    'PACKAGED_SERVER_CLOTH_IDENTITY_PASS',
+    'PACKAGED_SERVER_PLAYER_ANIMATOR_IDENTITY_PASS',
     'PACKAGED_SERVER_RUNTIME_DEPENDENCIES_RESOLVED_EXACT',
 ):
     if required not in final:
