@@ -41,7 +41,7 @@ jobs:
           if not all(p.is_file() for p in parts):
               missing = [str(p) for p in parts if not p.is_file()]
               raise SystemExit(f'missing staging parts: {missing}')
-          encoded = ''.join(p.read_text(encoding='ascii') for p in parts)
+          encoded = ''.join(''.join(p.read_text(encoding='ascii').split()) for p in parts)
           encoded_bytes = encoded.encode('ascii')
           if len(encoded_bytes) != ready['base64Bytes']:
               raise SystemExit(f'base64 size mismatch: {len(encoded_bytes)} != {ready["base64Bytes"]}')
