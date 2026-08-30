@@ -4,17 +4,8 @@
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
   "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
-  "inferredMissingBase64Chars": 1,
-  "joinedBase64Chars": 104559,
-  "joinedModulo4": 3,
-  "multiCharacterRepairSteps": [
-    {
-      "approxCorruptionPosition": 65632,
-      "error": "Corrupt input data",
-      "errorType": "LZMAError",
-      "result": "NO_SURVIVOR"
-    }
-  ],
+  "joinedBase64Chars": 104556,
+  "joinedModulo4": 0,
   "parts": [
     {
       "cleanBase64Chars": 16000,
@@ -52,11 +43,11 @@
       "sha256": "8b00abc26135fbdf2578e2c5b6e11e9c071c52b58fe9659dcb046fceea466239"
     },
     {
-      "cleanBase64Chars": 16003,
-      "cleanModulo4": 3,
-      "fileBytes": 16003,
+      "cleanBase64Chars": 16000,
+      "cleanModulo4": 0,
+      "fileBytes": 16000,
       "name": "xzstage-05.b64",
-      "sha256": "a4e82df9e50e3dabf40e0dc33d5ff090d0ff8d0dae7c537e4c240b1c4c755629"
+      "sha256": "4be156ed9af357f102088bf839d565609df6c85319af1b83d91accf4665c80fe"
     },
     {
       "cleanBase64Chars": 8556,
