@@ -35,6 +35,16 @@ if s.count(old) != 1:
     raise SystemExit(f'expected one native-client readiness seam, found {s.count(old)}')
 s = s.replace(old, new, 1)
 
+# The generic packaged-server harness tries to rediscover cached runtime mods by parsing mods.toml with
+# an over-escaped regex. #315 proved the native client itself resolves the exact Cloth Config and Player
+# Animator versions, then the server harness exits before launch at those cache lookups. Resolve the exact
+# already-used Gradle artifacts by immutable filenames and validate their literal mod IDs before install.
+old = '''CLOTH_FORGE_JAR="$(find_runtime_mod 'cloth-config-forge-*.jar' cloth_config)"\nPLAYER_ANIM_FORGE_JAR="$(find_runtime_mod 'player-animation-lib-forge-*.jar' playeranimator)"\ntest -f "$CLOTH_FORGE_JAR" -a -f "$PLAYER_ANIM_FORGE_JAR"\n'''
+new = '''CLOTH_FORGE_JAR="$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2/files-2.1" -type f -name 'cloth-config-forge-11.1.106.jar' 2>/dev/null | sort | head -n 1)"\nPLAYER_ANIM_FORGE_JAR="$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2/files-2.1" -type f -name 'player-animation-lib-forge-1.0.2+1.19.4.jar' 2>/dev/null | sort | head -n 1)"\ntest -f "$CLOTH_FORGE_JAR" -a -f "$PLAYER_ANIM_FORGE_JAR"\nunzip -p "$CLOTH_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="cloth_config"' >/dev/null\nunzip -p "$PLAYER_ANIM_FORGE_JAR" META-INF/mods.toml | grep -F 'modId="playeranimator"' >/dev/null\necho '[Spell Engine graduation] PACKAGED_SERVER_RUNTIME_DEPENDENCIES_RESOLVED_EXACT'\n'''
+if s.count(old) != 1:
+    raise SystemExit(f'expected one packaged-server runtime dependency lookup seam, found {s.count(old)}')
+s = s.replace(old, new, 1)
+
 runner.write_text(s)
 final = runner.read_text()
 for required in (
@@ -45,7 +55,10 @@ for required in (
     'CLEAN_REBUILD_PAYLOAD_IDENTITY_PASS',
     'CLEAN_REBUILD_PAYLOAD_DRIFT',
     "[Spell Engine CI] TOOLTIP_DETAILS_KEY_REGISTERED",
+    "cloth-config-forge-11.1.106.jar",
+    "player-animation-lib-forge-1.0.2+1.19.4.jar",
+    'PACKAGED_SERVER_RUNTIME_DEPENDENCIES_RESOLVED_EXACT',
 ):
     if required not in final:
         raise SystemExit(f'generated 1.10.4 graduation runner hardening missing: {required}')
-print('[Spell Engine 1.10.4] EXACT_NESTED_TINYCONFIG_RECURSIVE_SEAL_PAYLOAD_DIFF_AND_TOOLTIP_RUNTIME_GATE_PATCHED')
+print('[Spell Engine 1.10.4] EXACT_SEAL_NATIVE_TOOLTIP_AND_PACKAGED_SERVER_DEPENDENCY_GATE_PATCHED')
