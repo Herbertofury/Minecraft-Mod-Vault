@@ -1,0 +1,69 @@
+name: Build Explorer From Canonical Sheet
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-explorer-from-canonical-sheet.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Export canonical Sheet and rebuild Explorer
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC=/tmp/minecraft-recommendations.xlsx
+          curl --fail --location --retry 2 --retry-all-errors 'https://docs.google.com/spreadsheets/d/1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg/export?format=xlsx' -o "$SRC"
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64,lzma,zipfile
+          src=Path('/tmp/minecraft-recommendations.xlsx')
+          if src.read_bytes()[:2] != b'PK': raise SystemExit('canonical Sheet export is not XLSX bytes')
+          with zipfile.ZipFile(src) as z:
+              if 'xl/workbook.xml' not in z.namelist(): raise SystemExit('invalid XLSX workbook')
+          b64=''.join(Path('.github/mrv-explorer-staging/builder.py.xz.b64').read_text().split())
+          builder=lzma.decompress(base64.b64decode(b64+'='*((4-len(b64)%4)%4)))
+          if len(builder)!=23550: raise SystemExit(f'unexpected builder bytes {len(builder)}')
+          Path('/tmp/build_recommendations_explorer.py').write_bytes(builder)
+          Path('tools/recommendations-explorer').mkdir(parents=True,exist_ok=True)
+          Path('tools/recommendations-explorer/build_recommendations_explorer.py').write_bytes(builder)
+          PY
+          python3 /tmp/build_recommendations_explorer.py "$SRC" 'Minecraft Recommendations Vault - Explorer.html'
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          html=Path('Minecraft Recommendations Vault - Explorer.html')
+          meta=Path('Minecraft Recommendations Vault - Explorer.build.json')
+          m=json.loads(meta.read_text())
+          actual=hashlib.sha256(html.read_bytes()).hexdigest()
+          assert html.stat().st_size == 374830, html.stat().st_size
+          assert m['artifactBytes']==html.stat().st_size
+          assert m['artifactSha256']==actual
+          assert m['sheetCount']==14 and m['sourceRowCount']==587 and m['masterItemCount']==186, m
+          text=html.read_text(encoding='utf-8')
+          assert 'no row caps, viewport culling' in text
+          assert 'window.__EXPLORER_TEST__' in text
+          print(json.dumps({'bytes':html.stat().st_size,'sha256':actual,'sourceSha256':m['sourceWorkbookSha256'],'sheetCount':m['sheetCount'],'sourceRowCount':m['sourceRowCount'],'masterItemCount':m['masterItemCount']},sort_keys=True))
+          PY
+          cat > tools/recommendations-explorer/README.md <<'MD'
+          # Recommendations Vault Explorer builder
+          `build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet `Minecraft Recommendations Vault — Master Tracker`, emits provenance, and uses no dataset caps or viewport culling.
+          MD
+          rm -rf .github/mrv-explorer-staging .github/recovery-diagnostics/recommendations-explorer.json
+      - name: Publish rebuilt canonical Explorer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Publish rebuilt Minecraft Recommendations Vault Explorer'
+          git push
