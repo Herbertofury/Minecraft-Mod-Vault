@@ -1,0 +1,109 @@
+name: More RPG - Packaged Server Stall Diagnostic
+
+on:
+  push:
+    branches:
+      - staging/more-rpg-server-stall-diagnostic
+    paths:
+      - '.github/workflows/more-rpg-stall-diagnostic.yml'
+      - 'rpg-series-port/ci/run-more-rpg-library-runtime-stage1-diagnostic.sh'
+      - 'rpg-series-port/more-rpg-library-forge-1.20.1/tools/prepare_more_rpg_library_runtime_trace.py'
+
+concurrency:
+  group: more-rpg-packaged-stall-diagnostic
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  dump-stalled-packaged-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout diagnostic head
+        uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Reuse exact run 351 packaged evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: rpg-series-active-port-b0423e9d123fb785ea7810a011f3d8bc6b3a6efc
+          path: evidence
+          repository: Herbertofury/Minecraft-Mod-Vault
+          run-id: 33336932328
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reproduce live packaged-server stall and dump JVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          E="$GITHUB_WORKSPACE/evidence/rpg-series-port"
+          MRPG="$E/more-rpg-library-forge-1.20.1/more_rpg_library-forge-2.7.2+1.20.1.jar"
+          SPELL_ENGINE="$E/spell-engine-forge-1.20.1/spell_engine-forge-1.10.4+1.20.1.jar"
+          SPELL_POWER="$(find "$E/spell_power-forge-1.20.1/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | sort | head -n1)"
+          RANGED="$(find "$E/ranged-weapon-api-forge-1.20.1/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | sort | head -n1)"
+          TINY="$(find "$E/tiny-config-forge-1.20.1/generated/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | sort | head -n1)"
+          for f in "$MRPG" "$SPELL_ENGINE" "$SPELL_POWER" "$RANGED" "$TINY"; do test -f "$f"; unzip -tq "$f" >/dev/null; done
+          sha256sum "$MRPG" "$SPELL_ENGINE" "$SPELL_POWER" "$RANGED" "$TINY" | tee packaged-inputs.sha256
+
+          DEPS="$RUNNER_TEMP/mrpg-deps"; mkdir -p "$DEPS"
+          CLOTH="$DEPS/cloth-config-forge-11.1.106.jar"
+          PLAYER="$DEPS/player-animation-lib-forge-1.0.2+1.19.4.jar"
+          curl -fsSL 'https://maven.shedaniel.me/me/shedaniel/cloth/cloth-config-forge/11.1.106/cloth-config-forge-11.1.106.jar' -o "$CLOTH"
+          curl -fsSL 'https://maven.kosmx.dev/dev/kosmx/player-anim/player-animation-lib-forge/1.0.2+1.19.4/player-animation-lib-forge-1.0.2+1.19.4.jar' -o "$PLAYER"
+
+          SERVER="$GITHUB_WORKSPACE/diag-server"; mkdir -p "$SERVER/mods"
+          curl -fsSL 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar' -o "$SERVER/installer.jar"
+          (cd "$SERVER" && java -jar installer.jar --installServer >/dev/null)
+          printf 'eula=true\n' > "$SERVER/eula.txt"
+          printf '%s\n' '-Xmx3G' > "$SERVER/user_jvm_args.txt"
+          cp "$MRPG" "$SERVER/mods/more-rpg-library-forge.jar"
+          cp "$SPELL_ENGINE" "$SERVER/mods/spell-engine-forge.jar"
+          cp "$SPELL_POWER" "$SERVER/mods/spell-power-forge.jar"
+          cp "$RANGED" "$SERVER/mods/ranged-weapon-api-forge.jar"
+          cp "$TINY" "$SERVER/mods/tiny-config-forge.jar"
+          cp "$CLOTH" "$SERVER/mods/cloth-config-forge.jar"
+          cp "$PLAYER" "$SERVER/mods/player-animation-lib-forge.jar"
+
+          LOG="$GITHUB_WORKSPACE/packaged-server-stall-diagnostic.log"; : > "$LOG"
+          (cd "$SERVER" && ./run.sh nogui) > "$LOG" 2>&1 & SHELL_PID=$!
+          READY=0
+          for _ in $(seq 1 90); do
+            if grep -Eq 'Done \([0-9.]+s\)!' "$SERVER/logs/latest.log" 2>/dev/null; then READY=1; break; fi
+            if ! kill -0 "$SHELL_PID" 2>/dev/null; then break; fi
+            sleep 1
+          done
+
+          JAVA_PID="$(jps -l 2>/dev/null | awk '/cpw\.mods\.bootstraplauncher\.BootstrapLauncher/ {print $1; exit}')"
+          if [[ -n "$JAVA_PID" ]]; then
+            echo "===== JVM SIGQUIT thread dump pid=$JAVA_PID =====" | tee -a "$LOG"
+            kill -QUIT "$JAVA_PID"
+            sleep 4
+          else
+            echo '===== no BootstrapLauncher JVM found =====' | tee -a "$LOG"
+          fi
+          echo "READY=$READY" | tee -a "$LOG"
+          tail -n 1200 "$LOG"
+          [[ -z "$JAVA_PID" ]] || kill -TERM "$JAVA_PID" 2>/dev/null || true
+          kill -TERM "$SHELL_PID" 2>/dev/null || true
+          wait "$SHELL_PID" 2>/dev/null || true
+
+      - name: Preserve stall evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: more-rpg-run351-packaged-server-stall-diagnostic
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            packaged-server-stall-diagnostic.log
+            packaged-inputs.sha256
+            diag-server/logs/latest.log
+            diag-server/logs/debug.log
