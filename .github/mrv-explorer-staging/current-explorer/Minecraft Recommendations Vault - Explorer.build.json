@@ -1,0 +1,15 @@
+{
+  "artifact": "Minecraft Recommendations Vault - Explorer.html",
+  "artifactBytes": 374830,
+  "artifactSha256": "ea1a6b64bab80bc88521ec138f2e364fbeeebb1d2c2796aaebc520ece9c0f979",
+  "sourceWorkbook": "Minecraft Recommendations Vault — Master Tracker",
+  "sourceWorkbookBytes": 208302,
+  "sourceWorkbookSha256": "610bc5f74ad4c842a0e7bd690aacf89f932e68a3b7cc016faa382591f3f6dd2a",
+  "sourceDriveId": "1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg",
+  "sourceModifiedTime": "2026-08-29T22:28:18.260Z",
+  "generatorVersion": "recommendations-explorer/1.0.0",
+  "builtAt": "2026-08-30T03:40:33.109739Z",
+  "sheetCount": 14,
+  "sourceRowCount": 587,
+  "masterItemCount": 186
+}
