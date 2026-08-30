@@ -125,7 +125,7 @@ text = rewrite_modifyarg_handler(
     'private float rage$addRageDamage(DamageSource source, float amount)',
     'args.set(1, (float) args.get(1) + rageDamage);',
     'amount += rageDamage;',
-    6,
+    5,
 )
 text = rewrite_modifyarg_handler(
     text,
