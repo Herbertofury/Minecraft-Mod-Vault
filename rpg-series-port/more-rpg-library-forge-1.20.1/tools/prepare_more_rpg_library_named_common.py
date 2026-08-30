@@ -13,7 +13,8 @@ api_pass = Path(__file__).with_name('prepare_more_rpg_library_1201_api_pass.py')
 status_consumer_prepass = Path(__file__).with_name('prepare_more_rpg_library_1201_status_consumer_prepass.py')
 api_wave2 = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave2.py')
 loot_wave3 = Path(__file__).with_name('prepare_more_rpg_library_1201_loot_wave3.py')
-for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3):
+loot_wave3_import_fix = Path(__file__).with_name('prepare_more_rpg_library_1201_loot_wave3_import_fix.py')
+for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
@@ -21,11 +22,13 @@ for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_
 subprocess.run([sys.executable, str(loader_neutral), str(modern), str(old), str(out)], check=True)
 
 # Apply only proven 1.21 -> 1.20.1 API seams. Each stage is fail-closed; loot persistence is kept as
-# its own Wave 3 so serializer changes cannot mask status/worldgen failures from Wave 2.
+# its own Wave 3 so serializer changes cannot mask status/worldgen failures from Wave 2. The import
+# ordering repair is intentionally isolated so Wave 3 semantic markers remain independently auditable.
 subprocess.run([sys.executable, str(api_pass), str(out)], check=True)
 subprocess.run([sys.executable, str(status_consumer_prepass), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave2), str(out)], check=True)
 subprocess.run([sys.executable, str(loot_wave3), str(out)], check=True)
+subprocess.run([sys.executable, str(loot_wave3_import_fix), str(out)], check=True)
 
 common_gradle = out / 'common/build.gradle'
 if not common_gradle.is_file():
