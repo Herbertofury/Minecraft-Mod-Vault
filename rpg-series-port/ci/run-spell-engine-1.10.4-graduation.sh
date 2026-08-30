@@ -6,6 +6,7 @@ GRAD="$ROOT/rpg-series-port/ci/run-spell-engine-graduation.sh"
 PASS6C="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6c.py"
 PASS6F="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6f.py"
 PASS6I="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6i.py"
+PASS6O="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_6o.py"
 ENV_FILE="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/SPELL_ENGINE_GRADUATION.env"
 
 test -f "$BASE"
@@ -13,17 +14,16 @@ test -f "$GRAD"
 test -f "$PASS6C"
 test -f "$PASS6F"
 test -f "$PASS6I"
+test -f "$PASS6O"
 test -f "$ENV_FILE"
 source "$ENV_FILE"
 
 [[ "$SPELL_ENGINE_TARGET_VERSION" = '1.10.4' ]]
 [[ "$SPELL_ENGINE_1104_TARGET_SHA" = '8843cea8974afffc7ec42c096cac33327a3af3d8' ]]
 
-# Uplift only target authority/path/release labeling in this CI workspace and repair the
-# historical Spell Power dependency-build invocation. The historical source-package seam
-# intentionally remains untouched here because the audited graduation harness owns its
-# deterministic replacement. This ordering prevents the two fail-closed wrappers from
-# competing over the same literal.
+# Uplift target authority/path/release labeling, repair the hardened Spell Power invocation, and
+# activate the 1.10.4-only parity gate after the historical compatibility chain. The historical
+# source-package seam intentionally remains untouched because the audited graduation harness owns it.
 python3 - "$BASE" <<'PY'
 from pathlib import Path
 import sys
@@ -37,6 +37,8 @@ repls=[
      'spell_engine-forge-1.10.4+1.20.1.jar', 1),
     ('gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build',
      'gradle --no-daemon --stacktrace -p "$SPELL_POWER" -Ptiny_config_common_jar="$TINY_CONFIG_COMMON_JAR" -Ptiny_config_forge_jar="$TINY_CONFIG_FORGE_JAR" :forge:build', 1),
+    ('for part in b c d e f g h i; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done',
+     'for part in b c d e f g h i; do python "$PORT/tools/compat_pass_6${part}.py" "$WORK" "$UP/spell-engine-1201"; done\npython "$PORT/tools/compat_pass_6o.py" "$WORK" "$UP/spell-engine-1201"', 1),
 ]
 for old,new,expected in repls:
     actual=s.count(old)
@@ -53,13 +55,14 @@ if 'spell-engine-1102' in s:
     raise SystemExit('[Spell Engine 1.10.4] stale 1.10.2 target path remains in active base runner')
 if 'gradle --no-daemon --stacktrace -p "$SPELL_POWER" :forge:build' in s:
     raise SystemExit('[Spell Engine 1.10.4] stale Spell Power build invocation still omits TinyConfig 3.1 inputs')
+if s.count('compat_pass_6o.py') != 1:
+    raise SystemExit('[Spell Engine 1.10.4] 1.10.4 parity pass missing or duplicated in uplifted runner')
 p.write_text(s)
 PY
 
 # Spell Engine 1.10.4's loot-inspection crash fix widens LootPool.entries. In modern 1.21.1
 # that field is a List, while Yarn/MC 1.20.1 exposes the same named field as LootPoolEntry[].
-# Preserve the widening and adapt only its JVM descriptor; deleting it would silently regress the
-# exact 1.10.4 behavior this graduation is meant to carry back.
+# Preserve the widening and adapt only its JVM descriptor; deleting it would silently regress the fix.
 python3 - "$PASS6C" <<'PY'
 from pathlib import Path
 import sys
@@ -79,8 +82,7 @@ PY
 
 # Spell Engine 1.10.4 widened its loot builder calls: buildPool now receives the registry lookup
 # for entry-list variants and EnchantWithLevelsLootFunction.builder also receives that lookup.
-# Forge/Yarn 1.20.1 exposes neither registry-bearing builder contract here. Teach the existing
-# pass-6f adapter the generalized 1.10.4 shapes before it runs, and keep fail-closed assertions.
+# Forge/Yarn 1.20.1 exposes neither registry-bearing builder contract here.
 python3 - "$PASS6F" <<'PY'
 from pathlib import Path
 import sys
@@ -110,8 +112,7 @@ PY
 
 # Pass 6i's original invariants described 1.10.2's direct pool.entries loops. 1.10.4 intentionally
 # broadened tag caching to exact injectors + regex injectors + fallback references through entryLists,
-# and buildPool now receives List<Pool.Entry>. Preserve and assert that newer structure rather than
-# forcing it back to the historical shape.
+# and buildPool now receives List<Pool.Entry>. Preserve and assert that newer structure.
 python3 - "$PASS6I" <<'PY'
 from pathlib import Path
 import sys
@@ -128,6 +129,6 @@ p.write_text(s)
 PY
 
 bash -n "$BASE"
-python3 -m py_compile "$PASS6C" "$PASS6F" "$PASS6I"
-echo '[Spell Engine 1.10.4] TARGET_AUTHORITY_SPELL_POWER_LOOT_API_AND_ACCESS_ADAPTATION_PASS sha=8843cea8974afffc7ec42c096cac33327a3af3d8'
+python3 -m py_compile "$PASS6C" "$PASS6F" "$PASS6I" "$PASS6O"
+echo '[Spell Engine 1.10.4] TARGET_AUTHORITY_SPELL_POWER_LOOT_ACCESS_CLIENT_AND_API_PARITY_READY sha=8843cea8974afffc7ec42c096cac33327a3af3d8'
 exec bash "$GRAD"
