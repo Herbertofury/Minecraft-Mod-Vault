@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"crypto/sha1"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,7 +23,7 @@ type engine struct {
 
 func newEngine(r Registry, h *http.Client) *engine {
 	p := newProviderClient(h)
-	p.cfKey = os.Getenv("CURSEFORGE_API_KEY")
+	p.cfKey = firstNonEmptyEnv("CURSEFORGE_API_KEY", "CF_API_KEY", "CURSEFORGE_KEY")
 	p.ghToken = os.Getenv("GITHUB_TOKEN")
 	return &engine{reg: r, p: p, http: p.http}
 }
@@ -135,39 +131,28 @@ func sameArtifact(a ManagedArtifact, c Candidate) bool {
 	if a.SHA256 != "" && c.SHA256 != "" && strings.EqualFold(a.SHA256, c.SHA256) {
 		return true
 	}
-	return a.Version != "" && c.Version != "" && a.Version == c.Version
+	if a.Version != "" && c.Version != "" && a.Version == c.Version {
+		return true
+	}
+	return a.Filename != "" && c.Filename != "" && strings.EqualFold(a.Filename, c.Filename)
 }
 func (e *engine) download(ctx context.Context, c Candidate) ([]byte, string, error) {
-	req, er := http.NewRequestWithContext(ctx, "GET", c.URL, nil)
-	if er != nil {
-		return nil, "", er
+	dir, err := os.MkdirTemp("", "mmv-download-*")
+	if err != nil {
+		return nil, "", err
 	}
-	req.Header.Set("User-Agent", "MinecraftDevKitOrchestrator/2.0")
-	resp, er := e.http.Do(req)
-	if er != nil {
-		return nil, "", er
+	defer os.RemoveAll(dir)
+	name := first(c.Filename, "artifact.bin")
+	out := filepath.Join(dir, filepath.Base(name))
+	result, err := e.fetchVerifiedToPath(ctx, c, out)
+	if err != nil {
+		return nil, "", err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, "", fmt.Errorf("download http %d", resp.StatusCode)
+	data, err := os.ReadFile(out)
+	if err != nil {
+		return nil, "", err
 	}
-	data, er := io.ReadAll(io.LimitReader(resp.Body, 2<<30))
-	if er != nil {
-		return nil, "", er
-	}
-	sum := sha256.Sum256(data)
-	got := hex.EncodeToString(sum[:])
-	if c.SHA256 != "" && !strings.EqualFold(c.SHA256, got) {
-		return nil, "", fmt.Errorf("sha256 mismatch: provider=%s downloaded=%s", c.SHA256, got)
-	}
-	if c.SHA1 != "" {
-		s1 := sha1.Sum(data)
-		got1 := hex.EncodeToString(s1[:])
-		if !strings.EqualFold(c.SHA1, got1) {
-			return nil, "", fmt.Errorf("sha1 mismatch: provider=%s downloaded=%s", c.SHA1, got1)
-		}
-	}
-	return data, got, nil
+	return data, result.SHA256, nil
 }
 func (e *engine) apply(ctx context.Context, p UpdatePlan, registryPath, lockPath string, useDrive bool) (LockFile, error) {
 	r := e.reg
@@ -206,6 +191,10 @@ func (e *engine) apply(ctx context.Context, p UpdatePlan, registryPath, lockPath
 		}
 		driveID := a.DriveFileID
 		hash := a.SHA256
+		destName := ap.Candidate.Filename
+		if a.UpdatePolicy.KeepFilename && a.Filename != "" {
+			destName = a.Filename
+		}
 		if ap.Status == "update" {
 			data, newHash, dlErr := e.download(ctx, *ap.Candidate)
 			if dlErr != nil {
@@ -214,24 +203,24 @@ func (e *engine) apply(ctx context.Context, p UpdatePlan, registryPath, lockPath
 			hash = newHash
 			if useDrive {
 				if driveID != "" {
-					_, er = dc.replace(ctx, driveID, ap.Candidate.Filename, data)
+					_, er = dc.replace(ctx, driveID, destName, data)
 				} else {
 					parent := r.Drive.RuntimeFolderID
 					if a.Kind == "source" {
 						parent = r.Drive.SourceFolderID
 					}
-					driveID, er = dc.uploadFile(ctx, parent, ap.Candidate.Filename, data)
+					driveID, er = dc.uploadFile(ctx, parent, destName, data)
 				}
 				if er != nil {
 					return lock, fmt.Errorf("%s drive: %w", a.ID, er)
 				}
 			}
 			a.Version = ap.Candidate.Version
-			a.Filename = ap.Candidate.Filename
+			a.Filename = destName
 			a.SHA256 = hash
 			a.DriveFileID = driveID
 		}
-		le := LockEntry{ArtifactID: a.ID, Provider: ap.Candidate.Provider, ProjectID: ap.Candidate.ProjectID, VersionID: ap.Candidate.VersionID, Version: ap.Candidate.Version, Filename: ap.Candidate.Filename, SHA256: hash, DriveFileID: driveID, SourceDriveID: a.SourceDriveID, SourceURL: ap.Candidate.SourceURL, SourceRef: ap.Candidate.SourceRef, ResolvedAt: time.Now().UTC()}
+		le := LockEntry{ArtifactID: a.ID, Provider: ap.Candidate.Provider, ProjectID: ap.Candidate.ProjectID, VersionID: ap.Candidate.VersionID, Version: ap.Candidate.Version, Filename: destName, SHA256: hash, DriveFileID: driveID, SourceDriveID: a.SourceDriveID, SourceURL: ap.Candidate.SourceURL, SourceRef: ap.Candidate.SourceRef, ResolvedAt: time.Now().UTC()}
 		if a.UpdatePolicy.MirrorSource && ap.Candidate.SourceURL != "" {
 			srcURL, srcRef, srcErr := e.p.sourceArchiveForCandidate(ctx, *ap.Candidate)
 			if srcErr != nil {
