@@ -143,6 +143,52 @@ for required in (
     if required not in client_final:
         raise SystemExit(f'Spell Engine Forge client parity missing: {required}')
 
+# Strengthen the packaged-server self-test so 1.10.4's externally configurable Critical Strike seam
+# is not merely source-checked. Reflection on the packaged class proves the two adapter fields remain
+# public + static with the expected functional-interface types and initialized defaults at runtime.
+self_test = forge_java / 'SpellEngineCiSelfTest.java'
+st = self_test.read_text()
+marker = '''        System.out.println("[Spell Engine CI] Packaged runtime self-test passed: SpellRegistry=" + spells.size()
+                + ", SpellInfinity=present, NBT-components=roundtrip");
+'''
+critical_runtime = '''        try {
+            var compatClass = Class.forName("net.spell_engine.compat.CriticalStrikeCompat");
+            var predicateField = compatClass.getField("isCriticalStrike");
+            var setterField = compatClass.getField("setCriticalStrike");
+            int requiredModifiers = java.lang.reflect.Modifier.PUBLIC | java.lang.reflect.Modifier.STATIC;
+            if ((predicateField.getModifiers() & requiredModifiers) != requiredModifiers
+                    || (setterField.getModifiers() & requiredModifiers) != requiredModifiers) {
+                throw new IllegalStateException("Spell Engine CI self-test: Critical Strike hook fields are not public static");
+            }
+            if (!java.util.function.Predicate.class.isAssignableFrom(predicateField.getType())
+                    || !java.util.function.BiConsumer.class.isAssignableFrom(setterField.getType())) {
+                throw new IllegalStateException("Spell Engine CI self-test: Critical Strike hook field types drifted");
+            }
+            if (predicateField.get(null) == null || setterField.get(null) == null) {
+                throw new IllegalStateException("Spell Engine CI self-test: Critical Strike hook defaults are null");
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Spell Engine CI self-test: Critical Strike compatibility seam is not packaged/runtime-visible", e);
+        }
+
+        System.out.println("[Spell Engine CI] Packaged runtime self-test passed: SpellRegistry=" + spells.size()
+                + ", SpellInfinity=present, NBT-components=roundtrip, CriticalStrikeHooks=public-static-ready");
+'''
+if marker not in st:
+    raise SystemExit('packaged-runtime self-test success seam drifted')
+self_test.write_text(st.replace(marker, critical_runtime, 1))
+self_test_final = self_test.read_text()
+for required in (
+    'Class.forName("net.spell_engine.compat.CriticalStrikeCompat")',
+    'compatClass.getField("isCriticalStrike")',
+    'compatClass.getField("setCriticalStrike")',
+    'java.util.function.Predicate.class.isAssignableFrom',
+    'java.util.function.BiConsumer.class.isAssignableFrom',
+    'CriticalStrikeHooks=public-static-ready',
+):
+    if required not in self_test_final:
+        raise SystemExit(f'Spell Engine packaged Critical Strike runtime proof missing: {required}')
+
 # The certified TinyConfig bytes must remain exact, but Loom include(...) needs a module component.
 # Apply the local artifact-only Maven staging only after all 1.10.4 behavior assertions are green.
 pass6p = Path(__file__).with_name('compat_pass_6p.py')
@@ -150,4 +196,4 @@ if not pass6p.is_file():
     raise SystemExit(f'missing certified TinyConfig module-staging pass: {pass6p}')
 subprocess.run([sys.executable, str(pass6p), str(root), str(baseline)], check=True)
 
-print('Spell Engine compatibility pass 6o applied: 1.10.4 Critical Strike API + fallback loot + access fix + tooltip key runtime parity gated; certified TinyConfig module staging activated')
+print('Spell Engine compatibility pass 6o applied: 1.10.4 Critical Strike API + packaged runtime reflection + fallback loot + access fix + tooltip key runtime parity gated; certified TinyConfig module staging activated')
