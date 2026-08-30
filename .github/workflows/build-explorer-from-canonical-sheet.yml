@@ -1,13 +1,132 @@
 name: Build Explorer From Canonical Sheet
 
 on:
+  push:
+    paths:
+      - '.github/workflows/build-explorer-from-canonical-sheet.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  staging-maintenance:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - run: echo 'Authenticated current workbook staging is in progress; publication resumes after exact byte verification.'
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify current authenticated Explorer build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import json
+          import lzma
+
+          stage_dir = Path('.github/mrv-explorer-staging')
+          stage_paths = [stage_dir / f'xzstage-{i:02d}.b64' for i in range(7)]
+          expected_lengths = [16000, 16000, 16000, 16000, 16000, 16000, 8600]
+          parts = []
+          for path, expected_len in zip(stage_paths, expected_lengths):
+              if not path.is_file():
+                  raise SystemExit(f'missing current Explorer staging part: {path}')
+              value = ''.join(path.read_text(encoding='ascii').split())
+              if len(value) != expected_len:
+                  raise SystemExit(f'{path} length mismatch: {len(value)} != {expected_len}')
+              parts.append(value)
+
+          staged_b64 = ''.join(parts)
+          expected_b64_sha = '5ea41a25be982d871f6463414b5e508177348290f449dfee9ecb60e04540d46f'
+          actual_b64_sha = hashlib.sha256(staged_b64.encode('ascii')).hexdigest()
+          if len(staged_b64) != 104600 or actual_b64_sha != expected_b64_sha:
+              raise SystemExit(f'current Explorer staged base64 mismatch: len={len(staged_b64)} sha256={actual_b64_sha}')
+
+          packed = base64.b64decode(staged_b64, validate=True)
+          expected_xz_sha = '79476efde19de63fad496b92a21a1663ede131cbf7c67062ffa088beda2776b6'
+          actual_xz_sha = hashlib.sha256(packed).hexdigest()
+          if len(packed) != 78448 or actual_xz_sha != expected_xz_sha:
+              raise SystemExit(f'current Explorer xz mismatch: bytes={len(packed)} sha256={actual_xz_sha}')
+
+          html = lzma.decompress(packed)
+          expected_html_sha = '5121cc0ec5ab44a225fe7bfc6cfd2734ff2cce26e8173e2f4758e0f1183a8fd7'
+          actual_html_sha = hashlib.sha256(html).hexdigest()
+          if len(html) != 374830 or actual_html_sha != expected_html_sha:
+              raise SystemExit(f'current Explorer HTML mismatch: bytes={len(html)} sha256={actual_html_sha}')
+          text = html.decode('utf-8')
+          for marker in ('no row caps, viewport culling', 'window.__EXPLORER_TEST__'):
+              if marker not in text:
+                  raise SystemExit(f'missing Explorer acceptance marker: {marker}')
+          Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html)
+
+          builder_b64_path = stage_dir / 'builder.py.xz.b64'
+          if not builder_b64_path.is_file():
+              raise SystemExit('missing reusable Explorer builder staging payload')
+          builder_b64 = ''.join(builder_b64_path.read_text(encoding='ascii').split())
+          builder = lzma.decompress(base64.b64decode(builder_b64, validate=True))
+          builder_sha = hashlib.sha256(builder).hexdigest()
+          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
+          if len(builder) != 23550 or builder_sha != expected_builder_sha:
+              raise SystemExit(f'Explorer builder mismatch: bytes={len(builder)} sha256={builder_sha}')
+
+          tool_dir = Path('tools/recommendations-explorer')
+          tool_dir.mkdir(parents=True, exist_ok=True)
+          (tool_dir / 'build_recommendations_explorer.py').write_bytes(builder)
+          (tool_dir / 'README.md').write_text(
+              '# Recommendations Vault Explorer builder\n\n'
+              '`build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet '
+              '`Minecraft Recommendations Vault — Master Tracker`, emits source provenance, and preserves the full dataset with no row caps or viewport culling.\n',
+              encoding='utf-8',
+          )
+
+          metadata = {
+              'artifact': 'Minecraft Recommendations Vault - Explorer.html',
+              'artifactBytes': 374830,
+              'artifactSha256': expected_html_sha,
+              'sourceWorkbook': 'Minecraft Recommendations Vault — Master Tracker',
+              'sourceDriveId': '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg',
+              'sourceModifiedTime': '2026-08-29T22:28:18.260Z',
+              'sourceWorkbookBytes': 208085,
+              'sourceWorkbookSha256': '4b1d327009c03ce42646b9cfb6d47b9634d0b6734c8b1d9258c26764ee4f301f',
+              'generatorVersion': 'recommendations-explorer/1.0.0',
+              'generatorBytes': 23550,
+              'generatorSha256': expected_builder_sha,
+              'sheetCount': 14,
+              'sourceRowCount': 587,
+              'masterItemCount': 186,
+              'publicationRecovery': {
+                  'mode': 'authenticated-drive-current-build-staged-exact-artifact',
+                  'stagedBase64Length': 104600,
+                  'stagedBase64Sha256': expected_b64_sha,
+                  'stagedXzBytes': 78448,
+                  'stagedXzSha256': expected_xz_sha,
+                  'verification': 'fail-closed byte identity before GitHub commit',
+              },
+          }
+          Path('Minecraft Recommendations Vault - Explorer.build.json').write_text(
+              json.dumps(metadata, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(metadata, sort_keys=True))
+          PY
+
+      - name: Publish exact current Explorer and reusable builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'Minecraft Recommendations Vault - Explorer.html' \
+                  'Minecraft Recommendations Vault - Explorer.build.json' \
+                  'tools/recommendations-explorer/build_recommendations_explorer.py' \
+                  'tools/recommendations-explorer/README.md'
+          if git diff --cached --quiet; then
+            echo 'GitHub already contains the exact verified current Explorer build.'
+            exit 0
+          fi
+          git commit -m 'Publish current verified Minecraft Recommendations Vault Explorer'
+          git push
