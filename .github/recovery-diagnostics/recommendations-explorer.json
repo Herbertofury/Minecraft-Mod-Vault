@@ -4,32 +4,29 @@
   "expectedBuilderBytes": 23550,
   "expectedHtmlBytes": 374830,
   "expectedHtmlSha256": "e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b",
-  "firstObservedCorruptGroupError": "Corrupt input data",
-  "firstObservedCorruptGroupErrorType": "LZMAError",
-  "firstObservedCorruptGroupStart": 12316,
-  "joinedBase64Chars": 109109,
-  "joinedModulo4": 1,
+  "joinedBase64Chars": 109110,
+  "joinedModulo4": 2,
   "parts": [
     {
-      "cleanBase64Chars": 15999,
-      "cleanModulo4": 3,
-      "fileBytes": 15999,
+      "cleanBase64Chars": 16000,
+      "cleanModulo4": 0,
+      "fileBytes": 16000,
       "name": "xzstage-00.b64",
-      "sha256": "58433216d7ee15951cc5beb6dd0145cdb85a33bf77d6601cf89ea484fa88454b"
+      "sha256": "6d29a84dfcc9d40ef309923ee70d246d4fd82cc2ca55ae591386f7529bbcf1f4"
     },
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-01.b64",
-      "sha256": "47eef53577c67ef4134d600f355c61fae643cb5f775376955361040fa0d21442"
+      "sha256": "8c566e097a5b79da23d5c31d80688eacf1a126904344fe0f68ae0c486d5b3f0b"
     },
     {
       "cleanBase64Chars": 16000,
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-02.b64",
-      "sha256": "eb85656b207996016450c0263d0bb8250b70ad94cf29a1ce7f70572853926aa0"
+      "sha256": "a02dfff9f310dca04aa85911afbfa881db6946bde47b39f074b11298a9f10de3"
     },
     {
       "cleanBase64Chars": 16000,
@@ -43,7 +40,7 @@
       "cleanModulo4": 0,
       "fileBytes": 16000,
       "name": "xzstage-04.b64",
-      "sha256": "5d90709c65937f05aaa54de3d35c67120e35b462bd11874c0272493ee799ec69"
+      "sha256": "3926824f451e84f84834ad8bd442c412b9ef572846456cdfee4460b8f9ef085b"
     },
     {
       "cleanBase64Chars": 20554,
@@ -60,14 +57,7 @@
       "sha256": "b41afacc75cf201dd2482a29967c890a96c78797a317f3b9b745b94737c9a984"
     }
   ],
-  "prefixProbeEnd": 14364,
-  "prefixSurvivors": 0,
   "result": "FAIL",
   "schema": "mrv.recommendations-explorer-recovery-diagnostic/5",
-  "searchAttempts": 132160,
-  "searchRange": [
-    10268,
-    12332
-  ],
   "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 63, in <module>\nRuntimeError: exact Explorer not recovered in accelerated localized search\n"
 }
