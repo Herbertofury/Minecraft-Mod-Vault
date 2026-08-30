@@ -12,18 +12,20 @@ loader_neutral = Path(__file__).with_name('prepare_more_rpg_library_loader_neutr
 api_pass = Path(__file__).with_name('prepare_more_rpg_library_1201_api_pass.py')
 status_consumer_prepass = Path(__file__).with_name('prepare_more_rpg_library_1201_status_consumer_prepass.py')
 api_wave2 = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave2.py')
-for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2):
+loot_wave3 = Path(__file__).with_name('prepare_more_rpg_library_1201_loot_wave3.py')
+for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
 # Preserve all existing full-source and loader-neutral preparation invariants first.
 subprocess.run([sys.executable, str(loader_neutral), str(modern), str(old), str(out)], check=True)
 
-# Apply only proven 1.21 -> 1.20.1 API seams. The #331 prepass owns exactly the five non-effect
-# status consumers; Wave 2 keeps ownership of the effect package and the global survival gate.
+# Apply only proven 1.21 -> 1.20.1 API seams. Each stage is fail-closed; loot persistence is kept as
+# its own Wave 3 so serializer changes cannot mask status/worldgen failures from Wave 2.
 subprocess.run([sys.executable, str(api_pass), str(out)], check=True)
 subprocess.run([sys.executable, str(status_consumer_prepass), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave2), str(out)], check=True)
+subprocess.run([sys.executable, str(loot_wave3), str(out)], check=True)
 
 common_gradle = out / 'common/build.gradle'
 if not common_gradle.is_file():
@@ -45,17 +47,12 @@ for old_prop, new_prop in pairs:
         raise SystemExit(f'common dependency seam drifted for {old_prop}: found {s.count(needle)}')
     s = s.replace(needle, repl, 1)
 
-# Modern 2.7.2 stealth mixins use MixinExtras annotations/types in common. Forge bundles runtime
-# separately; common only needs the loader-neutral API + annotation processor at compile time.
 anchor = '''    modImplementation("dev.kosmx.player-anim:player-animation-lib-fabric:${rootProject.player_anim_version}")\n'''
 insert = '''    implementation("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}")\n    annotationProcessor("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}")\n'''
 if s.count(anchor) != 1:
     raise SystemExit(f'common MixinExtras insertion seam drifted: found {s.count(anchor)}')
 s = s.replace(anchor, insert + anchor, 1)
 
-# Keep the 2.7.2 generated-resource authority in the release resources, while excluding datagen Java
-# from production compilation. Datagen remains a separately-portable build-time lane instead of forcing
-# Fabric datagen classes into a native Forge runtime JAR.
 source_anchor = '''loom {\n    accessWidenerPath = file('src/main/resources/more-rpg-classes.accesswidener')\n}\n'''
 source_block = '''sourceSets {\n    main {\n        java { exclude 'net/more_rpg_classes/datagen/**' }\n        resources { srcDir 'src/main/generated' }\n    }\n}\n'''
 if s.count(source_anchor) != 1:
