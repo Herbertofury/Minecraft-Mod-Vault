@@ -1,15 +1,19 @@
 {
   "artifact": "Minecraft Recommendations Vault - Explorer.html",
-  "artifactBytes": 374830,
-  "artifactSha256": "ea1a6b64bab80bc88521ec138f2e364fbeeebb1d2c2796aaebc520ece9c0f979",
+  "artifactBytes": 1070247,
+  "artifactSha256": "c03e33ceb2728b58fe47e81e63f6921ac8c576e2246dc9ba2cad8ce90df50077",
   "sourceWorkbook": "Minecraft Recommendations Vault — Master Tracker",
-  "sourceWorkbookBytes": 208302,
-  "sourceWorkbookSha256": "610bc5f74ad4c842a0e7bd690aacf89f932e68a3b7cc016faa382591f3f6dd2a",
+  "sourceWorkbookBytes": 208049,
+  "sourceWorkbookSha256": "5b8b09fd9d87a4e411f5a00f6321b06c5e17b5b11b2326dc259e74136ed5bd7d",
   "sourceDriveId": "1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg",
   "sourceModifiedTime": "2026-08-29T22:28:18.260Z",
-  "generatorVersion": "recommendations-explorer/1.0.0",
-  "builtAt": "2026-08-30T03:40:33.109739Z",
+  "generatorVersion": "recommendations-vault-explorer/1.0.0",
+  "builtAt": "2026-08-30T05:31:16.908117+00:00",
   "sheetCount": 14,
   "sourceRowCount": 587,
-  "masterItemCount": 186
+  "masterItemCount": 272,
+  "normalizedDatasetSha256": "cbcd35aab726978e654ef52e8cbac068b8d5250196cca3e828b4b4ee24f59910",
+  "leaderCount": 34,
+  "qa": "PASS",
+  "sourceZipSha256": "447a64380fc71e50076b03da52f4c7a5357eaae50943bc28cc597d5f86c97461"
 }
