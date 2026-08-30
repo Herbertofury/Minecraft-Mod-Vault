@@ -1,132 +1,13 @@
 name: Build Explorer From Canonical Sheet
 
 on:
-  push:
-    paths:
-      - '.github/workflows/build-explorer-from-canonical-sheet.yml'
-      - '.github/mrv-explorer-staging/**'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  recover:
+  staging-maintenance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Recover verified Explorer and reusable builder
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import base64, hashlib, json, lzma
-
-          root = Path('.')
-          staged = [root / '.github/mrv-explorer-staging' / f'xzstage-{i:02d}.b64' for i in range(7)]
-          missing = [str(p) for p in staged if not p.is_file()]
-          if missing:
-              raise SystemExit(f'missing Explorer staging parts: {missing}')
-
-          parts = [''.join(p.read_text().split()) for p in staged]
-          # A prior failed publication write accidentally appended "g==" to part 05.
-          # Trim only this exact, known three-character suffix/length defect. Every
-          # subsequent identity check remains fail-closed against the canonical stream.
-          if len(parts[5]) == 16003 and parts[5].endswith('g=='):
-              parts[5] = parts[5][:-3]
-
-          expected_lengths = [16000, 16000, 16000, 16000, 16000, 16000, 8556]
-          actual_lengths = [len(p) for p in parts]
-          if actual_lengths != expected_lengths:
-              raise SystemExit(f'Explorer staging length mismatch: {actual_lengths} != {expected_lengths}')
-
-          b64 = ''.join(parts)
-          b64_sha = hashlib.sha256(b64.encode('ascii')).hexdigest()
-          expected_b64_sha = '271ea724416e17f58f88cff8d1efd952d6b8a0c901523b31b9d42ec342387a7d'
-          if b64_sha != expected_b64_sha:
-              raise SystemExit(f'Explorer staged base64 sha256 mismatch: {b64_sha} != {expected_b64_sha}')
-
-          packed = base64.b64decode(b64, validate=True)
-          packed_sha = hashlib.sha256(packed).hexdigest()
-          expected_packed_sha = '66b0f23524071505c6bb91787e3e60f50b5fcc522cdd2b31cb024ec73c8cfeee'
-          if len(packed) != 78416 or packed_sha != expected_packed_sha:
-              raise SystemExit(f'Explorer xz identity mismatch: bytes={len(packed)} sha256={packed_sha}')
-
-          html_bytes = lzma.decompress(packed)
-          expected_size = 374830
-          expected_sha = 'b54231180dd98b8a2182836391e3ef9609af320d37e244246c55539f5078853e'
-          actual_sha = hashlib.sha256(html_bytes).hexdigest()
-          if len(html_bytes) != expected_size:
-              raise SystemExit(f'Explorer size mismatch: {len(html_bytes)} != {expected_size}')
-          if actual_sha != expected_sha:
-              raise SystemExit(f'Explorer sha256 mismatch: {actual_sha} != {expected_sha}')
-          text = html_bytes.decode('utf-8')
-          for marker in ('no row caps, viewport culling', 'window.__EXPLORER_TEST__'):
-              if marker not in text:
-                  raise SystemExit(f'missing Explorer contract marker: {marker}')
-          Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html_bytes)
-
-          builder_b64 = ''.join(Path('.github/mrv-explorer-staging/builder.py.xz.b64').read_text().split())
-          builder = lzma.decompress(base64.b64decode(builder_b64, validate=True))
-          builder_sha = hashlib.sha256(builder).hexdigest()
-          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
-          if len(builder) != 23550 or builder_sha != expected_builder_sha:
-              raise SystemExit(f'builder identity mismatch: bytes={len(builder)} sha256={builder_sha}')
-          tool_dir = Path('tools/recommendations-explorer')
-          tool_dir.mkdir(parents=True, exist_ok=True)
-          (tool_dir / 'build_recommendations_explorer.py').write_bytes(builder)
-          (tool_dir / 'README.md').write_text(
-              '# Recommendations Vault Explorer builder\n\n'
-              '`build_recommendations_explorer.py` regenerates the single-file Explorer from an `.xlsx` export of the canonical Google Sheet '
-              '`Minecraft Recommendations Vault — Master Tracker`, emits provenance, and uses no dataset caps or viewport culling.\n',
-              encoding='utf-8'
-          )
-
-          meta = {
-              'artifact': 'Minecraft Recommendations Vault - Explorer.html',
-              'artifactBytes': len(html_bytes),
-              'artifactSha256': actual_sha,
-              'sourceWorkbook': 'Minecraft Recommendations Vault — Master Tracker',
-              'sourceWorkbookBytes': 208302,
-              'sourceWorkbookSha256': '1884992039376376d721b552c74f7301d8603adad616190446c5eb5223392961',
-              'sourceDriveId': '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg',
-              'sourceModifiedTime': '2026-08-29T22:28:18.260Z',
-              'generatorVersion': 'recommendations-explorer/1.0.0',
-              'generatorBytes': len(builder),
-              'generatorSha256': builder_sha,
-              'sheetCount': 14,
-              'sourceRowCount': 587,
-              'masterItemCount': 186,
-              'publicationRecovery': {
-                  'mode': 'verified-staged-exact-artifact',
-                  'stagedBase64Sha256': b64_sha,
-                  'stagedXzSha256': packed_sha,
-                  'reason': 'The canonical Drive Sheet is private and unauthenticated GitHub-hosted runners receive HTTP 401. The exact authenticated rebuild was staged and recovered fail-closed with byte-level identities; the reusable builder and canonical source identities are retained for subsequent syncs.'
-              }
-          }
-          Path('Minecraft Recommendations Vault - Explorer.build.json').write_text(
-              json.dumps(meta, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
-          )
-          print(json.dumps(meta, sort_keys=True))
-          PY
-
-      - name: Publish rebuilt canonical Explorer
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add 'Minecraft Recommendations Vault - Explorer.html' \
-                  'Minecraft Recommendations Vault - Explorer.build.json' \
-                  'tools/recommendations-explorer/build_recommendations_explorer.py' \
-                  'tools/recommendations-explorer/README.md'
-          if git diff --cached --quiet; then
-            echo 'Canonical Explorer already matches the verified recovered bytes.'
-            exit 0
-          fi
-          git commit -m 'Publish verified Minecraft Recommendations Vault Explorer'
-          git push
+      - run: echo 'Explorer publication payload is being repaired; automatic push execution resumes after exact staging verification.'
