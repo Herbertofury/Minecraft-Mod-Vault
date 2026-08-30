@@ -10,16 +10,18 @@ old = Path(sys.argv[2]).resolve()
 out = Path(sys.argv[3]).resolve()
 loader_neutral = Path(__file__).with_name('prepare_more_rpg_library_loader_neutral.py')
 api_pass = Path(__file__).with_name('prepare_more_rpg_library_1201_api_pass.py')
-for tool in (loader_neutral, api_pass):
+api_wave2 = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave2.py')
+for tool in (loader_neutral, api_pass, api_wave2):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
-# First preserve all existing full-source and loader-neutral preparation invariants.
+# Preserve all existing full-source and loader-neutral preparation invariants first.
 subprocess.run([sys.executable, str(loader_neutral), str(modern), str(old), str(out)], check=True)
 
-# Then adapt only proven 1.21 -> 1.20.1 API seams. This stage is fail-closed and owns its own
-# surviving-symbol checks, so upstream drift cannot silently weaken the target contract.
+# Apply only proven 1.21 -> 1.20.1 API seams. Both waves are fail-closed and own surviving-symbol
+# checks, so upstream drift cannot silently weaken the target contract.
 subprocess.run([sys.executable, str(api_pass), str(out)], check=True)
+subprocess.run([sys.executable, str(api_wave2), str(out)], check=True)
 
 common_gradle = out / 'common/build.gradle'
 if not common_gradle.is_file():
