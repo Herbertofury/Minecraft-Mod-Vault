@@ -3,7 +3,7 @@ name: Recover Recommendations Explorer
 on:
   push:
     paths:
-      - '.github/mrv-explorer-staging/xzstage-06.b64'
+      - '.github/mrv-explorer-staging/**'
       - '.github/workflows/recover-recommendations-explorer.yml'
   workflow_dispatch:
 
