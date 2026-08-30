@@ -12,6 +12,8 @@ s = forge_build.read_text()
 # Loom's include(...) requires a module component with capabilities; a raw files(...) dependency has
 # neither. Keep the exact certified TinyConfig JAR bytes, but stage them into an artifact-only local
 # Maven layout during Gradle configuration and resolve that coordinate as a real module component.
+# This pass runs against the already-generated Gradle project, so validate only that product input;
+# pass 6g's Python source assertions have already executed successfully before this point.
 old = '''    def tinyConfig = implementation(files(tinyConfigJar))
     include tinyConfig
     forgeRuntimeLibrary files(tinyConfigJar)
@@ -41,28 +43,13 @@ new = '''    def tinyConfigVersion = "3.1.0+1.20.1"
     forgeRuntimeLibrary tinyConfigCoordinate
 '''
 if s.count(old) != 1:
-    raise SystemExit(f'expected exactly one raw-file TinyConfig nesting seam, found {s.count(old)}')
+    raise SystemExit(f'expected exactly one raw-file TinyConfig nesting seam in generated forge/build.gradle, found {s.count(old)}')
 s = s.replace(old, new, 1)
-
-# Update pass-6g's own fail-closed generated-build assertions so they describe the module-backed
-# solution rather than the rejected raw files(...) attempt.
-old_required = '''    'def tinyConfig = implementation(files(tinyConfigJar))',
-    'include tinyConfig',
-    'forgeRuntimeLibrary files(tinyConfigJar)',
-'''
-new_required = '''    'def tinyConfigCoordinate = "${tinyConfigGroup}:${tinyConfigArtifact}:${tinyConfigVersion}"',
-    'def tinyConfig = implementation(tinyConfigCoordinate)',
-    'include tinyConfig',
-    'forgeRuntimeLibrary tinyConfigCoordinate',
-    'metadataSources { artifact() }',
-'''
-if s.count(old_required) != 1:
-    raise SystemExit(f'expected one pass6g TinyConfig assertion seam, found {s.count(old_required)}')
-s = s.replace(old_required, new_required, 1)
-
 forge_build.write_text(s)
+
 final = forge_build.read_text()
 for required in (
+    "System.getenv('TINY_CONFIG_FORGE_JAR')",
     'net.tiny_config.certified',
     'certified-tiny-config-maven',
     'metadataSources { artifact() }',
