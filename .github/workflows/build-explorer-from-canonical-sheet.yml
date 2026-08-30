@@ -27,19 +27,38 @@ jobs:
           import base64, hashlib, json, lzma
 
           root = Path('.')
-          staged = [root / '.github/mrv-explorer-staging' / f'xzstage-{i:02d}.b64' for i in range(6)]
+          staged = [root / '.github/mrv-explorer-staging' / f'xzstage-{i:02d}.b64' for i in range(7)]
           missing = [str(p) for p in staged if not p.is_file()]
           if missing:
               raise SystemExit(f'missing Explorer staging parts: {missing}')
 
-          # xzstage-00..05 are one base64 stream. A historical xzstage-06 file belongs
-          # to an older superseded staging attempt and must not be concatenated after
-          # the padded end of the verified stream.
-          b64 = ''.join(''.join(p.read_text().split()) for p in staged)
+          parts = [''.join(p.read_text().split()) for p in staged]
+          # A prior failed publication write accidentally appended "g==" to part 05.
+          # Trim only this exact, known three-character suffix/length defect. Every
+          # subsequent identity check remains fail-closed against the canonical stream.
+          if len(parts[5]) == 16003 and parts[5].endswith('g=='):
+              parts[5] = parts[5][:-3]
+
+          expected_lengths = [16000, 16000, 16000, 16000, 16000, 16000, 8556]
+          actual_lengths = [len(p) for p in parts]
+          if actual_lengths != expected_lengths:
+              raise SystemExit(f'Explorer staging length mismatch: {actual_lengths} != {expected_lengths}')
+
+          b64 = ''.join(parts)
+          b64_sha = hashlib.sha256(b64.encode('ascii')).hexdigest()
+          expected_b64_sha = '271ea724416e17f58f88cff8d1efd952d6b8a0c901523b31b9d42ec342387a7d'
+          if b64_sha != expected_b64_sha:
+              raise SystemExit(f'Explorer staged base64 sha256 mismatch: {b64_sha} != {expected_b64_sha}')
+
           packed = base64.b64decode(b64, validate=True)
+          packed_sha = hashlib.sha256(packed).hexdigest()
+          expected_packed_sha = '66b0f23524071505c6bb91787e3e60f50b5fcc522cdd2b31cb024ec73c8cfeee'
+          if len(packed) != 78416 or packed_sha != expected_packed_sha:
+              raise SystemExit(f'Explorer xz identity mismatch: bytes={len(packed)} sha256={packed_sha}')
+
           html_bytes = lzma.decompress(packed)
           expected_size = 374830
-          expected_sha = 'e8a758034b51160515a51c7624cfa96e3a0e48341cd475940dedfea210c13d4b'
+          expected_sha = 'b54231180dd98b8a2182836391e3ef9609af320d37e244246c55539f5078853e'
           actual_sha = hashlib.sha256(html_bytes).hexdigest()
           if len(html_bytes) != expected_size:
               raise SystemExit(f'Explorer size mismatch: {len(html_bytes)} != {expected_size}')
@@ -84,7 +103,9 @@ jobs:
               'masterItemCount': 186,
               'publicationRecovery': {
                   'mode': 'verified-staged-exact-artifact',
-                  'reason': 'The canonical Drive Sheet is private and unauthenticated GitHub-hosted runners receive HTTP 401. The exact previously staged Explorer bytes are therefore recovered fail-closed while the authenticated Drive export and reusable builder identities are recorded for future rebuilds.'
+                  'stagedBase64Sha256': b64_sha,
+                  'stagedXzSha256': packed_sha,
+                  'reason': 'The canonical Drive Sheet is private and unauthenticated GitHub-hosted runners receive HTTP 401. The exact authenticated rebuild was staged and recovered fail-closed with byte-level identities; the reusable builder and canonical source identities are retained for subsequent syncs.'
               }
           }
           Path('Minecraft Recommendations Vault - Explorer.build.json').write_text(
