@@ -37,7 +37,7 @@ jobs:
           ALPHABET = string.ascii_uppercase + string.ascii_lowercase + string.digits + '+/'
           FINAL = Path('Minecraft Recommendations Vault - Explorer.html')
           MANIFEST = Path('Minecraft Recommendations Vault - Explorer.build.json')
-          DIAG = {'schema':'mrv.recommendations-explorer-recovery-diagnostic/5','expectedHtmlBytes':EXPECTED_SIZE,'expectedHtmlSha256':EXPECTED_SHA,'expectedBuilderBytes':EXPECTED_BUILDER_SIZE,'parts':[]}
+          DIAG = {'schema':'mrv.recommendations-explorer-recovery-diagnostic/6','expectedHtmlBytes':EXPECTED_SIZE,'expectedHtmlSha256':EXPECTED_SHA,'expectedBuilderBytes':EXPECTED_BUILDER_SIZE,'parts':[]}
 
           def clean(s): return ''.join(s.split())
           def b64decode_relaxed(s):
@@ -61,6 +61,26 @@ jobs:
               try:
                   dec=lzma.LZMADecompressor(); dec.decompress(base64.b64decode(prefix,validate=True)); return True
               except Exception: return False
+          def insert_one_missing_char(current, final_step=False):
+              approx,etype,etext=first_error(current)
+              for span in (2048,512,128,32):
+                  lo=max(0,approx-span); hi=min(approx+16,len(current))
+                  probe_end=len(current)+1 if final_step else min(len(current)+1,approx+span)
+                  survivors=[]; attempts=0
+                  for pos in range(hi,lo-1,-1):
+                      for ch in ALPHABET:
+                          attempts+=1; candidate=current[:pos]+ch+current[pos:]
+                          if not prefix_survives(candidate,probe_end): continue
+                          maybe=full_verify(candidate)
+                          if maybe is not None:
+                              return candidate,maybe,{'insertPosition':pos,'insertedCharacter':ch,'approxCorruptionPosition':approx,'span':span,'attempts':attempts,'nextError':'VERIFIED_FULL'}
+                          if not final_step:
+                              nextpos,nexttype,_=first_error(candidate)
+                              survivors.append((nextpos,pos,ch,candidate,nexttype))
+                  if survivors:
+                      nextpos,pos,ch,candidate,nexttype=max(survivors,key=lambda item:item[0])
+                      return candidate,None,{'insertPosition':pos,'insertedCharacter':ch,'approxCorruptionPosition':approx,'span':span,'attempts':attempts,'nextErrorPosition':nextpos,'nextErrorType':nexttype,'survivors':len(survivors)}
+              return None,None,{'approxCorruptionPosition':approx,'errorType':etype,'error':etext,'result':'NO_SURVIVOR'}
 
           try:
               staging=Path('.github/mrv-explorer-staging')
@@ -76,9 +96,28 @@ jobs:
                   DIAG['parts'].append({'name':p.name,'fileBytes':p.stat().st_size,'cleanBase64Chars':len(c),'cleanModulo4':len(c)%4,'sha256':hashlib.sha256(raw.encode()).hexdigest()}); parts.append(c)
               joined=''.join(parts); DIAG['joinedBase64Chars']=len(joined); DIAG['joinedModulo4']=len(joined)%4
               html=full_verify(joined); repair=None
+
+              missing=(-len(joined))%4
+              if html is None and missing in (1,2,3):
+                  DIAG['inferredMissingBase64Chars']=missing
+                  current=joined; steps=[]
+                  for index in range(missing):
+                      candidate,maybe,step=insert_one_missing_char(current,final_step=(index==missing-1))
+                      steps.append(step)
+                      if candidate is None: break
+                      current=candidate
+                      if maybe is not None:
+                          html=maybe; joined=current; break
+                  if html is None and len(current)%4==0:
+                      html=full_verify(current)
+                      if html is not None: joined=current
+                  if html is not None:
+                      repair={'kind':'missing-base64-characters','count':missing,'steps':steps}
+                  DIAG['multiCharacterRepairSteps']=steps
+
               if html is None and len(joined)%4==1:
                   approx,etype,etext=first_error(joined); DIAG['firstObservedCorruptGroupStart']=approx; DIAG['firstObservedCorruptGroupErrorType']=etype; DIAG['firstObservedCorruptGroupError']=etext
-                  lo=max(0,approx-2048); hi=min(approx+16,len(parts[0])+1,len(joined)); probe_end=min(len(joined)+1,approx+2048)
+                  lo=max(0,approx-2048); hi=min(approx+16,len(joined)); probe_end=min(len(joined)+1,approx+2048)
                   DIAG['searchRange']=[lo,hi]; DIAG['prefixProbeEnd']=probe_end
                   attempts=survivors=0
                   for pos in range(hi,lo-1,-1):
@@ -90,7 +129,7 @@ jobs:
                               html=maybe; repair={'kind':'single-missing-base64-character','insertPosition':pos,'insertedCharacter':ch,'approxCorruptionPosition':approx,'attempts':attempts,'prefixSurvivors':survivors}; break
                       if html is not None: break
                   DIAG['searchAttempts']=attempts; DIAG['prefixSurvivors']=survivors
-              if html is None: raise RuntimeError('exact Explorer not recovered in accelerated localized search')
+              if html is None: raise RuntimeError('exact Explorer not recovered after verified multi-character repair search')
 
               DIAG['repair']=repair or {'kind':'none'}; DIAG['actualHtmlBytes']=len(html); DIAG['actualHtmlSha256']=hashlib.sha256(html).hexdigest(); DIAG['result']='PASS'; FINAL.write_bytes(html)
               builder=lzma.decompress(b64decode_relaxed((staging/'builder.py.xz.b64').read_text(encoding='utf-8'))); DIAG['actualBuilderBytes']=len(builder); DIAG['actualBuilderSha256']=hashlib.sha256(builder).hexdigest()
