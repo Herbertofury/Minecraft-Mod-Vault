@@ -12,6 +12,10 @@ s = forge_build.read_text()
 # Loom's include(...) requires a module component with capabilities; a raw files(...) dependency has
 # neither. Keep the exact certified TinyConfig JAR bytes, but stage them into an artifact-only local
 # Maven layout during Gradle configuration and resolve that coordinate as a real module component.
+# TinyConfig is a real Forge mod (Spell Power declares a mandatory mod dependency on tiny_config), so
+# expose the staged module through Loom modImplementation for native client/server dev runs as well as
+# include(...) for Spell Engine's intentional JarJar packaging. A plain forgeRuntimeLibrary only puts
+# classes on the runtime classpath and does not satisfy Forge's ModSorter dependency graph.
 # This pass runs against the already-generated Gradle project, so validate only that product input;
 # pass 6g's Python source assertions have already executed successfully before this point.
 old = '''    def tinyConfig = implementation(files(tinyConfigJar))
@@ -42,9 +46,8 @@ new = '''    def tinyConfigVersion = "3.1.0+1.20.1"
         metadataSources { artifact() }
     }
     def tinyConfigCoordinate = "${tinyConfigGroup}:${tinyConfigArtifact}:${tinyConfigVersion}"
-    def tinyConfig = implementation(tinyConfigCoordinate)
+    def tinyConfig = modImplementation(tinyConfigCoordinate)
     include tinyConfig
-    forgeRuntimeLibrary tinyConfigCoordinate
 '''
 if s.count(old) != 1:
     raise SystemExit(f'expected exactly one raw-file TinyConfig nesting seam in generated forge/build.gradle, found {s.count(old)}')
@@ -57,9 +60,8 @@ for required in (
     'net.tiny_config.certified',
     'rootProject.projectDir}/.gradle/certified-tiny-config-maven',
     'metadataSources { artifact() }',
-    'implementation(tinyConfigCoordinate)',
+    'modImplementation(tinyConfigCoordinate)',
     'include tinyConfig',
-    'forgeRuntimeLibrary tinyConfigCoordinate',
     'StandardCopyOption.REPLACE_EXISTING',
 ):
     if required not in final:
@@ -67,10 +69,12 @@ for required in (
 for forbidden in (
     'implementation(files(tinyConfigJar))',
     'forgeRuntimeLibrary files(tinyConfigJar)',
+    'forgeRuntimeLibrary tinyConfigCoordinate',
+    'implementation(tinyConfigCoordinate)',
     'file("${buildDir}/certified-tiny-config-maven")',
     'com.github.ZsoltMolnarrr:TinyConfig',
 ):
     if forbidden in final:
         raise SystemExit(f'rejected TinyConfig dependency form survived module staging: {forbidden}')
 
-print('Spell Engine compatibility pass 6p applied: certified TinyConfig staged as byte-identical clean-surviving artifact-only local Maven module for Loom nesting')
+print('Spell Engine compatibility pass 6p applied: certified TinyConfig staged as byte-identical clean-surviving artifact-only local Maven Forge mod for Loom native runtime plus exact JarJar nesting')
