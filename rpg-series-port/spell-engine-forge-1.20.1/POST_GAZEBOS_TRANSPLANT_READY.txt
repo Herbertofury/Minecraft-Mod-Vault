@@ -1,0 +1,7 @@
+Base canonical boundary expected after Gazebos graduation: c785348126744fd30e1cfb04e4b9b988aa651fc6
+Intentional prep delta only:
+- rpg-series-port/ci/run-spell-engine-graduation.sh
+- rpg-series-port/spell-engine-forge-1.20.1/SPELL_ENGINE_GRADUATION.env
+- rpg-series-port/spell-engine-forge-1.20.1/tools/prepare_spell_engine.py
+- rpg-series-port/spell-engine-forge-1.20.1/tools/compat_pass_1.py
+Do not activate ACTIVE_RUNNER until Gazebos frozen replay and guarded canonical promotion pass.
