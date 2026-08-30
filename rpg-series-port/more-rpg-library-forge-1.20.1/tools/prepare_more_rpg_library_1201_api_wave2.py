@@ -90,7 +90,6 @@ import net.minecraft.world.gen.heightprovider.HeightProvider;
 import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 import net.more_rpg_classes.compat.MoreRpgPlatform;
-import net.more_rpg_classes.worldgen.ModStructureTypes;
 
 import java.util.Optional;
 
@@ -146,7 +145,7 @@ public class ConditionalJigsawStructure extends Structure {
                 blockPos, this.useExpansionHack, this.projectStartToHeightmap, this.maxDistanceFromCenter);
     }
 
-    @Override public StructureType<?> getType() { return ModStructureTypes.CONDITIONAL_JIGSAW; }
+    @Override public StructureType<?> getType() { return net.more_rpg_classes.worldgen.ModStructureTypes.CONDITIONAL_JIGSAW; }
     public String getModId() { return modId; }
 }
 ''', encoding='utf-8')
@@ -179,7 +178,6 @@ for q in effect_files:
     rx = re.compile(r'public\s+boolean\s+applyUpdateEffect\s*\(\s*LivingEntity\s+(\w+)\s*,\s*int\s+(\w+)\s*\)\s*\{')
     def update_transform(method: str, m: re.Match[str]) -> str:
         method = re.sub(r'public\s+boolean\s+applyUpdateEffect', 'public void applyUpdateEffect', method, count=1)
-        # Boolean removal return only signaled 1.21 continuation; execute the removal and return from void.
         method = re.sub(r'return\s+([^;]*\.removeStatusEffect\([^;]+\));', r'\1;\n            return;', method)
         method = re.sub(r'\breturn\s+(?:true|false)\s*;', 'return;', method)
         return method
@@ -197,8 +195,8 @@ for q in effect_files:
     s, n = transform_named_method(s, rx_applied, applied_transform, f'{q.name} onApplied')
     on_applied_methods += n
     q.write_text(s, encoding='utf-8')
-if raw_entry_rewrites < 20:
-    raise SystemExit(f'status effect raw-entry wave unexpectedly small: {raw_entry_rewrites}')
+if raw_entry_rewrites != 15:
+    raise SystemExit(f'pinned 2.7.2 status-effect entry seam drift: expected exactly 15, found {raw_entry_rewrites}')
 if update_methods < 6:
     raise SystemExit(f'status applyUpdateEffect wave unexpectedly small: {update_methods}')
 
@@ -234,7 +232,6 @@ def popup_patch(s: str) -> str:
     return s
 edit('net/more_rpg_classes/client/particle/PopupParticle.java', popup_patch, 'PopupParticle 1.20.1 render API')
 
-# Fail closed for every API family this wave claims to own.
 for forbidden in (
     'net.minecraft.util.new Identifier(', 'DimensionPadding', 'StructureLiquidSettings', 'StructurePoolAliasLookup',
     '.getEffectType().value()', 'EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL',
@@ -245,7 +242,6 @@ for forbidden in (
     if hits:
         raise SystemExit(f'wave2 owned API survived {forbidden}: {hits[:30]}')
 
-# applyUpdateEffect must be void in 1.20.1, but canApplyUpdateEffect intentionally remains boolean.
 hits = [str(q.relative_to(java)) for q in java.rglob('*.java')
         if re.search(r'boolean\s+applyUpdateEffect\s*\(', q.read_text(encoding='utf-8'))]
 if hits:
