@@ -47,6 +47,15 @@ test "$(sha256sum "$RANGED_JAR" | awk '{print $1}')" = "$RANGED_WEAPON_API_234_E
 test "$(sha256sum "$TINY_JAR" | awk '{print $1}')" = "$TINY_CONFIG_310_EXPECTED_JAR_SHA"
 echo '[More RPG 2.7.2] CERTIFIED_RPG_FOUNDATIONS_READY spell_engine=1.10.4 spell_power=current-tinyconfig-3.1 ranged=2.3.4 tiny_config=3.1.0'
 
+# Forge packaging does not guarantee that each Architectury common project's Jar task has run. Build
+# the named common artifacts explicitly from the exact replay workspace before discovering them. These
+# are compile-only namespace providers; certified production Forge jars above remain release/runtime authority.
+gradle --no-daemon -p "$ROOT/.spell-engine-build" :common:jar
+gradle --no-daemon -p "$ROOT/rpg-series-port/spell_power-forge-1.20.1" :common:jar
+gradle --no-daemon -p "$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1" :common:jar
+gradle --no-daemon -p "$ROOT/rpg-series-port/tiny-config-forge-1.20.1/generated" :common:jar
+echo '[More RPG 2.7.2] NAMED_COMMON_FOUNDATIONS_MATERIALIZED'
+
 # Common/Yarn source must compile against named common artifacts, never final Forge/SRG production
 # jars. They are produced by the exact same foundation replay above; the certified production JARs
 # remain the only runtime/release inputs on the Forge side.
@@ -72,8 +81,6 @@ printf '[More RPG 2.7.2] NAMED_FOUNDATION_HASH spell_engine=%s spell_power=%s ra
 
 python3 "$PORT/tools/prepare_more_rpg_library_named_common.py" "$UP/modern-272" "$UP/old-1201" "$WORK"
 
-# Deterministic source identity over all source/resource files that can affect the port. Git metadata,
-# Gradle caches and generated build output are excluded by construction because WORK was just created.
 (
   cd "$WORK"
   find common forge -type f -print0 | sort -z | xargs -0 sha256sum
@@ -92,13 +99,9 @@ ARGS=(
   "-Ptiny_config_forge_jar=$TINY_JAR"
 )
 
-# The entire modern common tree compiles here. Any 1.21 -> 1.20.1 API mismatch is a real port failure
-# and becomes the next compatibility-pass owner; do not reduce the source set to manufacture green.
 gradle --no-daemon --stacktrace -p "$WORK" :forge:compileJava "${ARGS[@]}"
 echo '[More RPG 2.7.2] FULL_MODERN_COMMON_NATIVE_FORGE_COMPILE_PASS'
 
-# Once compilation is green, package the untouched native Forge candidate. Runtime gates are added only
-# after loader/registry adaptation is complete, but packaging boundaries are enforced immediately.
 gradle --no-daemon --stacktrace -p "$WORK" :forge:build "${ARGS[@]}"
 JAR="$(find "$WORK/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | sort | head -n1)"
 test -f "$JAR"; unzip -tq "$JAR" >/dev/null
