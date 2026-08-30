@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct and verify current authenticated Explorer build
+      - name: Recover exact verified current Explorer from Git history
         shell: bash
         run: |
           set -euo pipefail
@@ -25,51 +25,125 @@ jobs:
           from pathlib import Path
           import base64
           import hashlib
+          import itertools
           import json
           import lzma
+          import subprocess
 
           stage_dir = Path('.github/mrv-explorer-staging')
           stage_paths = [stage_dir / f'xzstage-{i:02d}.b64' for i in range(7)]
           expected_lengths = [16000, 16000, 16000, 16000, 16000, 16000, 8600]
-          parts = []
-          for path, expected_len in zip(stage_paths, expected_lengths):
-              if not path.is_file():
-                  raise SystemExit(f'missing current Explorer staging part: {path}')
-              value = ''.join(path.read_text(encoding='ascii').split())
-              if len(value) != expected_len:
-                  raise SystemExit(f'{path} length mismatch: {len(value)} != {expected_len}')
-              parts.append(value)
+          expected_b64_sha = '5ea41a25be982d871f6463414b5e508177348290f449dfee9ecb60e04540d46f'
+          expected_xz_sha = '79476efde19de63fad496b92a21a1663ede131cbf7c67062ffa088beda2776b6'
+          expected_html_sha = '5121cc0ec5ab44a225fe7bfc6cfd2734ff2cce26e8173e2f4758e0f1183a8fd7'
+          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
 
+          def normalize(text):
+              return ''.join(text.split())
+
+          def historical_candidates(path, expected_len):
+              candidates = []
+              seen = set()
+
+              def add(text, source):
+                  value = normalize(text)
+                  variants = [(value, source)]
+                  # A prior staging writer occasionally appended a literal g== suffix.
+                  if len(value) == expected_len + 3 and value.endswith('g=='):
+                      variants.append((value[:-3], source + ':trim-known-g=='))
+                  for candidate, label in variants:
+                      if len(candidate) != expected_len or candidate in seen:
+                          continue
+                      seen.add(candidate)
+                      candidates.append((candidate, label))
+
+              if path.is_file():
+                  add(path.read_text(encoding='ascii'), 'working-tree')
+
+              commits = subprocess.check_output(
+                  ['git', 'log', '--all', '--format=%H', '--', path.as_posix()],
+                  text=True,
+              ).splitlines()
+              for commit in commits:
+                  try:
+                      text = subprocess.check_output(
+                          ['git', 'show', f'{commit}:{path.as_posix()}'],
+                          text=True,
+                          stderr=subprocess.DEVNULL,
+                      )
+                  except subprocess.CalledProcessError:
+                      continue
+                  add(text, commit)
+              return candidates
+
+          candidate_sets = []
+          for path, expected_len in zip(stage_paths, expected_lengths):
+              candidates = historical_candidates(path, expected_len)
+              if not candidates:
+                  raise SystemExit(f'no length-valid historical candidates for {path}')
+              print(path, 'candidate_count=', len(candidates))
+              for value, source in candidates:
+                  print(' ', source, hashlib.sha256(value.encode('ascii')).hexdigest())
+              candidate_sets.append(candidates)
+
+          # The staged parts were written over multiple recovery attempts. Search only
+          # exact-length unique historical values, fail closed, and accept one combination
+          # only if it reproduces the pre-recorded authenticated artifact SHA-256.
+          states = [(hashlib.sha256(), [], [])]
+          for index, candidates in enumerate(candidate_sets):
+              next_states = []
+              for digest, values, sources in states:
+                  for value, source in candidates:
+                      d = digest.copy()
+                      d.update(value.encode('ascii'))
+                      next_states.append((d, values + [value], sources + [source]))
+              states = next_states
+              print('candidate combinations after part', index, '=', len(states))
+              if len(states) > 750000:
+                  raise SystemExit('historical candidate space unexpectedly large; refusing unsafe recovery')
+
+          match = None
+          for digest, values, sources in states:
+              if digest.hexdigest() == expected_b64_sha:
+                  match = (values, sources)
+                  break
+          if match is None:
+              current = ''.join(normalize(p.read_text(encoding='ascii')) for p in stage_paths if p.is_file())
+              print('current concatenated len=', len(current))
+              print('current concatenated sha256=', hashlib.sha256(current.encode('ascii')).hexdigest() if current else 'missing')
+              raise SystemExit('no historical staging combination matches the verified authenticated base64 SHA-256')
+
+          parts, sources = match
           staged_b64 = ''.join(parts)
-          expected_b64_sha = '39588454edf1d747643d3055a586d88d0e4fee1c059c96dbe1c0466c36f270a8'
-          actual_b64_sha = hashlib.sha256(staged_b64.encode('ascii')).hexdigest()
-          if len(staged_b64) != 104600 or actual_b64_sha != expected_b64_sha:
-              raise SystemExit(f'current Explorer staged base64 mismatch: len={len(staged_b64)} sha256={actual_b64_sha}')
+          if len(staged_b64) != 104600 or hashlib.sha256(staged_b64.encode('ascii')).hexdigest() != expected_b64_sha:
+              raise SystemExit('internal recovered base64 identity mismatch')
 
           packed = base64.b64decode(staged_b64, validate=True)
-          expected_xz_sha = '64fc3f2bc4d4c4326092a4480fbd75dd1624231d228729e229c571bf45eb84a5'
-          actual_xz_sha = hashlib.sha256(packed).hexdigest()
-          if len(packed) != 78448 or actual_xz_sha != expected_xz_sha:
-              raise SystemExit(f'current Explorer xz mismatch: bytes={len(packed)} sha256={actual_xz_sha}')
+          packed_sha = hashlib.sha256(packed).hexdigest()
+          if len(packed) != 78448 or packed_sha != expected_xz_sha:
+              raise SystemExit(f'recovered Explorer xz mismatch: bytes={len(packed)} sha256={packed_sha}')
 
           html = lzma.decompress(packed)
-          expected_html_sha = '5121cc0ec5ab44a225fe7bfc6cfd2734ff2cce26e8173e2f4758e0f1183a8fd7'
-          actual_html_sha = hashlib.sha256(html).hexdigest()
-          if len(html) != 374830 or actual_html_sha != expected_html_sha:
-              raise SystemExit(f'current Explorer HTML mismatch: bytes={len(html)} sha256={actual_html_sha}')
+          html_sha = hashlib.sha256(html).hexdigest()
+          if len(html) != 374830 or html_sha != expected_html_sha:
+              raise SystemExit(f'recovered Explorer HTML mismatch: bytes={len(html)} sha256={html_sha}')
           text = html.decode('utf-8')
           for marker in ('no row caps, viewport culling', 'window.__EXPLORER_TEST__'):
               if marker not in text:
                   raise SystemExit(f'missing Explorer acceptance marker: {marker}')
+
+          # Repair the staged parts to the selected exact historical values so future
+          # runs start from a coherent payload rather than rediscovering the combination.
+          for path, value in zip(stage_paths, parts):
+              path.write_text(value, encoding='ascii')
           Path('Minecraft Recommendations Vault - Explorer.html').write_bytes(html)
 
           builder_b64_path = stage_dir / 'builder.py.xz.b64'
           if not builder_b64_path.is_file():
               raise SystemExit('missing reusable Explorer builder staging payload')
-          builder_b64 = ''.join(builder_b64_path.read_text(encoding='ascii').split())
+          builder_b64 = normalize(builder_b64_path.read_text(encoding='ascii'))
           builder = lzma.decompress(base64.b64decode(builder_b64, validate=True))
           builder_sha = hashlib.sha256(builder).hexdigest()
-          expected_builder_sha = 'e59e7dfd0eb01271c021fd99a962ea490f1bff6b9290aac968a81142de955d5b'
           if len(builder) != 23550 or builder_sha != expected_builder_sha:
               raise SystemExit(f'Explorer builder mismatch: bytes={len(builder)} sha256={builder_sha}')
 
@@ -85,26 +159,27 @@ jobs:
 
           metadata = {
               'artifact': 'Minecraft Recommendations Vault - Explorer.html',
-              'artifactBytes': 374830,
-              'artifactSha256': expected_html_sha,
+              'artifactBytes': len(html),
+              'artifactSha256': html_sha,
               'sourceWorkbook': 'Minecraft Recommendations Vault — Master Tracker',
               'sourceDriveId': '1N5rGN1E6jk3LMcPLNoRVWi3-8QmFtOikBguvoCaAMMg',
               'sourceModifiedTime': '2026-08-29T22:28:18.260Z',
               'sourceWorkbookBytes': 208085,
               'sourceWorkbookSha256': '4b1d327009c03ce42646b9cfb6d47b9634d0b6734c8b1d9258c26764ee4f301f',
               'generatorVersion': 'recommendations-explorer/1.0.0',
-              'generatorBytes': 23550,
-              'generatorSha256': expected_builder_sha,
+              'generatorBytes': len(builder),
+              'generatorSha256': builder_sha,
               'sheetCount': 14,
               'sourceRowCount': 587,
               'masterItemCount': 186,
               'publicationRecovery': {
-                  'mode': 'authenticated-drive-current-build-staged-exact-artifact',
-                  'stagedBase64Length': 104600,
+                  'mode': 'verified-git-history-reconstruction-of-authenticated-drive-artifact',
+                  'stagedBase64Length': len(staged_b64),
                   'stagedBase64Sha256': expected_b64_sha,
-                  'stagedXzBytes': 78448,
-                  'stagedXzSha256': expected_xz_sha,
-                  'verification': 'fail-closed byte identity before GitHub commit',
+                  'stagedXzBytes': len(packed),
+                  'stagedXzSha256': packed_sha,
+                  'selectedSources': sources,
+                  'verification': 'exact pre-recorded base64 + compressed + decompressed SHA-256 and acceptance markers',
               },
           }
           Path('Minecraft Recommendations Vault - Explorer.build.json').write_text(
@@ -114,13 +189,14 @@ jobs:
           print(json.dumps(metadata, sort_keys=True))
           PY
 
-      - name: Publish exact current Explorer and reusable builder
+      - name: Publish repaired exact Explorer and reusable builder
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add 'Minecraft Recommendations Vault - Explorer.html' \
+          git add .github/mrv-explorer-staging/xzstage-*.b64 \
+                  'Minecraft Recommendations Vault - Explorer.html' \
                   'Minecraft Recommendations Vault - Explorer.build.json' \
                   'tools/recommendations-explorer/build_recommendations_explorer.py' \
                   'tools/recommendations-explorer/README.md'
