@@ -40,7 +40,7 @@ test "$(sha256sum "$RANGED_JAR" | awk '{print $1}')" = "$RANGED_WEAPON_API_234_E
 test "$(sha256sum "$TINY_JAR" | awk '{print $1}')" = "$TINY_CONFIG_310_EXPECTED_JAR_SHA"
 echo '[More RPG 2.7.2] CERTIFIED_RPG_FOUNDATIONS_READY'
 
-python3 "$PORT/tools/prepare_more_rpg_library.py" "$UP/modern-272" "$UP/old-1201" "$WORK"
+python3 "$PORT/tools/prepare_more_rpg_library_loader_neutral.py" "$UP/modern-272" "$UP/old-1201" "$WORK"
 
 # Deterministic source identity over all source/resource files that can affect the port. Git metadata,
 # Gradle caches and generated build output are excluded by construction because WORK was just created.
