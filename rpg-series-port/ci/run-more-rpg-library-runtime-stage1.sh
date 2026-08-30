@@ -114,12 +114,13 @@ execute as @a[tag=!mrpg_qa_fatal_poison] run tellraw @a {"text":"[More RPG QA] F
 tag @a[tag=!mrpg_qa_fatal_poison] add mrpg_qa_fatal_poison
 MCFUNCTION
 
-CLIENT_RUN="$WORK/forge/run"; rm -rf "$CLIENT_RUN/logs" "$CLIENT_RUN/saves/MRPG-QA"
+CLIENT_RUN="$WORK/forge/run"; rm -rf "$CLIENT_RUN/logs" "$CLIENT_RUN/saves/MRPG-QA" "$CLIENT_RUN/.mixin.out"
 mkdir -p "$CLIENT_RUN/config" "$CLIENT_RUN/saves"
 cp -a "$FRESH_SERVER/world" "$CLIENT_RUN/saves/MRPG-QA"
 printf 'earlyWindowControl = false\n' > "$CLIENT_RUN/config/fml.toml"
 CLIENT_LOG="$PORT/more-rpg-native-client-integrated.log"; : > "$CLIENT_LOG"
-env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe ALSOFT_DRIVERS=null \
+MIXIN_JAVA_TOOL_OPTIONS='-Dmixin.debug.export=true -Dmixin.debug.export.filter=net.minecraft.client.gui.** -Dmixin.debug.export.decompile=false -Dmixin.debug.verbose=true'
+env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe ALSOFT_DRIVERS=null JAVA_TOOL_OPTIONS="$MIXIN_JAVA_TOOL_OPTIONS ${JAVA_TOOL_OPTIONS:-}" \
   xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +extension RENDER -noreset' \
   gradle --no-daemon -p "$WORK" :forge:runClient --args='--width 1280 --height 720 --quickPlaySingleplayer MRPG-QA' "${ARGS[@]}" </dev/null > "$CLIENT_LOG" 2>&1 & ACTIVE_PID=$!
 CLIENT_PID=$ACTIVE_PID; CLIENT_DEADLINE=$((SECONDS+240)); CLIENT_PASS=0
@@ -133,6 +134,21 @@ while ((SECONDS<CLIENT_DEADLINE)); do
   sleep 1
 done
 [[ "$CLIENT_PASS" -eq 1 ]] || { stop_tree "$CLIENT_PID"; ACTIVE_PID=""; dump_runtime_logs "$CLIENT_LOG" "$CLIENT_RUN/logs/latest.log"; exit 1; }
+
+# Do not infer HUD execution from the poison marker. Mixin's debug exporter writes the post-transform
+# target bytecode. Require both a verbose application record for DrawHeartsMixin and a transformed GUI
+# class containing More RPG's HeartRegistry reference while the fatal-poison player is live.
+LATEST="$CLIENT_RUN/logs/latest.log"
+if ! grep -Eiq 'DrawHeartsMixin.*more-rpg-classes\.mixins\.json|more-rpg-classes\.mixins\.json.*DrawHeartsMixin' "$CLIENT_LOG" "$LATEST"; then
+  stop_tree "$CLIENT_PID"; ACTIVE_PID=""; dump_runtime_logs "$CLIENT_LOG" "$LATEST"; echo '[More RPG 2.7.2] DrawHeartsMixin verbose application record missing' >&2; exit 1
+fi
+MIXIN_OUT="$CLIENT_RUN/.mixin.out"
+[[ -d "$MIXIN_OUT" ]] || { stop_tree "$CLIENT_PID"; ACTIVE_PID=""; echo '[More RPG 2.7.2] Mixin post-transform export directory missing' >&2; exit 1; }
+mapfile -t HEART_TARGETS < <(grep -aRl 'net/more_rpg_classes/client/heart/HeartRegistry' "$MIXIN_OUT" --include='*.class' 2>/dev/null || true)
+if ((${#HEART_TARGETS[@]} == 0)); then
+  stop_tree "$CLIENT_PID"; ACTIVE_PID=""; echo '[More RPG 2.7.2] No exported transformed GUI class contains HeartRegistry reference' >&2; find "$MIXIN_OUT" -type f -name '*.class' -print | sort | head -n 100 || true; exit 1
+fi
+printf '[More RPG 2.7.2] DRAW_HEARTS_MIXIN_TRANSFORMED_CLIENT_PASS targets=%s first=%s\n' "${#HEART_TARGETS[@]}" "${HEART_TARGETS[0]#$MIXIN_OUT/}"
 stop_tree "$CLIENT_PID"; ACTIVE_PID=""
-echo '[More RPG 2.7.2] NATIVE_FORGE_CLIENT_FATAL_POISON_HEART_PATH_PASS effect=more_rpg_classes:fatal_poison assets=6'
-echo '[More RPG 2.7.2] RUNTIME_STAGE1_PASS packaged_server=true mapped_client_integrated_world=true fatal_poison_gameplay=true heart_renderer_exercised=true production_client_pending=true'
+echo '[More RPG 2.7.2] NATIVE_FORGE_CLIENT_FATAL_POISON_HEART_PATH_PASS effect=more_rpg_classes:fatal_poison assets=6 transformed_hud=true'
+echo '[More RPG 2.7.2] RUNTIME_STAGE1_PASS packaged_server=true mapped_client_integrated_world=true fatal_poison_gameplay=true heart_renderer_transformed=true production_client_pending=true'
