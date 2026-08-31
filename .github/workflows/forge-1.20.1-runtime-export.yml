@@ -12,28 +12,10 @@ permissions:
   contents: read
 
 jobs:
-  export:
+  charmsy-root-mods:
     if: startsWith(github.head_ref, 'ragdoll-runtime-export') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - name: Install Forge 47.4.23 dedicated server runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/forge-server
-          cd /tmp/forge-server
-          curl -fL --retry 4 --retry-delay 2 -o forge-installer.jar 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
-          java -jar forge-installer.jar --installServer
-          rm -f forge-installer.jar forge-installer.jar.log
-          printf 'eula=true\n' > eula.txt
-          printf 'online-mode=false\nlevel-name=world\nview-distance=4\nsimulation-distance=4\nmax-tick-time=-1\n' > server.properties
-          mkdir -p mods
-          sha256sum run.sh user_jvm_args.txt > runtime-sha256.txt
       - name: Export pinned Charmsy runtime root mods
         shell: bash
         run: |
@@ -79,15 +61,40 @@ jobs:
             'Better Combat: CurseForge project 639842 file 7287334' \
             'Simply Swords: CurseForge project 659887 file 8746028' \
             > PROVENANCE.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: forge-1.20.1-47.4.23-runtime
-          path: /tmp/forge-server
-          if-no-files-found: error
-          retention-days: 3
+
       - uses: actions/upload-artifact@v4
         with:
           name: charmsy-pinned-runtime-root-mods
           path: /tmp/charmsy-root-mods
+          if-no-files-found: error
+          retention-days: 3
+
+  forge-runtime:
+    if: startsWith(github.head_ref, 'ragdoll-runtime-export') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Forge 47.4.23 dedicated server runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/forge-server
+          cd /tmp/forge-server
+          curl -fL --retry 4 --retry-delay 2 -o forge-installer.jar 'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar'
+          java -jar forge-installer.jar --installServer
+          rm -f forge-installer.jar forge-installer.jar.log
+          printf 'eula=true\n' > eula.txt
+          printf 'online-mode=false\nlevel-name=world\nview-distance=4\nsimulation-distance=4\nmax-tick-time=-1\n' > server.properties
+          mkdir -p mods
+          sha256sum run.sh user_jvm_args.txt > runtime-sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-runtime
+          path: /tmp/forge-server
           if-no-files-found: error
           retention-days: 3
