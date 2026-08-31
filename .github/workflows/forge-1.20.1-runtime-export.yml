@@ -34,9 +34,60 @@ jobs:
           printf 'online-mode=false\nlevel-name=world\nview-distance=4\nsimulation-distance=4\nmax-tick-time=-1\n' > server.properties
           mkdir -p mods
           sha256sum run.sh user_jvm_args.txt > runtime-sha256.txt
+      - name: Export pinned Charmsy runtime root mods
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/charmsy-root-mods
+          mkdir -p "$root/metadata"
+          cd "$root"
+
+          curl -fL --retry 4 --retry-delay 2 -o punchy.jar \
+            'https://cursemaven.com/curse/maven/punchy-1374153/8697202/punchy-1374153-8697202.jar'
+          printf '%s  %s\n' \
+            '180347c82d6b738cdb8bc5aef2f84f1a34781d20e3aea03a28f3ad84ff82ec76' \
+            'punchy.jar' | sha256sum -c -
+
+          curl -fL --retry 4 --retry-delay 2 -o bettercombat.jar \
+            'https://cursemaven.com/curse/maven/better-combat-by-daedelus-639842/7287334/better-combat-by-daedelus-639842-7287334.jar'
+          printf '%s  %s\n' \
+            '49c69dccf2c641246b4e3deca81ebac21f0ee119e81fc713b838b8e33569eea1' \
+            'bettercombat.jar' | sha256sum -c -
+
+          curl -fL --retry 4 --retry-delay 2 -o simplyswords.jar \
+            'https://cursemaven.com/curse/maven/simply-swords-659887/8746028/simply-swords-659887-8746028.jar'
+          printf '%s  %s\n' \
+            '5de31ed0acb70ac570d1df26c69617f5a8b5fb31' \
+            'simplyswords.jar' | sha1sum -c -
+
+          mv punchy.jar punchy-2.7d-forge-1.20.1.jar
+          mv bettercombat.jar 'bettercombat-forge-1.9.0+1.20.1.jar'
+          mv simplyswords.jar simplyswords-forge-neoforge-1.70.2-1.20.1.jar
+
+          for jar in *.jar; do
+            stem="${jar%.jar}"
+            mkdir -p "metadata/$stem"
+            unzip -p "$jar" META-INF/mods.toml > "metadata/$stem/mods.toml" 2>/dev/null || true
+            unzip -p "$jar" META-INF/neoforge.mods.toml > "metadata/$stem/neoforge.mods.toml" 2>/dev/null || true
+            unzip -p "$jar" META-INF/MANIFEST.MF > "metadata/$stem/MANIFEST.MF" 2>/dev/null || true
+          done
+
+          sha256sum *.jar > SHA256SUMS.txt
+          sha1sum *.jar > SHA1SUMS.txt
+          printf '%s\n' \
+            'Punchy: CurseForge project 1374153 file 8697202' \
+            'Better Combat: CurseForge project 639842 file 7287334' \
+            'Simply Swords: CurseForge project 659887 file 8746028' \
+            > PROVENANCE.txt
       - uses: actions/upload-artifact@v4
         with:
           name: forge-1.20.1-47.4.23-runtime
           path: /tmp/forge-server
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: charmsy-pinned-runtime-root-mods
+          path: /tmp/charmsy-root-mods
           if-no-files-found: error
           retention-days: 3
