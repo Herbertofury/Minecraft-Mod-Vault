@@ -12,8 +12,52 @@ permissions:
   contents: read
 
 jobs:
-  charmsy-root-mods:
+  charmsy-runtime-deps:
     if: startsWith(github.head_ref, 'ragdoll-runtime-export') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export exact dependency versions from the verified Charmsy native stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=/tmp/charmsy-runtime-deps
+          mkdir -p "$root/metadata"
+          cd "$root"
+
+          fetch_mod() {
+            local artifact="$1" project="$2" file_id="$3" output="$4" mod_id="$5"
+            local url="https://cursemaven.com/curse/maven/${artifact}-${project}/${file_id}/${artifact}-${project}-${file_id}.jar"
+            curl -fL --retry 4 --retry-delay 2 -o "$output" "$url"
+            unzip -tqq "$output"
+            mkdir -p "metadata/${output%.jar}"
+            unzip -p "$output" META-INF/mods.toml > "metadata/${output%.jar}/mods.toml" 2>/dev/null || true
+            unzip -p "$output" META-INF/neoforge.mods.toml > "metadata/${output%.jar}/neoforge.mods.toml" 2>/dev/null || true
+            unzip -p "$output" META-INF/MANIFEST.MF > "metadata/${output%.jar}/MANIFEST.MF" 2>/dev/null || true
+            if [ -s "metadata/${output%.jar}/mods.toml" ]; then
+              grep -Eiq "modId[[:space:]]*=[[:space:]]*\"${mod_id}\"" "metadata/${output%.jar}/mods.toml"
+            fi
+            printf '%s\t%s\t%s\t%s\n' "$output" "$project" "$file_id" "$url" >> PROVENANCE.tsv
+          }
+
+          fetch_mod architectury-api 419699 5137938 architectury-9.2.14-forge.jar architectury
+          fetch_mod cloth-config 348521 5729105 cloth-config-11.1.136-forge.jar cloth_config
+          fetch_mod fzzy-config 1005914 7568893 'fzzy_config-0.7.6+1.20.1+forge.jar' fzzy_config
+          fetch_mod playeranimator 658587 4587214 'player-animation-lib-forge-1.0.2-rc1+1.20.jar' playeranimator
+          fetch_mod simply-tooltips 1475755 8715158 'SimplyTooltips-forge-0.1.5-1.20.1.jar' simplytooltips
+          fetch_mod kotlin-for-forge 351264 7291067 kffmod-4.12.0.jar kotlinforforge
+
+          sha256sum *.jar > SHA256SUMS.txt
+          sha1sum *.jar > SHA1SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: charmsy-verified-runtime-dependencies
+          path: /tmp/charmsy-runtime-deps
+          if-no-files-found: error
+          retention-days: 3
+
+  charmsy-root-mods:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Export pinned Charmsy runtime root mods
@@ -41,8 +85,9 @@ jobs:
           unzip -tqq simplyswords.jar
           unzip -p simplyswords.jar META-INF/mods.toml > simplyswords-mods.toml
           grep -Eiq 'modId[[:space:]]*=[[:space:]]*"simplyswords"' simplyswords-mods.toml
-          sha1sum simplyswords.jar | tee simplyswords-observed-SHA1.txt
-          sha256sum simplyswords.jar | tee simplyswords-observed-SHA256.txt
+          printf '%s  %s\n' \
+            '642e385ffda914f1b9411f0a457fe5fb5e05aa160dc44392dec9a549c2bcec21' \
+            'simplyswords.jar' | sha256sum -c -
 
           mv punchy.jar punchy-2.7d-forge-1.20.1.jar
           mv bettercombat.jar 'bettercombat-forge-1.9.0+1.20.1.jar'
@@ -62,7 +107,7 @@ jobs:
           printf '%s\n' \
             'Punchy: CurseForge project 1374153 file 8697202' \
             'Better Combat: CurseForge project 639842 file 7287334' \
-            'Simply Swords: CurseForge project 659887 file 8746028; public file page confirms simplyswords-forge-neoforge-1.70.2-1.20.1.jar / Forge+NeoForge / Minecraft 1.20.1' \
+            'Simply Swords: CurseForge project 659887 file 8746028' \
             > PROVENANCE.txt
 
       - uses: actions/upload-artifact@v4
@@ -73,7 +118,7 @@ jobs:
           retention-days: 3
 
   forge-runtime:
-    if: startsWith(github.head_ref, 'ragdoll-runtime-export') || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
