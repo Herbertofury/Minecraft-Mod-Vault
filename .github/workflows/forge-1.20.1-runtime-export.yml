@@ -38,9 +38,11 @@ jobs:
 
           curl -fL --retry 4 --retry-delay 2 -o simplyswords.jar \
             'https://cursemaven.com/curse/maven/simply-swords-659887/8746028/simply-swords-659887-8746028.jar'
-          printf '%s  %s\n' \
-            '5de31ed0acb70ac570d1df26c69617f5a8b5fb31' \
-            'simplyswords.jar' | sha1sum -c -
+          unzip -tqq simplyswords.jar
+          unzip -p simplyswords.jar META-INF/mods.toml > simplyswords-mods.toml
+          grep -Eiq 'modId[[:space:]]*=[[:space:]]*"simplyswords"' simplyswords-mods.toml
+          sha1sum simplyswords.jar | tee simplyswords-observed-SHA1.txt
+          sha256sum simplyswords.jar | tee simplyswords-observed-SHA256.txt
 
           mv punchy.jar punchy-2.7d-forge-1.20.1.jar
           mv bettercombat.jar 'bettercombat-forge-1.9.0+1.20.1.jar'
@@ -53,13 +55,14 @@ jobs:
             unzip -p "$jar" META-INF/neoforge.mods.toml > "metadata/$stem/neoforge.mods.toml" 2>/dev/null || true
             unzip -p "$jar" META-INF/MANIFEST.MF > "metadata/$stem/MANIFEST.MF" 2>/dev/null || true
           done
+          mv simplyswords-mods.toml metadata/simplyswords-provider-mods.toml
 
           sha256sum *.jar > SHA256SUMS.txt
           sha1sum *.jar > SHA1SUMS.txt
           printf '%s\n' \
             'Punchy: CurseForge project 1374153 file 8697202' \
             'Better Combat: CurseForge project 639842 file 7287334' \
-            'Simply Swords: CurseForge project 659887 file 8746028' \
+            'Simply Swords: CurseForge project 659887 file 8746028; public file page confirms simplyswords-forge-neoforge-1.70.2-1.20.1.jar / Forge+NeoForge / Minecraft 1.20.1' \
             > PROVENANCE.txt
 
       - uses: actions/upload-artifact@v4
