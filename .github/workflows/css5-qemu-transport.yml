@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - '.github/workflows/css5-qemu-transport.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/css5-qemu-transport-trigger.txt'
 
 permissions:
   contents: read
