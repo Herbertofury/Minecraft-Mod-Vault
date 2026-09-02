@@ -1,0 +1,27 @@
+name: CSS5 QEMU transport
+on:
+  push:
+    paths:
+      - '.github/workflows/css5-qemu-transport.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-qemu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified QEMU x86_64 system binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/hermeticbuild/qemu-prebuilt/releases/download/11.0.0.1/qemu-system-bin-linux-amd64-x86_64-softmmu-11.0.0.1.tar.zst'
+          curl -fL --retry 3 --retry-delay 2 "$url" -o qemu-system-x86_64.tar.zst
+          echo 'b84d359893a0a1d565f368adb8290933ef9c99431acd98cff0fc4c9b35de3d22  qemu-system-x86_64.tar.zst' | sha256sum -c -
+      - name: Upload transport artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-qemu-system-x86_64
+          path: qemu-system-x86_64.tar.zst
+          if-no-files-found: error
+          retention-days: 1
