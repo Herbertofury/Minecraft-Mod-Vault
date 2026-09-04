@@ -1,0 +1,3 @@
+43149d5e4277407d654e679cfa25b9a9d64739683afeb698c69f24af2e38ca95  Dimensional-Lifeguard-0.1.0-safe-preview.1-Forge-1.20.1.jar
+8f31f57279d157b563d9b4f8cb23b0adbf6e00f788fe8d1eeb8c40825b7ecd83  Dimensional-Lifeguard-0.1.0-safe-preview.1-source.zip
+3b715f53aa73187888511c9c498054561e48979b418a5274faf416d213bf2dfb  Dimensional-Lifeguard-0.1.0-safe-preview.1-VERIFICATION.md
