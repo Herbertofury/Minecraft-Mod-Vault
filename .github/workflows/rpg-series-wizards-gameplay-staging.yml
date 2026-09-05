@@ -1,5 +1,6 @@
 name: RPG Series - Wizards 3.1.1 Gameplay Staging
 
+# Branch-only validation lane. The production Wizards source remains unchanged.
 on:
   push:
     branches:
