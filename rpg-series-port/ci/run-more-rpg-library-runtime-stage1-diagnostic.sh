@@ -12,6 +12,7 @@ bash -n "$BASE"
 # authoritative proof that Quick Play actually reached the integrated player.
 CLIENT_RUN="$ROOT/.more-rpg-library-build/forge/run"
 CLIENT_OPTIONS="$CLIENT_RUN/options.txt"
+CLIENT_LOG="$ROOT/rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-native-client-integrated.log"
 mkdir -p "$CLIENT_RUN"
 if [[ -f "$CLIENT_OPTIONS" ]] && grep -q '^onboardAccessibility:' "$CLIENT_OPTIONS"; then
   sed -i 's/^onboardAccessibility:.*/onboardAccessibility:false/' "$CLIENT_OPTIONS"
@@ -20,6 +21,41 @@ else
 fi
 [[ "$(grep -Ec '^onboardAccessibility:false$' "$CLIENT_OPTIONS")" -eq 1 ]]
 echo '[More RPG 2.7.2] CLIENT_FIRST_RUN_ACCESSIBILITY_GATE_DISABLED_FOR_QA onboardAccessibility=false'
+
+# Prepare the direct HUD transformation proof without weakening the existing world-entry gate.
+# A successful fatal-poison marker proves a real integrated player; these Mixin debug settings
+# additionally preserve the post-transform GUI bytecode so DrawHeartsMixin itself can be verified.
+rm -rf "$CLIENT_RUN/.mixin.out"
+MIXIN_JAVA_TOOL_OPTIONS='-Dmixin.debug.export=true -Dmixin.debug.export.filter=net.minecraft.client.gui.** -Dmixin.debug.export.decompile=false -Dmixin.debug.verbose=true'
+export JAVA_TOOL_OPTIONS="$MIXIN_JAVA_TOOL_OPTIONS${JAVA_TOOL_OPTIONS:+ $JAVA_TOOL_OPTIONS}"
+echo '[More RPG 2.7.2] DRAW_HEARTS_MIXIN_EXPORT_ARMED filter=net.minecraft.client.gui.**'
+
+prove_draw_hearts_transform() {
+  local latest="$CLIENT_RUN/logs/latest.log"
+  local mixin_out="$CLIENT_RUN/.mixin.out"
+  local -a heart_targets=()
+
+  [[ -f "$CLIENT_LOG" && -f "$latest" ]] || {
+    echo '[More RPG 2.7.2] direct HUD proof missing client runtime logs' >&2
+    return 1
+  }
+  if ! grep -Eiq 'DrawHeartsMixin.*more-rpg-classes\.mixins\.json|more-rpg-classes\.mixins\.json.*DrawHeartsMixin|DrawHeartsMixin' "$CLIENT_LOG" "$latest"; then
+    echo '[More RPG 2.7.2] DrawHeartsMixin verbose application record missing' >&2
+    return 1
+  fi
+  [[ -d "$mixin_out" ]] || {
+    echo '[More RPG 2.7.2] Mixin post-transform export directory missing' >&2
+    return 1
+  }
+  mapfile -t heart_targets < <(grep -aRl 'net/more_rpg_classes/client/heart/HeartRegistry' "$mixin_out" --include='*.class' 2>/dev/null | sort || true)
+  if ((${#heart_targets[@]} == 0)); then
+    echo '[More RPG 2.7.2] No exported transformed GUI class contains HeartRegistry reference' >&2
+    find "$mixin_out" -type f -name '*.class' -print | sort | head -n 100 || true
+    return 1
+  fi
+  printf '[More RPG 2.7.2] DRAW_HEARTS_MIXIN_TRANSFORMED_CLIENT_PASS targets=%s first=%s\n' \
+    "${#heart_targets[@]}" "${heart_targets[0]#$mixin_out/}"
+}
 
 echo '[More RPG 2.7.2] RUNTIME_STAGE1_DIAGNOSTIC_WRAPPER_BEGIN source=run-359'
 bash "$BASE" &
@@ -35,7 +71,10 @@ for _ in $(seq 1 120); do
     rc=$?
     set -e
     echo "[More RPG 2.7.2] RUNTIME_STAGE1_DIAGNOSTIC_WRAPPER_EARLY_EXIT rc=$rc"
-    exit "$rc"
+    [[ "$rc" -eq 0 ]] || exit "$rc"
+    prove_draw_hearts_transform
+    echo '[More RPG 2.7.2] RUNTIME_STAGE1_HARDENED_PASS world_entry=true transformed_hud=true production_client_pending=true'
+    exit 0
   fi
   sleep 1
 done
@@ -55,4 +94,7 @@ wait "$BASE_PID"
 rc=$?
 set -e
 echo "[More RPG 2.7.2] RUNTIME_STAGE1_DIAGNOSTIC_WRAPPER_END rc=$rc"
-exit "$rc"
+[[ "$rc" -eq 0 ]] || exit "$rc"
+prove_draw_hearts_transform
+echo '[More RPG 2.7.2] RUNTIME_STAGE1_HARDENED_PASS world_entry=true transformed_hud=true production_client_pending=true'
+exit 0
