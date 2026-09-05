@@ -13,20 +13,28 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch exact compatibility patch binaries
+      - name: Fetch exact Noxviola silent-hang suspects
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/noxviola-compat
-          cd /tmp/noxviola-compat
+          mkdir -p /tmp/noxviola-hang
+          cd /tmp/noxviola-hang
 
           curl -fL --retry 4 --retry-delay 2 \
-            -o tomagic_cataclysm_compat-1.5.0.jar \
-            'https://github.com/Nicepower001/TOMagicCataclysmCompat/releases/download/1.5.0/tomagic_cataclysm_compat-1.5.0.jar'
+            -o 'kaleidoscopecookery-1.4.1-forge+mc1.20.1.jar' \
+            'https://cdn.modrinth.com/data/v17FatAc/versions/NXvhd04p/kaleidoscopecookery-1.4.1-forge%2Bmc1.20.1.jar'
 
           curl -fL --retry 4 --retry-delay 2 \
-            -o mndfix-1.12.0-all.jar \
-            'https://mediafilez.forgecdn.net/files/8618/637/mndfix-1.12.0-all.jar'
+            -o 'kaleidoscope-cookery-1.4.1-forge+mc1.20.1-sources.jar' \
+            'https://cdn.modrinth.com/data/v17FatAc/versions/NXvhd04p/kaleidoscope-cookery-1.4.1-forge%2Bmc1.20.1-sources.jar'
+
+          curl -fL --retry 4 --retry-delay 2 \
+            -o 'Jade-1.20.1-Forge-11.13.3.jar' \
+            'https://mediafilez.forgecdn.net/files/8479/276/Jade-1.20.1-Forge-11.13.3.jar'
+
+          curl -fL --retry 4 --retry-delay 2 \
+            -o 'lucent-1.20.1-1.5.5.jar' \
+            'https://mediafilez.forgecdn.net/files/4951/434/lucent-1.20.1-1.5.5.jar'
 
           file *.jar
           for f in *.jar; do unzip -t "$f" >/dev/null; done
@@ -34,7 +42,7 @@ jobs:
           cat SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: noxviola-compat-patches
-          path: /tmp/noxviola-compat
+          name: noxviola-silent-hang-binaries
+          path: /tmp/noxviola-hang
           if-no-files-found: error
           retention-days: 1
