@@ -1,0 +1,64 @@
+name: RPG Series - Wizards 3.1.1 Gameplay Staging
+
+on:
+  push:
+    branches:
+      - 'staging/wizards-arcane-blast-gameplay-1534'
+    paths:
+      - 'rpg-series-port/**'
+      - '.github/workflows/rpg-series-wizards-gameplay-staging.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: rpg-series-wizards-gameplay-staging
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  arcane-blast-gameplay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact staging head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.8
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+          cache-read-only: false
+
+      - name: Run Wizards Spell Engine 1.10.4 native gameplay acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-wizards-spell-engine-1.10.4-gameplay.sh'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          bash "$SCRIPT"
+
+      - name: Preserve Wizards gameplay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wizards-3.1.1-gameplay-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            rpg-series-port/wizards-forge-1.20.1/wizards-arcane-blast-gameplay.log
+            rpg-series-port/wizards-forge-1.20.1/wizards*.log
+            rpg-series-port/wizards-forge-1.20.1/*sha256
+            rpg-series-port/wizards-forge-1.20.1/generated/forge/run/logs/latest.log
+            rpg-series-port/wizards-forge-1.20.1/generated/forge/build/libs/*.jar
+            rpg-series-port/wizards-forge-1.20.1/generated/qa/build/libs/*.jar
+            wizards-3.1.1-forge-1.20.1-source-ci.zip
