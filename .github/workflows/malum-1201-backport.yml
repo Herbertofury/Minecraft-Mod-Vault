@@ -1,0 +1,75 @@
+name: Malum 1.8.2 -> Forge 1.20.1 Backport Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - build/malum-1.9.0-forge-1.20.1-backport
+    paths:
+      - 'projects/malum-1.20.1-backport/**'
+      - '.github/workflows/malum-1201-backport.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  release-parity-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare pinned 1.8.2 release-parity port and compile
+        id: gate
+        continue-on-error: true
+        shell: bash
+        run: bash projects/malum-1.20.1-backport/prepare-port.sh
+
+      - name: Publish compact gate summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Malum Forge 1.20.1 backport gate'
+            echo
+            if [[ -f projects/malum-1.20.1-backport/reports/inventory.txt ]]; then
+              echo '```text'
+              cat projects/malum-1.20.1-backport/reports/inventory.txt
+              echo '```'
+            fi
+            if [[ -f projects/malum-1.20.1-backport/reports/residual-surfaces.txt ]]; then
+              echo '### Residual 1.21 surfaces'
+              echo '```text'
+              cat projects/malum-1.20.1-backport/reports/residual-surfaces.txt
+              echo '```'
+            fi
+            if [[ -f projects/malum-1.20.1-backport/reports/error-index.txt ]]; then
+              echo '### First semantic compile errors (first 120 lines)'
+              echo '```text'
+              sed -n '1,120p' projects/malum-1.20.1-backport/reports/error-index.txt
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload compiler and delta evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: malum-1.8.2-forge-1.20.1-gate
+          path: projects/malum-1.20.1-backport/reports/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce compile gate
+        if: always()
+        shell: bash
+        run: |
+          test -f projects/malum-1.20.1-backport/reports/compile-exit-code.txt
+          test "$(cat projects/malum-1.20.1-backport/reports/compile-exit-code.txt)" = "0"
