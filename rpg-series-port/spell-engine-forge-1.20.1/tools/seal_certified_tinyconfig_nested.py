@@ -25,6 +25,20 @@ def is_nested_jar(name: str) -> bool:
     return name.lower().endswith('.jar')
 
 
+def canonicalize_refmap_json(raw: bytes, label: str) -> bytes:
+    try:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(f'generated Mixin refmap is not valid UTF-8 JSON: {label}: {exc}')
+    if not isinstance(payload, dict):
+        raise SystemExit(f'generated Mixin refmap root is not an object: {label}')
+    # Loom/Mixin can emit semantically identical refmap objects in different insertion orders across
+    # otherwise frozen CI runs. JSON object order has no runtime meaning, so make only the outer
+    # generated refmap bytes canonical before release hashing. Nested dependency JAR bytes stay under
+    # their existing identity rules and are not rewritten by this normalization.
+    return (json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=False) + '\n').encode('utf-8')
+
+
 def canonicalize_zip_bytes(raw: bytes, label: str, depth: int = 0) -> bytes:
     if depth > 8:
         raise SystemExit(f'nested JAR depth exceeded while canonicalizing {label}')
@@ -98,6 +112,7 @@ with zipfile.ZipFile(outer, 'r') as zin:
     payload_tree = hashlib.sha256()
     manifest_lines = []
     canonicalized_nested = 0
+    canonicalized_refmaps = 0
     for info in sorted(infos, key=lambda i: i.filename):
         if info.filename == nested_path:
             data = certified_bytes
@@ -106,6 +121,9 @@ with zipfile.ZipFile(outer, 'r') as zin:
             if info.filename in jarjar_paths and is_nested_jar(info.filename):
                 data = canonicalize_zip_bytes(data, info.filename)
                 canonicalized_nested += 1
+            elif info.filename.lower().endswith('refmap.json'):
+                data = canonicalize_refmap_json(data, info.filename)
+                canonicalized_refmaps += 1
         digest = hashlib.sha256(data).hexdigest()
         entries.append((info.filename, info.compress_type, data))
         manifest_lines.append(f'{digest}  {info.filename}')
@@ -113,6 +131,8 @@ with zipfile.ZipFile(outer, 'r') as zin:
         payload_tree.update(b'\0')
         payload_tree.update(bytes.fromhex(digest))
         payload_tree.update(b'\n')
+    if canonicalized_refmaps < 1:
+        raise SystemExit('Spell Engine release has no generated Mixin refmap to canonicalize')
     payload_tree_sha = payload_tree.hexdigest()
 
     fd, temp_name = tempfile.mkstemp(prefix=outer.name + '.certified-seal-', suffix='.jar', dir=outer.parent)
@@ -144,6 +164,10 @@ with zipfile.ZipFile(outer, 'r') as zin:
                     raise SystemExit(f'canonical Spell Engine JAR retained timestamp drift: {info.filename} {info.date_time}')
                 if info.extra or info.comment:
                     raise SystemExit(f'canonical Spell Engine JAR retained ZIP metadata drift: {info.filename}')
+                if info.filename.lower().endswith('refmap.json'):
+                    raw = check.read(info.filename)
+                    if raw != canonicalize_refmap_json(raw, info.filename):
+                        raise SystemExit(f'canonical Spell Engine JAR retained refmap ordering drift: {info.filename}')
         os.replace(temp, outer)
     finally:
         temp.unlink(missing_ok=True)
@@ -151,5 +175,5 @@ with zipfile.ZipFile(outer, 'r') as zin:
 manifest_path = Path(str(outer) + '.payload.sha256')
 manifest_path.write_text('\n'.join(manifest_lines) + '\n', encoding='utf-8')
 outer_sha = hashlib.sha256(outer.read_bytes()).hexdigest()
-print(f'[Spell Engine graduation] CERTIFIED_TINY_CONFIG_EXACT_NESTED_SEAL_PASS nested={certified_sha} canonicalized_nested={canonicalized_nested} payload_tree={payload_tree_sha} outer={outer_sha}')
+print(f'[Spell Engine graduation] CERTIFIED_TINY_CONFIG_EXACT_NESTED_SEAL_PASS nested={certified_sha} canonicalized_nested={canonicalized_nested} canonicalized_refmaps={canonicalized_refmaps} payload_tree={payload_tree_sha} outer={outer_sha}')
 print(f'[Spell Engine graduation] PAYLOAD_MANIFEST path={manifest_path}')
