@@ -64,6 +64,17 @@ jobs:
           echo "[RPG CI] Runtime gate: $SCRIPT" | tee "$LOG"
           bash "$SCRIPT" 2>&1 | tee -a "$LOG"
 
+      - name: Run More RPG real Forge production client Stage-2
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-production-client-stage2.sh'
+          LOG='rpg-series-port/more-rpg-production-stage2.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          echo "[RPG CI] Production client gate: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+
       - name: Preserve active-port evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -74,6 +85,7 @@ jobs:
           path: |
             rpg-series-port/active-port-verifier.log
             rpg-series-port/more-rpg-runtime-stage1.log
+            rpg-series-port/more-rpg-production-stage2.log
             rpg-series-integration-client.log
             rpg-series-integration-server.log
             rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
@@ -81,7 +93,14 @@ jobs:
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-packaged-server-smoke.log
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-native-client-integrated.log
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-mapped-client-state.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-production-forgeclient.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-forge-install-client.log
             rpg-series-port/more-rpg-library-forge-1.20.1/.fresh-more-rpg-server/logs/latest.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/logs/latest.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-launch.json
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-libraryfinder.sha256
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-mods.sha256
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/.mixin.out/**/*.class
             .more-rpg-library-build/forge/run/logs/latest.log
             .more-rpg-library-build/forge/run/.mixin.out/**/*.class
             rpg-series-port/*/forge/build/libs/*.jar
