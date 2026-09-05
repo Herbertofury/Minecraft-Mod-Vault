@@ -19,13 +19,28 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/noxviola-deps
           cd /tmp/noxviola-deps
-          curl -fL --retry 4 --retry-delay 2 -o traveloptics-6.3.0-1.20.1.jar 'https://mediafilez.forgecdn.net/files/7424/522/traveloptics-6.3.0-1.20.1.jar'
-          curl -fL --retry 4 --retry-delay 2 -o compatdelight-1.0.1.1.jar 'https://cdn.modrinth.com/data/iNJJU8Ib/versions/akFeLxqb/compatdelight-1.0.1.1.jar'
-          curl -fL --retry 4 --retry-delay 2 -o L_Enders_Cataclysm-3.31.jar 'https://mediafilez.forgecdn.net/files/8246/047/L_Enders_Cataclysm-3.31.jar'
-          curl -fL --retry 4 --retry-delay 2 -o FarmersDelight-1.20.1-1.3.4.jar 'https://mediafilez.forgecdn.net/files/8765/179/FarmersDelight-1.20.1-1.3.4.jar'
+
+          # These two exact public files were proven reachable by the first run.
+          curl -fL --retry 4 --retry-delay 2 -o traveloptics-6.3.0-1.20.1.jar \
+            'https://mediafilez.forgecdn.net/files/7424/522/traveloptics-6.3.0-1.20.1.jar'
+          curl -fL --retry 4 --retry-delay 2 -o compatdelight-1.0.1.1.jar \
+            'https://cdn.modrinth.com/data/iNJJU8Ib/versions/akFeLxqb/compatdelight-1.0.1.1.jar'
+
+          # Resolve the exact installed dependency builds through Modrinth's public API
+          # instead of CurseForge CDN endpoints that returned HTTP 403 in run 1.
+          CAT_URL="$(curl -fsSL 'https://api.modrinth.com/v2/version/C3H0azzB' | jq -r '.files[] | select(.primary == true) | .url' | head -n1)"
+          test -n "$CAT_URL" && test "$CAT_URL" != null
+          curl -fL --retry 4 --retry-delay 2 -o L_Enders_Cataclysm-3.31.jar "$CAT_URL"
+
+          FD_URL="$(curl -fsSL 'https://api.modrinth.com/v2/project/farmers-delight/version?game_versions=%5B%221.20.1%22%5D&loaders=%5B%22forge%22%5D' \
+            | jq -r '[.[] | .files[] | select(.filename == "FarmersDelight-1.20.1-1.3.4.jar")][0].url')"
+          test -n "$FD_URL" && test "$FD_URL" != null
+          curl -fL --retry 4 --retry-delay 2 -o FarmersDelight-1.20.1-1.3.4.jar "$FD_URL"
+
           file *.jar
           for f in *.jar; do unzip -t "$f" >/dev/null; done
           sha256sum *.jar > SHA256SUMS.txt
+          cat SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: noxviola-dependency-binaries
