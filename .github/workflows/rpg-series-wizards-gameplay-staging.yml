@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SCRIPT='rpg-series-port/ci/run-wizards-spell-engine-1.10.4-gameplay.sh'
+          SCRIPT='rpg-series-port/ci/run-wizards-spell-engine-1.10.4-gameplay-warning-safe.sh'
           test -f "$SCRIPT"
           bash -n "$SCRIPT"
           bash "$SCRIPT"
