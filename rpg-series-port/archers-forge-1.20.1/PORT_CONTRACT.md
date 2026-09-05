@@ -126,3 +126,42 @@ The Archers lane then expands from the quiver boundary to the entire current 3.1
 - whole-suite integration with the already graduated RPG-Series foundations.
 
 No historical 1.3.0 omission is permission to omit a current 3.1.1 feature.
+
+## Graduation receipt — 2026-08-27
+
+Status: **GRADUATED — FULL NATIVE FORGE ACCEPTANCE PASSED**
+
+### Frozen runtime/product authority
+- Accepted canonical head: `d47274c88d26661a11cea25ba4805fc4393fe195`
+- Authoritative workflow: RPG Series active-port run `#179` / run ID `33141697191`
+- Verifier job: `98753736940`
+- Release artifact: `archers-forge-3.1.1+1.20.1.jar`
+- Release size: `901621` bytes
+- Release SHA-256: `38991c26b9de3e5ac51ce72757b40f1eb2aef3ace3e66f844de44d2a4cbde8b1`
+- Java gate: all `51` Archers-owned classes are Java 17 major `61`; all `52` packaged classes are `<=61`.
+
+The runtime/product authority above is frozen. Any later documentation, ecosystem bookkeeping, dependency graduation, or QA-only commit does not supersede these accepted Archers product bytes.
+
+### Native acceptance evidence
+The exact accepted head passed the full graduation matrix rather than compile-only confidence:
+- exact current Archers 3.1.1 materialization with `545` resource/data files retained;
+- common and native Forge compilation/package gates;
+- dependency-leakage boundaries with RPG foundations kept as separate JARs;
+- byte-identical clean remap/rebuild of the release JAR;
+- real Forge development server readiness plus `ARCHERS_SELF_TEST_PASS`;
+- real Forge client LWJGL, ResourceManager, mixin, and render/bootstrap acceptance;
+- fresh official Forge `47.4.23` packaged server using the exact release JAR bytes plus separate runtime dependencies;
+- packaged-server semantic self-test green.
+
+Terminal acceptance marker:
+
+`PASS: deterministic package + semantic dev server + headless client + fresh packaged server.`
+
+### Preserved evidence
+- GitHub Actions evidence artifact ID: `9674283430`
+- Evidence ZIP SHA-256: `924004f19679b0f851b5e4471f684023d19fd4ce3a7cc03c7c1bdd94f0c2324e`
+- Evidence ZIP size: `7227248` bytes
+- Canonical Drive evidence ID: `1miGN0xv7TIXVSeBXFd52V3Fl3ER4VRch`
+- Canonical Drive release JAR ID: `1n9vMSpPg6kGIGg1yQvZcctjydVWauj--`
+
+The Drive evidence/release copies were size-verified when graduation was sealed, preserving the acceptance record independently of GitHub Actions artifact retention.
