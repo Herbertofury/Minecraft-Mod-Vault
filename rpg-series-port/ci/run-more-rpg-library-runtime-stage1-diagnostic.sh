@@ -80,6 +80,12 @@ for _ in $(seq 1 210); do
       elif [[ -s "$STATE_LOG" ]]; then
         cat "$STATE_LOG"
         echo '[More RPG 2.7.2] MAPPED_CLIENT_STATE_PROBE_CAPTURED'
+        if grep -Fq 'world=<null>' "$STATE_LOG" \
+          && grep -Fq 'player=<null>' "$STATE_LOG" \
+          && grep -Fq 'integratedServer=false' "$STATE_LOG"; then
+          echo '[More RPG 2.7.2] STABLE_MENU_BLOCKER_CAPTURED stopping_stalled_client=true'
+          kill -TERM "$CLIENT_PID" 2>/dev/null || true
+        fi
       else
         echo '[More RPG 2.7.2] MAPPED_CLIENT_STATE_PROBE_EMPTY'
       fi
