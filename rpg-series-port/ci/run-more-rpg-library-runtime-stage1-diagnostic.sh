@@ -5,7 +5,23 @@ BASE="$ROOT/rpg-series-port/ci/run-more-rpg-library-runtime-stage1.sh"
 test -f "$BASE"
 bash -n "$BASE"
 
-echo '[More RPG 2.7.2] RUNTIME_STAGE1_DIAGNOSTIC_WRAPPER_BEGIN source=run-351'
+# Minecraft 1.20.1 puts a first-launch accessibility onboarding screen in front of
+# Quick Play when options.txt is absent. CI uses a fresh disposable run directory,
+# so seed only that onboarding flag before the base Stage-1 harness launches the
+# mapped client. The gameplay marker in the copied MRPG-QA world remains the
+# authoritative proof that Quick Play actually reached the integrated player.
+CLIENT_RUN="$ROOT/.more-rpg-library-build/forge/run"
+CLIENT_OPTIONS="$CLIENT_RUN/options.txt"
+mkdir -p "$CLIENT_RUN"
+if [[ -f "$CLIENT_OPTIONS" ]] && grep -q '^onboardAccessibility:' "$CLIENT_OPTIONS"; then
+  sed -i 's/^onboardAccessibility:.*/onboardAccessibility:false/' "$CLIENT_OPTIONS"
+else
+  printf 'onboardAccessibility:false\n' >> "$CLIENT_OPTIONS"
+fi
+[[ "$(grep -Ec '^onboardAccessibility:false$' "$CLIENT_OPTIONS")" -eq 1 ]]
+echo '[More RPG 2.7.2] CLIENT_FIRST_RUN_ACCESSIBILITY_GATE_DISABLED_FOR_QA onboardAccessibility=false'
+
+echo '[More RPG 2.7.2] RUNTIME_STAGE1_DIAGNOSTIC_WRAPPER_BEGIN source=run-359'
 bash "$BASE" &
 BASE_PID=$!
 
