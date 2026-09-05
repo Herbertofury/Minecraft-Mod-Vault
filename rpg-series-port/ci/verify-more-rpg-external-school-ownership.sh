@@ -5,6 +5,62 @@ JAR="$ROOT/rpg-series-port/more-rpg-library-forge-1.20.1/more_rpg_library-forge-
 test -f "$JAR"; unzip -tq "$JAR" >/dev/null
 unzip -p "$JAR" META-INF/MANIFEST.MF | tr -d '\r' | grep -Fx 'MixinConfigs: more-rpg-classes.mixins.json' >/dev/null
 
+# Forge/Minecraft 1.20.1 reads the historically plural standard datapack registry directories.
+# Fail closed if any modern singular standard path survives the final package, while leaving custom
+# registries (spell, damage_type, enchantment, etc.) untouched.
+python3 - "$JAR" <<'PY'
+import sys, zipfile
+jar = sys.argv[1]
+with zipfile.ZipFile(jar) as zf:
+    names = set(zf.namelist())
+    files = {n for n in names if not n.endswith('/')}
+    bad = sorted(
+        n for n in files
+        if '/tags/item/' in n
+        or '/tags/entity_type/' in n
+        or '/recipe/' in n
+        or '/advancement/' in n
+        or n == 'data/wizards/item/wizard_runes.json'
+    )
+    if bad:
+        raise SystemExit('[More RPG 2.7.2] 1.21 singular resource paths survived final JAR:\n' + '\n'.join(bad))
+
+    required = [
+        'data/more_rpg_classes/tags/items/enchantable/typhoon.json',
+        'data/more_rpg_classes/tags/items/enchantable/stonebloom.json',
+        'data/runes/tags/items/wizard_stones.json',
+        'data/berserker_rpg/tags/entity_types/hatred_of_undead.json',
+        'data/more_rpg_classes/recipes/aqua_rune_medium_altar.json',
+        'data/more_rpg_content/advancements/recipes/equipment/arcane_alley.json',
+        'data/wizards/wizard_runes.json',
+        'data/more_rpg_classes/enchantment/typhoon.json',
+        'data/more_rpg_classes/enchantment/stonebloom.json',
+    ]
+    missing = [n for n in required if n not in files]
+    if missing:
+        raise SystemExit('[More RPG 2.7.2] target-native resource parity files missing:\n' + '\n'.join(missing))
+
+    counts = {
+        'items': sum('/tags/items/' in n for n in files),
+        'entity_types': sum('/tags/entity_types/' in n for n in files),
+        'recipes': sum('/recipes/' in n for n in files),
+        'advancements': sum('/advancements/' in n for n in files),
+    }
+    minimums = {'items': 17, 'entity_types': 6, 'recipes': 20, 'advancements': 1}
+    for family, minimum in minimums.items():
+        if counts[family] < minimum:
+            raise SystemExit(
+                f'[More RPG 2.7.2] packaged {family} resource count too small: '
+                f"found={counts[family]} expected_at_least={minimum}"
+            )
+print(
+    '[More RPG 2.7.2] PACKAGED_RESOURCE_PATH_1201_PARITY_PASS '
+    f"items={counts['items']} entity_types={counts['entity_types']} "
+    f"recipes={counts['recipes']} advancements={counts['advancements']} "
+    'wizard_runes=root modern_enchantment_json=preserved'
+)
+PY
+
 # Lock the exact modern 2.7.2 JSON authority that the 1.20.1 compatibility class must represent.
 python3 - "$JAR" <<'PY'
 import json, sys, zipfile
