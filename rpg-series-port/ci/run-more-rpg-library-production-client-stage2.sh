@@ -4,6 +4,7 @@ ROOT="${GITHUB_WORKSPACE:?}"
 PORT="$ROOT/rpg-series-port/more-rpg-library-forge-1.20.1"
 FOUNDATION="$PORT/.foundation"
 HELPER="$PORT/tools/prepare_forge_production_client.py"
+HELPER_PATCHER="$PORT/tools/patch_forge_production_client_library_directory.py"
 OUT="$PORT/more_rpg_library-forge-2.7.2+1.20.1.jar"
 SPELL_ENGINE_JAR="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell_engine-forge-1.10.4+1.20.1.jar"
 SPELL_POWER_JAR="$FOUNDATION/spell_power-forge-1.6.0+1.20.1-certified.jar"
@@ -29,10 +30,12 @@ INSTALLER="$MC_HOME/forge-${FORGE_VERSION}-installer.jar"
 LAUNCH_SCRIPT="$GAME_DIR/launch-forgeclient.sh"
 CLIENT_LOG="$PORT/more-rpg-production-forgeclient.log"
 
-for f in "$HELPER" "$OUT" "$SPELL_ENGINE_JAR" "$SPELL_POWER_JAR" "$RANGED_JAR" "$TINY_JAR" "$CLOTH_FORGE_JAR" "$PLAYER_ANIM_FORGE_JAR"; do
+for f in "$HELPER" "$HELPER_PATCHER" "$OUT" "$SPELL_ENGINE_JAR" "$SPELL_POWER_JAR" "$RANGED_JAR" "$TINY_JAR" "$CLOTH_FORGE_JAR" "$PLAYER_ANIM_FORGE_JAR"; do
   test -f "$f"
   case "$f" in *.jar) unzip -tq "$f" >/dev/null ;; esac
 done
+python3 -m py_compile "$HELPER" "$HELPER_PATCHER"
+python3 "$HELPER_PATCHER" "$HELPER"
 python3 -m py_compile "$HELPER"
 [[ -d "$FRESH_SERVER/world/datapacks/more-rpg-runtime-qa" ]] || {
   echo '[More RPG 2.7.2] Stage-2 requires the Stage-1 frozen QA world/datapack checkpoint' >&2
