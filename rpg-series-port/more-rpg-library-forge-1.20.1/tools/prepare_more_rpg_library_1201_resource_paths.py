@@ -125,7 +125,7 @@ for family, minimum in minimums.items():
 representatives = [
     'data/more_rpg_classes/tags/items/enchantable/typhoon.json',
     'data/more_rpg_classes/tags/items/enchantable/stonebloom.json',
-    'data/runes/tags/items/wizard_stones.json',
+    'data/more_rpg_classes/tags/items/coral_blocks.json',
     'data/berserker_rpg/tags/entity_types/hatred_of_undead.json',
     'data/more_rpg_classes/recipes/aqua_rune_medium_altar.json',
     'data/more_rpg_content/advancements/recipes/equipment/arcane_alley.json',
