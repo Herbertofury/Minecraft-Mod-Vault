@@ -4,65 +4,89 @@ set -euo pipefail
 ROOT="${GITHUB_WORKSPACE:-$(pwd)}"
 OUT="$ROOT/.malum-port-work"
 REPORT_DIR="$ROOT/projects/malum-1.20.1-backport/reports"
-BASE_REF="1.20.1"
-LATEST_REF="1.21.1"
-BASE_SHA="c62ce3e2b51ac8daa4d700bed2df9404a68bbce1"
-LATEST_SHA="5472ca3deac8f47a2a7b61ca98b4debe5f9482e0"
 UPSTREAM="https://github.com/SammySemicolon/Malum-Mod.git"
 
-rm -rf "$OUT"
+# Immutable source authorities.
+# 1.20.1 = proven Forge/Java 17 architectural base (Malum 1.6.7).
+BASE_SHA="c62ce3e2b51ac8daa4d700bed2df9404a68bbce1"
+# Last Dec-08 source state that still declares the released Malum 1.8.2 line.
+RELEASE_SHA="03b743a37f3eeb0cc7f4364f0730e1f135f78408"
+# Current 1.21.1 development authority captured when this backport was started.
+DEV_SHA="5472ca3deac8f47a2a7b61ca98b4debe5f9482e0"
+
+rm -rf "$OUT" "$REPORT_DIR"
 mkdir -p "$OUT" "$REPORT_DIR"
 
-# Clone both authoritative lanes. 1.20.1 is the proven Forge/Java 17 foundation;
-# 1.21.1 is the current feature/content authority (declares Malum 1.9.0).
-git clone --depth 1 --branch "$BASE_REF" "$UPSTREAM" "$OUT/base"
-git clone --depth 1 --branch "$LATEST_REF" "$UPSTREAM" "$OUT/latest"
+fetch_exact() {
+  local sha="$1" dest="$2"
+  git init -q "$dest"
+  git -C "$dest" remote add origin "$UPSTREAM"
+  git -C "$dest" fetch -q --depth 1 origin "$sha"
+  git -C "$dest" checkout -q --detach FETCH_HEAD
+  test "$(git -C "$dest" rev-parse HEAD)" = "$sha"
+}
 
-ACTUAL_BASE_SHA="$(git -C "$OUT/base" rev-parse HEAD)"
-ACTUAL_LATEST_SHA="$(git -C "$OUT/latest" rev-parse HEAD)"
-if [[ "$ACTUAL_BASE_SHA" != "$BASE_SHA" ]]; then
-  echo "WARNING: 1.20.1 moved: expected $BASE_SHA got $ACTUAL_BASE_SHA" | tee "$REPORT_DIR/source-drift.txt"
-fi
-if [[ "$ACTUAL_LATEST_SHA" != "$LATEST_SHA" ]]; then
-  echo "WARNING: 1.21.1 moved: expected $LATEST_SHA got $ACTUAL_LATEST_SHA" | tee -a "$REPORT_DIR/source-drift.txt"
-fi
+fetch_exact "$BASE_SHA" "$OUT/base"
+fetch_exact "$RELEASE_SHA" "$OUT/release"
+fetch_exact "$DEV_SHA" "$OUT/dev"
 
-# Inventory feature/content delta without guessing from compiler output.
-git -C "$OUT/latest" diff --no-index --name-status "$OUT/base/src/main" "$OUT/latest/src/main" > "$REPORT_DIR/src-name-status.txt" || true
+BASE_VERSION="$(sed -n 's/^modVersion=//p' "$OUT/base/gradle.properties")"
+RELEASE_VERSION="$(sed -n 's/^mod_version=//p' "$OUT/release/gradle.properties")"
+DEV_VERSION="$(sed -n 's/^mod_version=//p' "$OUT/dev/gradle.properties")"
+
+[[ "$BASE_VERSION" == "1.6.7" ]] || { echo "Unexpected base version: $BASE_VERSION"; exit 90; }
+[[ "$RELEASE_VERSION" == "1.8.2" ]] || { echo "Unexpected released version: $RELEASE_VERSION"; exit 91; }
+[[ "$DEV_VERSION" == "1.9.0" ]] || { echo "Unexpected dev version: $DEV_VERSION"; exit 92; }
+
+# Three-lane inventory: released 1.8.2 is mandatory parity; 1.9.0 is an explicitly
+# separate follow-up lane so unreleased behavior never silently replaces release parity.
+git diff --no-index --name-status "$OUT/base/src/main" "$OUT/release/src/main" > "$REPORT_DIR/base-to-1.8.2-name-status.txt" || true
+git diff --no-index --name-status "$OUT/release/src/main" "$OUT/dev/src/main" > "$REPORT_DIR/1.8.2-to-1.9.0-name-status.txt" || true
 {
-  echo "Malum backport source authority"
+  echo "Malum Forge 1.20.1 backport authority ledger"
   echo "Target: Minecraft 1.20.1 / Forge 47.4.23 / Java 17"
-  echo "Base branch: $BASE_REF @ $ACTUAL_BASE_SHA"
-  echo "Latest branch: $LATEST_REF @ $ACTUAL_LATEST_SHA"
+  echo "Forge base: Malum $BASE_VERSION @ $BASE_SHA"
+  echo "Released parity authority: Malum $RELEASE_VERSION @ $RELEASE_SHA"
+  echo "Optional dev-forward authority: Malum $DEV_VERSION @ $DEV_SHA"
   echo
-  echo "Source tree file counts:"
-  printf 'base java: '; find "$OUT/base/src/main/java" -type f -name '*.java' | wc -l
-  printf 'latest java: '; find "$OUT/latest/src/main/java" -type f -name '*.java' | wc -l
-  printf 'base resources: '; find "$OUT/base/src/main/resources" -type f | wc -l
-  printf 'latest resources: '; find "$OUT/latest/src/main/resources" -type f | wc -l
+  for lane in base release dev; do
+    printf '%s java: ' "$lane"; find "$OUT/$lane/src/main/java" -type f -name '*.java' | wc -l
+    printf '%s resources: ' "$lane"; find "$OUT/$lane/src/main/resources" -type f | wc -l
+  done
   echo
-  echo "Latest-only Java packages of special interest:"
-  find "$OUT/latest/src/main/java" -type f -name '*.java' | sed "s#^$OUT/latest/src/main/java/##" | grep -E '/(geas|rite|spirit|codex|component|soul|weeping|augment|curio|totem|ritual)/' | head -250 || true
+  echo "1.8.2 subsystems of special interest:"
+  find "$OUT/release/src/main/java" -type f -name '*.java' \
+    | sed "s#^$OUT/release/src/main/java/##" \
+    | grep -Ei '/(geas|rite|spirit|codex|component|soul|weeping|augment|curio|totem|ritual|parallel)/' \
+    | sort | head -400 || true
 } > "$REPORT_DIR/inventory.txt"
 
-# Candidate: keep the proven 1.20.1 Forge build/tooling surface, overlay the entire
-# current mod-owned source/resource tree. Nothing is intentionally dropped here.
+# Build the RELEASE-PARITY candidate first. The old 1.20.1 project supplies ForgeGradle,
+# Java 17 and 1.20-native dependency wiring; all Malum-owned 1.8.2 source/resources are
+# overlaid wholesale. No gameplay subsystem is intentionally discarded here.
 cp -a "$OUT/base" "$OUT/port"
 rm -rf "$OUT/port/.git"
 rm -rf "$OUT/port/src/main/java" "$OUT/port/src/main/resources"
 mkdir -p "$OUT/port/src/main"
-cp -a "$OUT/latest/src/main/java" "$OUT/port/src/main/java"
-cp -a "$OUT/latest/src/main/resources" "$OUT/port/src/main/resources"
+cp -a "$OUT/release/src/main/java" "$OUT/port/src/main/java"
+cp -a "$OUT/release/src/main/resources" "$OUT/port/src/main/resources"
 
-# Retarget the proven base build identity to our backport lane.
+# Restore Forge 1.20 loader metadata after the 1.21 resource overlay.
+rm -f "$OUT/port/src/main/resources/META-INF/neoforge.mods.toml"
+mkdir -p "$OUT/port/src/main/resources/META-INF"
+cp "$OUT/base/src/main/resources/META-INF/mods.toml" "$OUT/port/src/main/resources/META-INF/mods.toml"
+
+# Target-native build identity/dependencies. We deliberately begin with the known-good
+# 1.20 Lodestone/Curios line; only proven API blockers can widen into a Lodestone sub-port.
 sed -i \
   -e 's/^forgeVersion=.*/forgeVersion=47.4.23/' \
-  -e 's/^modVersion=.*/modVersion=1.9.0-backport.1/' \
+  -e 's/^modVersion=.*/modVersion=1.8.2-backport.1/' \
+  -e 's/^lodestoneVersion=.*/lodestoneVersion=1.6.4.1.256/' \
+  -e 's/^curiosVersion=.*/curiosVersion=5.14.1+1.20.1/' \
   "$OUT/port/gradle.properties"
 
-# Loader/API mechanical bridge. These are syntax/namespace migrations only; semantic
-# 1.21 systems (data components, registries, rites/geasa, codecs, etc.) remain intact
-# and are deliberately left for compiler-guided faithful ports rather than stubs.
+# Mechanical loader namespace bridge only. Semantic systems are kept and will be
+# translated faithfully from compiler evidence instead of being stubbed out.
 find "$OUT/port/src/main/java" -type f -name '*.java' -print0 | xargs -0 sed -i \
   -e 's/net\.neoforged\.api\.distmarker/net.minecraftforge.api.distmarker/g' \
   -e 's/net\.neoforged\.bus\.api/net.minecraftforge.eventbus.api/g' \
@@ -70,9 +94,10 @@ find "$OUT/port/src/main/java" -type f -name '*.java' -print0 | xargs -0 sed -i 
   -e 's/net\.neoforged\.neoforge/net.minecraftforge/g' \
   -e 's/import net\.minecraftforge\.fml\.common\.EventBusSubscriber;/import net.minecraftforge.fml.common.Mod.EventBusSubscriber;/g' \
   -e 's/ResourceLocation\.fromNamespaceAndPath(\([^,]*\), \([^)]*\))/new ResourceLocation(\1, \2)/g' \
-  -e 's/ResourceLocation\.parse(\([^)]*\))/new ResourceLocation(\1)/g'
+  -e 's/ResourceLocation\.parse(\([^)]*\))/new ResourceLocation(\1)/g' \
+  -e 's/\.getFirst()/\.get(0)/g'
 
-# NeoForge typed deferred wrappers -> Forge 1.20 RegistryObject equivalents.
+# NeoForge 1.21 typed deferred wrappers -> Forge 1.20 RegistryObject equivalents.
 find "$OUT/port/src/main/java" -type f -name '*.java' -print0 | xargs -0 perl -0pi -e '
   s/import net\.minecraftforge\.registries\.DeferredBlock;\n//g;
   s/import net\.minecraftforge\.registries\.DeferredItem;\n//g;
@@ -86,7 +111,6 @@ find "$OUT/port/src/main/java" -type f -name '*.java' -print0 | xargs -0 perl -0
   s/DeferredRegister\.createItems\(([^)]+)\)/DeferredRegister.create(ForgeRegistries.ITEMS, $1)/g;
 '
 
-# Add common Forge registry imports only where the mechanical bridge produced usages.
 while IFS= read -r -d '' f; do
   if grep -q 'RegistryObject<' "$f" && ! grep -q 'net.minecraftforge.registries.RegistryObject' "$f"; then
     sed -i '/^package .*;/a import net.minecraftforge.registries.RegistryObject;' "$f"
@@ -96,17 +120,29 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$OUT/port/src/main/java" -type f -name '*.java' -print0)
 
-# Java 21 collection convenience methods that have direct Java 17 equivalents.
-find "$OUT/port/src/main/java" -type f -name '*.java' -print0 | xargs -0 sed -i \
-  -e 's/\.getFirst()/\.get(0)/g'
+# Resource-layout bridge that is unambiguously version-specific. 1.21 uses singular
+# data directories while 1.20.1 expects plural recipe/loot-table directories.
+while IFS= read -r -d '' d; do
+  parent="$(dirname "$d")"
+  name="$(basename "$d")"
+  case "$name" in
+    recipe) mv "$d" "$parent/recipes" ;;
+    loot_table) mv "$d" "$parent/loot_tables" ;;
+  esac
+done < <(find "$OUT/port/src/main/resources/data" -type d \( -name recipe -o -name loot_table \) -print0 2>/dev/null || true)
 
-# Record residual high-risk 1.21 surfaces before compiling.
+# High-risk residuals are an acceptance map, not a deletion list.
 {
   echo "Residual future-version/API surfaces after mechanical bridge:"
-  grep -RhoE 'DataComponents\.[A-Z0-9_]+|net\.minecraft\.core\.component\.[A-Za-z0-9_$.]+|StreamCodec|HolderLookup|DeferredRegister\.[A-Za-z]+' "$OUT/port/src/main/java" 2>/dev/null | sort | uniq -c | sort -nr || true
+  grep -RhoE 'DataComponents\.[A-Z0-9_]+|net\.minecraft\.core\.component\.[A-Za-z0-9_$.]+|StreamCodec|HolderLookup|DataComponentType|DeferredRegister\.[A-Za-z]+' \
+    "$OUT/port/src/main/java" 2>/dev/null | sort | uniq -c | sort -nr || true
 } > "$REPORT_DIR/residual-surfaces.txt"
 
-# Compile with the target-native 1.20.1 build. Capture the complete first semantic map.
+# Reproducible source delta: this compact patch is enough to recreate the current
+# mechanical port from the pinned 1.8.2 source without committing Malum's full assets.
+diff -ruN "$OUT/release/src/main/java" "$OUT/port/src/main/java" > "$REPORT_DIR/mechanical-java-bridge.patch" || true
+
+# First semantic compile gate.
 set +e
 (
   cd "$OUT/port"
@@ -117,8 +153,7 @@ STATUS=$?
 set -e
 
 echo "$STATUS" > "$REPORT_DIR/compile-exit-code.txt"
-# Compact error index for fast iteration while retaining the full log.
-grep -E '(^|: )error:|cannot find symbol|does not exist|incompatible types|no suitable method|method .* cannot be applied' "$REPORT_DIR/compile.log" > "$REPORT_DIR/error-index.txt" || true
+grep -E '(^|: )error:|cannot find symbol|does not exist|incompatible types|no suitable method|method .* cannot be applied' \
+  "$REPORT_DIR/compile.log" > "$REPORT_DIR/error-index.txt" || true
 
-# Never claim a pass merely because reports were produced.
 exit "$STATUS"
