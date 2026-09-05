@@ -1,0 +1,64 @@
+name: Wayward Attributes 1.1 -> Forge 1.20.1 Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - build/wayward-attributes-1.1-forge-1.20.1-backport
+    paths:
+      - 'projects/wayward-attributes-1.20.1-backport/**'
+      - '.github/workflows/wayward-attributes-1201-backport.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+
+      - name: Prepare pinned source and compile
+        continue-on-error: true
+        run: bash projects/wayward-attributes-1.20.1-backport/prepare-port.sh
+
+      - name: Publish gate summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Wayward Attributes Forge 1.20.1 gate'
+            for f in inventory.txt residual-surfaces.txt error-index.txt; do
+              p="projects/wayward-attributes-1.20.1-backport/reports/$f"
+              if [[ -f "$p" ]]; then
+                echo "### $f"
+                echo '```text'
+                sed -n '1,140p' "$p"
+                echo '```'
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload compiler evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wayward-attributes-1.1-forge-1.20.1-gate
+          path: projects/wayward-attributes-1.20.1-backport/reports/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce compile gate
+        if: always()
+        shell: bash
+        run: |
+          test -f projects/wayward-attributes-1.20.1-backport/reports/compile-exit-code.txt
+          test "$(cat projects/wayward-attributes-1.20.1-backport/reports/compile-exit-code.txt)" = "0"
