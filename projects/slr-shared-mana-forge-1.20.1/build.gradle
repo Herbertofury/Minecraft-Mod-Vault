@@ -1,0 +1,87 @@
+buildscript {
+    repositories {
+        maven { url = uri('../offline-maven') }
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:6.0.54'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+
+version = '1.0.0'
+group = 'com.bert.slrsharedmana'
+
+base {
+    archivesName = 'SLR-Shared-Mana-Forge-1.20.1'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'info'
+            // Production dependency jars (Botania/SLR/ISS) ship obfuscated mixin targets.
+            // Remap their refmaps into the official-mapped Forge userdev runtime exactly as SLR does.
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            property 'net.minecraftforge.gradle.GradleStart.srg.srg-mcp', "${projectDir}/build/createSrgToMcp/output.srg"
+            mods {
+                slr_shared_mana {
+                    source sourceSets.main
+                }
+            }
+        }
+        client {}
+        server { args '--nogui' }
+    }
+}
+
+repositories {
+    maven { url = uri('../offline-maven') }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.23'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') {
+        expand version: project.version
+    }
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'SLR Shared Mana',
+                'Specification-Vendor'    : 'Bert',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : 'Bert',
+                'MixinConfigs'            : 'slr_shared_mana.mixins.json'
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
