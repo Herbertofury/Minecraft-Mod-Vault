@@ -98,6 +98,7 @@ jobs:
                   s = s.replace('import net.minecraft.world.item.TooltipFlag;\n', 'import net.minecraft.world.item.TooltipFlag;\nimport net.minecraft.world.level.Level;\n')
               q.write_text(s)
           PY
+          mkdir -p src/main/resources/META-INF
           rm -f src/main/resources/META-INF/neoforge.mods.toml
           cat > src/main/resources/META-INF/mods.toml <<'EOF'
           modLoader="javafml"
