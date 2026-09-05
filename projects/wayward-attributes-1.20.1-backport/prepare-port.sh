@@ -86,7 +86,6 @@ tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 jar.finalizedBy('reobfJar')
 EOF
 
-# Replace NeoForge loader metadata with target-native Forge metadata.
 rm -f "$OUT/port/src/main/resources/META-INF/neoforge.mods.toml"
 rm -rf "$OUT/port/src/main/templates"
 mkdir -p "$OUT/port/src/main/resources/META-INF"
@@ -131,26 +130,23 @@ find "$OUT/port/src/main/java" -type f -name '*.java' -print0 | xargs -0 sed -i 
   -e 's/NeoForge\.EVENT_BUS/MinecraftForge.EVENT_BUS/g' \
   -e 's/NeoForgeMod/ForgeMod/g'
 
-# Main mod constructor: Forge 1.20 gets its mod bus from FMLJavaModLoadingContext.
 python3 - <<'PY'
 from pathlib import Path
 p = Path('.wayward-port-work/port/src/main/java/team/lodestar/wayward_attributes/WaywardAttributes.java')
 s = p.read_text()
 s = s.replace('import net.minecraftforge.eventbus.api.IEventBus;\n', '')
-s = s.replace('import net.minecraftforge.forge.common.ForgeMod;\n', 'import net.minecraftforge.common.ForgeMod;\nimport net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;\n')
+s = s.replace('import net.minecraftforge.common.ForgeMod;\n', 'import net.minecraftforge.common.ForgeMod;\nimport net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;\n')
 s = s.replace('public WaywardAttributes(IEventBus modEventBus) {', 'public WaywardAttributes() {\n        var modEventBus = FMLJavaModLoadingContext.get().getModEventBus();')
 s = s.replace('        ForgeMod.enableMergedAttributeTooltips();\n', '')
 p.write_text(s)
 PY
 
-# Import MinecraftForge only where the event bus replacement is actually used.
 while IFS= read -r -d '' f; do
   if grep -q 'MinecraftForge\.EVENT_BUS' "$f" && ! grep -q 'net.minecraftforge.common.MinecraftForge' "$f"; then
     sed -i '/^package .*;/a import net.minecraftforge.common.MinecraftForge;' "$f"
   fi
 done < <(find "$OUT/port/src/main/java" -type f -name '*.java' -print0)
 
-# 1.21 singular tag folders -> 1.20.1 plural folders.
 for root in "$OUT/port/src/main/resources/data" "$OUT/port/src/generated/resources/data"; do
   [[ -d "$root" ]] || continue
   while IFS= read -r -d '' d; do
