@@ -13,37 +13,32 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch exact Noxviola silent-hang suspects
+      - name: Fetch exact Noxviola FREEZE_DATA suspects
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/noxviola-hang
-          cd /tmp/noxviola-hang
+          mkdir -p /tmp/noxviola-freeze-data
+          cd /tmp/noxviola-freeze-data
 
           curl -fL --retry 4 --retry-delay 2 \
-            -o 'kaleidoscopecookery-1.4.1-forge+mc1.20.1.jar' \
-            'https://cdn.modrinth.com/data/v17FatAc/versions/NXvhd04p/kaleidoscopecookery-1.4.1-forge%2Bmc1.20.1.jar'
+            -o 'deep_aether-1.20.1-1.1.7.jar' \
+            'https://mediafilez.forgecdn.net/files/6839/617/deep_aether-1.20.1-1.1.7.jar'
 
           curl -fL --retry 4 --retry-delay 2 \
-            -o 'kaleidoscope-cookery-1.4.1-forge+mc1.20.1-sources.jar' \
-            'https://cdn.modrinth.com/data/v17FatAc/versions/NXvhd04p/kaleidoscope-cookery-1.4.1-forge%2Bmc1.20.1-sources.jar'
+            -o 'hybrid_aquatic-forge-1.20.1-1.7.0.jar' \
+            'https://mediafilez.forgecdn.net/files/8763/630/hybrid_aquatic-forge-1.20.1-1.7.0.jar'
 
           curl -fL --retry 4 --retry-delay 2 \
-            -o 'Jade-1.20.1-Forge-11.13.3.jar' \
-            'https://mediafilez.forgecdn.net/files/8479/276/Jade-1.20.1-Forge-11.13.3.jar'
-
-          curl -fL --retry 4 --retry-delay 2 \
-            -o 'lucent-1.20.1-1.5.5.jar' \
-            'https://mediafilez.forgecdn.net/files/4951/434/lucent-1.20.1-1.5.5.jar'
+            -o 'youre-in-grave-danger-forge-1.20.1-2.0.19.jar' \
+            'https://mediafilez.forgecdn.net/files/7611/933/youre-in-grave-danger-forge-1.20.1-2.0.19.jar'
 
           file *.jar
           for f in *.jar; do unzip -t "$f" >/dev/null; done
           sha256sum *.jar > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          echo 'silent-hang fetch complete'
       - uses: actions/upload-artifact@v4
         with:
-          name: noxviola-silent-hang-binaries
-          path: /tmp/noxviola-hang
+          name: noxviola-freeze-data-binaries
+          path: /tmp/noxviola-freeze-data
           if-no-files-found: error
           retention-days: 1
