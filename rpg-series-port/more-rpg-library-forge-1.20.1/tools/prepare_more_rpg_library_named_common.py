@@ -9,6 +9,7 @@ modern = Path(sys.argv[1]).resolve()
 old = Path(sys.argv[2]).resolve()
 out = Path(sys.argv[3]).resolve()
 loader_neutral = Path(__file__).with_name('prepare_more_rpg_library_loader_neutral.py')
+resource_paths = Path(__file__).with_name('prepare_more_rpg_library_1201_resource_paths.py')
 api_pass = Path(__file__).with_name('prepare_more_rpg_library_1201_api_pass.py')
 status_consumer_prepass = Path(__file__).with_name('prepare_more_rpg_library_1201_status_consumer_prepass.py')
 api_wave2 = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave2.py')
@@ -19,11 +20,15 @@ status_wave5a = Path(__file__).with_name('prepare_more_rpg_library_1201_status_c
 api_wave5b = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave5b.py')
 api_wave5c = Path(__file__).with_name('prepare_more_rpg_library_1201_api_wave5c.py')
 runtime_trace = Path(__file__).with_name('prepare_more_rpg_library_runtime_trace.py')
-for tool in (loader_neutral, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4, status_wave5a, api_wave5b, api_wave5c, runtime_trace):
+for tool in (loader_neutral, resource_paths, api_pass, status_consumer_prepass, api_wave2, loot_wave3, loot_wave3_import_fix, registry_wave4, status_wave5a, api_wave5b, api_wave5c, runtime_trace):
     if not tool.is_file():
         raise SystemExit(f'missing More RPG preparer stage: {tool}')
 
 subprocess.run([sys.executable, str(loader_neutral), str(modern), str(old), str(out)], check=True)
+# Translate modern standard datapack/resource registry paths immediately after staging, before any
+# API or runtime compatibility transforms. Both the first build and independent replay therefore
+# consume the exact same target-native 1.20.1 data layout.
+subprocess.run([sys.executable, str(resource_paths), str(out)], check=True)
 subprocess.run([sys.executable, str(api_pass), str(out)], check=True)
 subprocess.run([sys.executable, str(status_consumer_prepass), str(out)], check=True)
 subprocess.run([sys.executable, str(api_wave2), str(out)], check=True)
@@ -52,7 +57,7 @@ for generated in sorted(p for p in generated_root.rglob('*') if p.is_file()):
     if static.is_file():
         static.unlink()
         overlays.append(rel.as_posix())
-known_overlay = 'data/rpg_series/tags/item/loot_tier/tier_5_armors.json'
+known_overlay = 'data/rpg_series/tags/items/loot_tier/tier_5_armors.json'
 if known_overlay not in overlays:
     raise SystemExit(f'known generated/static resource overlap missing: {known_overlay}')
 for rel in overlays:
