@@ -87,10 +87,9 @@ def stageSpellEngineNestedRuntime = tasks.register('stageSpellEngineNestedRuntim
             throw new GradleException("Spell Engine nested MixinExtras runtime missing ${operationPath}")
         }
 
-        // The sealed 1.10.4 release must advertise exactly one TinyConfig JarJar entry at the certified
-        // 3.1.0 path. Extract it only for identity/content verification; Wizards already loads the same
-        // certified TinyConfig JAR directly, so do not add a second TinyConfig runtime dependency.
-        def expectedTinyPath = 'META-INF/jarjar/TinyConfig-3.1.0-forge-cloth.jar'
+        // The sealed 1.10.4 release must advertise exactly one TinyConfig JarJar entry. Resolve its
+        // payload path from Forge JarJar metadata, then prove those bytes are the same certified 3.1.0
+        // JAR Wizards already loads directly. Do not add a second TinyConfig runtime dependency.
         def runtimeTinyConfig = file("${spellEngineDevRuntime}/runtime-tinyconfig.jar")
         def spellZip = new java.util.zip.ZipFile(spellEngineLocalJar)
         try {
@@ -107,8 +106,8 @@ def stageSpellEngineNestedRuntime = tasks.register('stageSpellEngineNestedRuntim
                 throw new GradleException("Spell Engine JarJar metadata must contain exactly one TinyConfig entry, found ${tinyEntries.size()}")
             }
             def tinyPath = tinyEntries[0].path?.toString()
-            if (tinyPath != expectedTinyPath) {
-                throw new GradleException("Spell Engine TinyConfig JarJar path drifted: ${tinyPath} != ${expectedTinyPath}")
+            if (tinyPath == null || tinyPath.isBlank()) {
+                throw new GradleException('Spell Engine TinyConfig JarJar metadata entry has no payload path')
             }
             def tinyEntry = spellZip.getEntry(tinyPath)
             if (tinyEntry == null) {
@@ -180,7 +179,7 @@ for required in (
     "tasks.matching { it.name in ['runServer', 'runClient'] }",
     'stageSpellEngineNestedRuntime',
     'META-INF/jarjar/metadata.json',
-    'META-INF/jarjar/TinyConfig-3.1.0-forge-cloth.jar',
+    'Spell Engine TinyConfig JarJar metadata entry has no payload path',
     'runtime-tinyconfig.jar',
     'net/tiny_config/ConfigManager.class',
     'Spell Engine nested TinyConfig differs from certified Wizards runtime',
