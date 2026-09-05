@@ -15,8 +15,14 @@ PLAYER_ANIM_FORGE_JAR="$RUNTIME_DEPS/player-animation-lib-forge-1.0.2+1.19.4.jar
 FRESH_SERVER="$PORT/.fresh-more-rpg-server"
 FORGE_VERSION='1.20.1-47.4.23'
 FORGE_PROFILE='1.20.1-forge-47.4.23'
+MCP_VERSION='1.20.1-20230612.114412'
 # Official Forge 1.20.1 downloads page identity for 47.4.23 installer (2026-08-19).
 FORGE_INSTALLER_SHA1='ed31ce02ac69176f34353235cb2508d5a0f1e088'
+# Forge 1.20.1 installer processor outputs are invariant across the 47.x loader line and are required
+# by FML LibraryFinder before the production client can enter Minecraft proper.
+MC_CLIENT_SRG_SHA1='3c8aa19b710a3a68f721210eb69b74594d13e218'
+MC_CLIENT_SLIM_SHA1='de86b035d2da0f78940796bb95c39a932ed84834'
+MC_CLIENT_EXTRA_SHA1='8c5a95cbce940cfdb304376ae9fea47968d02587'
 MC_HOME="$PORT/.production-minecraft-home"
 GAME_DIR="$PORT/.production-client-run"
 INSTALLER="$MC_HOME/forge-${FORGE_VERSION}-installer.jar"
@@ -53,6 +59,29 @@ grep -Fq 'cpw.mods.bootstraplauncher.BootstrapLauncher' "$FORGE_JSON"
 grep -Fq 'forgeclient' "$FORGE_JSON"
 ! grep -Fq 'forgeclientuserdev' "$FORGE_JSON"
 echo '[More RPG 2.7.2] FORGE_PRODUCTION_PROFILE_INSTALL_PASS launchTarget=forgeclient'
+
+# Fail closed on the exact launcher-side artifacts that Forge/FML LibraryFinder resolves dynamically.
+# These are not ordinary project dependencies and cannot be substituted by the mapped userdev client.
+MC_CLIENT_DIR="$MC_HOME/libraries/net/minecraft/client/$MCP_VERSION"
+MC_CLIENT_SRG="$MC_CLIENT_DIR/client-$MCP_VERSION-srg.jar"
+MC_CLIENT_SLIM="$MC_CLIENT_DIR/client-$MCP_VERSION-slim.jar"
+MC_CLIENT_EXTRA="$MC_CLIENT_DIR/client-$MCP_VERSION-extra.jar"
+FORGE_LIB_DIR="$MC_HOME/libraries/net/minecraftforge/forge/$FORGE_VERSION"
+FORGE_CLIENT="$FORGE_LIB_DIR/forge-$FORGE_VERSION-client.jar"
+FORGE_UNIVERSAL="$FORGE_LIB_DIR/forge-$FORGE_VERSION-universal.jar"
+BOOTSTRAP_LAUNCHER="$(find "$MC_HOME/libraries/cpw/mods/bootstraplauncher" -type f -name 'bootstraplauncher-*.jar' 2>/dev/null | sort | tail -n1 || true)"
+MOD_LAUNCHER="$(find "$MC_HOME/libraries/cpw/mods/modlauncher" -type f -name 'modlauncher-*.jar' 2>/dev/null | sort | tail -n1 || true)"
+FML_LOADER="$(find "$MC_HOME/libraries/net/minecraftforge/fmlloader" -type f -name 'fmlloader-*.jar' 2>/dev/null | sort | tail -n1 || true)"
+for f in "$MC_CLIENT_SRG" "$MC_CLIENT_SLIM" "$MC_CLIENT_EXTRA" "$FORGE_CLIENT" "$FORGE_UNIVERSAL" "$BOOTSTRAP_LAUNCHER" "$MOD_LAUNCHER" "$FML_LOADER"; do
+  test -n "$f"; test -f "$f"; unzip -tq "$f" >/dev/null
+done
+[[ "$(sha1sum "$MC_CLIENT_SRG" | awk '{print $1}')" = "$MC_CLIENT_SRG_SHA1" ]]
+[[ "$(sha1sum "$MC_CLIENT_SLIM" | awk '{print $1}')" = "$MC_CLIENT_SLIM_SHA1" ]]
+[[ "$(sha1sum "$MC_CLIENT_EXTRA" | awk '{print $1}')" = "$MC_CLIENT_EXTRA_SHA1" ]]
+{
+  sha256sum "$MC_CLIENT_SRG" "$MC_CLIENT_SLIM" "$MC_CLIENT_EXTRA" "$FORGE_CLIENT" "$FORGE_UNIVERSAL" "$BOOTSTRAP_LAUNCHER" "$MOD_LAUNCHER" "$FML_LOADER"
+} | sort > "$GAME_DIR/more-rpg-production-libraryfinder.sha256"
+echo "[More RPG 2.7.2] LIBRARYFINDER_EXACT_TREE_PASS mcp=$MCP_VERSION srg=$MC_CLIENT_SRG_SHA1 extra=$MC_CLIENT_EXTRA_SHA1 forge=$FORGE_VERSION"
 
 # Copy only exact packaged/certified mod JARs. No source-set registration or development mod path.
 cp "$OUT" "$GAME_DIR/mods/more-rpg-library-forge.jar"
