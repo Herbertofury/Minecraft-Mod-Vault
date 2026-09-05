@@ -26,11 +26,36 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Keep source inventory quiet and deterministic
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.safecrlf false
+
       - name: Prepare pinned 1.8.2 release-parity port and compile
         id: gate
         continue-on-error: true
         shell: bash
         run: bash projects/malum-1.20.1-backport/prepare-port.sh
+
+      - name: Emit compact semantic compiler map
+        if: always()
+        shell: bash
+        run: |
+          echo '=== MALUM_SEMANTIC_MAP_BEGIN ==='
+          echo '-- residual future-version surfaces --'
+          if [[ -f projects/malum-1.20.1-backport/reports/residual-surfaces.txt ]]; then
+            sed -n '1,160p' projects/malum-1.20.1-backport/reports/residual-surfaces.txt
+          else
+            echo 'residual-surfaces.txt missing'
+          fi
+          echo '-- compiler error index --'
+          if [[ -f projects/malum-1.20.1-backport/reports/error-index.txt ]]; then
+            sed -n '1,260p' projects/malum-1.20.1-backport/reports/error-index.txt
+          else
+            echo 'error-index.txt missing'
+          fi
+          echo '=== MALUM_SEMANTIC_MAP_END ==='
 
       - name: Publish compact gate summary
         if: always()
