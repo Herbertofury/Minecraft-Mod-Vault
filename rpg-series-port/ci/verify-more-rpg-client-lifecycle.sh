@@ -4,16 +4,17 @@ ROOT="${GITHUB_WORKSPACE:?}"
 JAR="$ROOT/rpg-series-port/more-rpg-library-forge-1.20.1/more_rpg_library-forge-2.7.2+1.20.1.jar"
 test -f "$JAR"
 unzip -tq "$JAR" >/dev/null
+MOD="$(mktemp)"; GAME="$(mktemp)"; COMMON="$(mktemp)"; FORGE="$(mktemp)"; INVENTORY="$(mktemp)"
+trap 'rm -f "$MOD" "$GAME" "$COMMON" "$FORGE" "$INVENTORY"' EXIT
+unzip -Z1 "$JAR" > "$INVENTORY"
 for entry in \
   net/more_rpg_classes/forge/client/ForgeClientMod.class \
   net/more_rpg_classes/forge/client/ForgeClientEvents.class \
   net/more_rpg_classes/client/MoreRPGClassesClient.class \
   net/more_rpg_classes/client/heart/HeartRegistry.class \
   net/more_rpg_classes/client/heart/HeartTypes.class; do
-  unzip -Z1 "$JAR" | grep -Fxq "$entry" || { echo "[More RPG 2.7.2] packaged client lifecycle entry missing: $entry" >&2; exit 1; }
+  grep -Fxq "$entry" "$INVENTORY" || { echo "[More RPG 2.7.2] packaged client lifecycle entry missing: $entry" >&2; exit 1; }
 done
-MOD="$(mktemp)"; GAME="$(mktemp)"; COMMON="$(mktemp)"; FORGE="$(mktemp)"
-trap 'rm -f "$MOD" "$GAME" "$COMMON" "$FORGE"' EXIT
 javap -classpath "$JAR" -c -p net.more_rpg_classes.forge.client.ForgeClientMod > "$MOD"
 javap -classpath "$JAR" -c -p net.more_rpg_classes.forge.client.ForgeClientEvents > "$GAME"
 javap -classpath "$JAR" -c -p net.more_rpg_classes.client.MoreRPGClassesClient > "$COMMON"
