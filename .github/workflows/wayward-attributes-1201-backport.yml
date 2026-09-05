@@ -41,11 +41,16 @@ jobs:
           else
             echo 'residual-surfaces.txt missing'
           fi
-          echo '-- compiler error index --'
-          if [[ -f projects/wayward-attributes-1.20.1-backport/reports/error-index.txt ]]; then
-            sed -n '1,260p' projects/wayward-attributes-1.20.1-backport/reports/error-index.txt
+          echo '-- compiler/configuration failure --'
+          ERR=projects/wayward-attributes-1.20.1-backport/reports/error-index.txt
+          LOG=projects/wayward-attributes-1.20.1-backport/reports/compile.log
+          if [[ -s "$ERR" ]]; then
+            sed -n '1,260p' "$ERR"
+          elif [[ -f "$LOG" ]]; then
+            echo '[no javac error index; showing compile.log tail]'
+            tail -n 220 "$LOG"
           else
-            echo 'error-index.txt missing'
+            echo 'compile evidence missing'
           fi
           echo '=== WAYWARD_SEMANTIC_MAP_END ==='
 
