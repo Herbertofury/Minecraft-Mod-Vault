@@ -106,6 +106,16 @@ jobs:
           bash -n "$SCRIPT"
           bash "$SCRIPT" 2>&1 | tee "$LOG"
 
+      - name: Seal More RPG first-green or frozen graduation authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-final-freeze.sh'
+          LOG='rpg-series-port/more-rpg-final-freeze.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          bash "$SCRIPT" 2>&1 | tee "$LOG"
+
       - name: Preserve active-port evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -121,6 +131,7 @@ jobs:
             rpg-series-port/more-rpg-production-stage2.log
             rpg-series-port/more-rpg-production-stage3-restart.log
             rpg-series-port/more-rpg-reproducibility.log
+            rpg-series-port/more-rpg-final-freeze.log
             rpg-series-integration-client.log
             rpg-series-integration-server.log
             rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
@@ -131,6 +142,7 @@ jobs:
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-production-forgeclient.log
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-production-restart.log
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-forge-install-client.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/MORE_RPG_LIBRARY_GRADUATION.env
             rpg-series-port/more-rpg-library-forge-1.20.1/.fresh-more-rpg-server/logs/latest.log
             rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/logs/latest.log
             rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-launch.json
