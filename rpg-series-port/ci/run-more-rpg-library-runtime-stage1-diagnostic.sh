@@ -58,6 +58,13 @@ for _ in $(seq 1 210); do
     break
   fi
   if [[ -f "$CLIENT_LOG" ]] && grep -Fq 'Reloading ResourceManager' "$CLIENT_LOG"; then
+    # The reload-begin marker occurs before atlas/model finalization. Give Quick Play a bounded
+    # post-reload window so the snapshot reflects the stable blocker rather than LoadingOverlay.
+    for _settle in $(seq 1 15); do
+      kill -0 "$BASE_PID" 2>/dev/null || break
+      sleep 1
+    done
+    kill -0 "$BASE_PID" 2>/dev/null || break
     CLIENT_PID="$(pgrep -f 'forgeclientuserdev.*--quickPlaySingleplayer.*MRPG-QA' | head -n1 || true)"
     if [[ -n "$CLIENT_PID" ]]; then
       PROBE_ATTEMPTED=1
