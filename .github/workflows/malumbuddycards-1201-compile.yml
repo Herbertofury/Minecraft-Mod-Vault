@@ -1,0 +1,138 @@
+name: Malum Buddycards Forge 1.20.1 Compile Gate
+
+on:
+  push:
+    branches:
+      - build/malumbuddycards-1.20.1-backport
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+      - name: Fetch canonical public source
+        run: git clone --depth 1 https://github.com/wildcardgamez/MalumBuddycards.git work
+      - name: Convert loader/build skeleton to Forge 1.20.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd work
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  gradlePluginPortal()
+                  maven { url = 'https://maven.minecraftforge.net/' }
+              }
+          }
+          rootProject.name = 'MalumBuddycards-1.20.1'
+          EOF
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx4G
+          org.gradle.daemon=false
+          minecraft_version=1.20.1
+          forge_version=47.4.23
+          mod_id=malumbuddycards
+          mod_version=1.20.1-1.0.2
+          mod_group_id=com.wildcard.malumbuddycards
+          EOF
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'eclipse'
+              id 'idea'
+              id 'maven-publish'
+              id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+          }
+          version = mod_version
+          group = mod_group_id
+          base { archivesName = "${mod_id}-forge" }
+          java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+          minecraft {
+              mappings channel: 'official', version: minecraft_version
+              copyIdeResources = true
+              runs {
+                  client { workingDirectory project.file('run'); mods { malumbuddycards { source sourceSets.main } } }
+                  server { workingDirectory project.file('run-server'); args '--nogui'; mods { malumbuddycards { source sourceSets.main } } }
+              }
+          }
+          repositories {
+              maven { url = 'https://cursemaven.com' }
+              maven { url = 'https://maven.theillusivec4.top/' }
+              maven { url = 'https://maven.blamejared.com' }
+          }
+          dependencies {
+              minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+              implementation fg.deobf('curse.maven:buddycards-425991:8515852')
+              implementation fg.deobf('curse.maven:malum-484064:6646111')
+              implementation fg.deobf('curse.maven:lodestone-616457:6213794')
+              implementation fg.deobf('curse.maven:curios-309927:6418456')
+          }
+          tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+          jar.finalizedBy('reobfJar')
+          EOF
+          find src/main/java -type f -name '*.java' -print0 | xargs -0 sed -i \
+            -e 's/net\.neoforged\.api\.distmarker/net.minecraftforge.api.distmarker/g' \
+            -e 's/net\.neoforged\.bus\.api/net.minecraftforge.eventbus.api/g' \
+            -e 's/net\.neoforged\.fml/net.minecraftforge.fml/g' \
+            -e 's/net\.neoforged\.neoforge/net.minecraftforge/g' \
+            -e 's/ResourceLocation\.fromNamespaceAndPath(\([^,]*\), \([^)]*\))/new ResourceLocation(\1, \2)/g' \
+            -e 's/ResourceLocation\.parse(\([^)]*\))/new ResourceLocation(\1)/g'
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/main/java/com/wildcard/malumbuddycards/MalumBuddycards.java')
+          p.write_text('''package com.wildcard.malumbuddycards;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraftforge.eventbus.api.IEventBus;\nimport net.minecraftforge.fml.common.Mod;\nimport net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;\n\n@Mod(MalumBuddycards.MOD_ID)\npublic class MalumBuddycards {\n    public static final String MOD_ID = "malumbuddycards";\n    public MalumBuddycards() {\n        IEventBus eventBus = FMLJavaModLoadingContext.get().getModEventBus();\n        RegistryHandler.registerAll(eventBus);\n    }\n    public static ResourceLocation malumBuddycardsLocation(String path) {\n        return new ResourceLocation(MOD_ID, path);\n    }\n}\n''')
+          for rel in ['item/MalumNullBuddycardItem.java','item/MalumNullBuddycardPackItem.java','item/MalumNullBuddycardBinderItem.java']:
+              q = Path('src/main/java/com/wildcard/malumbuddycards') / rel
+              s = q.read_text()
+              s = s.replace('import net.minecraft.world.item.Item.TooltipContext;\n', '')
+              s = s.replace('appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag)', 'appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag)')
+              if 'appendHoverText(ItemStack stack, Level level' in s and 'import net.minecraft.world.level.Level;' not in s:
+                  s = s.replace('import net.minecraft.world.item.TooltipFlag;\n', 'import net.minecraft.world.item.TooltipFlag;\nimport net.minecraft.world.level.Level;\n')
+              q.write_text(s)
+          PY
+          rm -f src/main/resources/META-INF/neoforge.mods.toml
+          cat > src/main/resources/META-INF/mods.toml <<'EOF'
+          modLoader="javafml"
+          loaderVersion="[47,)"
+          license="All Rights Reserved"
+          [[mods]]
+          modId="malumbuddycards"
+          version="1.20.1-1.0.2"
+          displayName="Malum Buddycards"
+          description='''Malum-focused Buddycards expansion backported to Forge 1.20.1.'''
+          [[dependencies.malumbuddycards]]
+          modId="forge"
+          mandatory=true
+          versionRange="[47.4.23,)"
+          ordering="NONE"
+          side="BOTH"
+          [[dependencies.malumbuddycards]]
+          modId="minecraft"
+          mandatory=true
+          versionRange="[1.20.1,1.21)"
+          ordering="NONE"
+          side="BOTH"
+          [[dependencies.malumbuddycards]]
+          modId="buddycards"
+          mandatory=true
+          versionRange="[1.20.1-4.3.2,)"
+          ordering="AFTER"
+          side="BOTH"
+          [[dependencies.malumbuddycards]]
+          modId="malum"
+          mandatory=true
+          versionRange="[1.6.7,)"
+          ordering="AFTER"
+          side="BOTH"
+          EOF
+      - name: Compile
+        working-directory: work
+        run: gradle --no-daemon --stacktrace compileJava
