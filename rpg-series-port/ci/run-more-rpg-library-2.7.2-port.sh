@@ -24,10 +24,11 @@ clone_exact ProfessorFichte/More-RPG-Library "$MORE_RPG_LIBRARY_272_TARGET_SHA" 
 wait "$p1" "$p2"
 echo '[More RPG 2.7.2] EXACT_UPSTREAM_AUTHORITIES_READY'
 
-# Replay the already-graduated Spell Engine lane once as the fail-closed foundation producer. Its
-# dependent Spell Power/Ranged Gradle outputs contain Architectury-generated nonces, so downstream
-# runtime consumers pass those raw bytes through their owning exact certifiers before hash comparison.
-bash "$ROOT/rpg-series-port/ci/run-spell-engine-1.10.4-exact-seal-graduation.sh"
+# Spell Engine 1.10.4 is already graduated and frozen. A downstream leaf must not rerun that entire
+# native-client/server graduation every time merely to obtain its build artifacts. Reproduce the
+# certified release + deterministic source identities and stop only after both frozen hashes match;
+# the canonical full Spell Engine graduation runner remains unchanged and authoritative.
+bash "$ROOT/rpg-series-port/ci/materialize-certified-spell-engine-1.10.4.sh"
 
 SPELL_ENGINE_JAR="$ROOT/rpg-series-port/spell-engine-forge-1.20.1/spell_engine-forge-1.10.4+1.20.1.jar"
 SPELL_POWER_RAW="$(find "$ROOT/rpg-series-port/spell_power-forge-1.20.1/forge/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' ! -name '*dev-shadow*' | sort | head -n1)"
@@ -47,10 +48,9 @@ test "$(sha256sum "$RANGED_JAR" | awk '{print $1}')" = "$RANGED_WEAPON_API_234_E
 test "$(sha256sum "$TINY_JAR" | awk '{print $1}')" = "$TINY_CONFIG_310_EXPECTED_JAR_SHA"
 echo '[More RPG 2.7.2] CERTIFIED_RPG_FOUNDATIONS_READY spell_engine=1.10.4 spell_power=current-tinyconfig-3.1 ranged=2.3.4 tiny_config=3.1.0'
 
-# The exact replay above already executes :common:jar for all four foundation projects. Consume those
-# replay-produced dev/common artifacts directly; do not re-evaluate the foundation builds outside the
-# environment contract their graduation runners established. Loom owns remapping those modImplementation
-# artifacts into this consumer's named namespace.
+# Consume the replay-produced named/common artifacts directly. Loom owns remapping those
+# modImplementation artifacts into this consumer's named namespace; dependency implementation source
+# is never injected into More RPG's source sets.
 SPELL_ENGINE_COMMON_JAR="$(find "$ROOT/.spell-engine-build/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
 SPELL_POWER_COMMON_JAR="$(find "$ROOT/rpg-series-port/spell_power-forge-1.20.1/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
 RANGED_COMMON_JAR="$(find "$ROOT/rpg-series-port/ranged-weapon-api-forge-1.20.1/common/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*sources*' | sort | head -n1)"
