@@ -118,6 +118,11 @@ CLIENT_RUN="$WORK/forge/run"; rm -rf "$CLIENT_RUN/logs" "$CLIENT_RUN/saves/MRPG-
 mkdir -p "$CLIENT_RUN/config" "$CLIENT_RUN/saves"
 cp -a "$FRESH_SERVER/world" "$CLIENT_RUN/saves/MRPG-QA"
 printf 'earlyWindowControl = false\n' > "$CLIENT_RUN/config/fml.toml"
+cat > "$CLIENT_RUN/config/forge-client.toml" <<'TOML'
+[client]
+showLoadWarnings = false
+TOML
+echo '[More RPG 2.7.2] FORGE_INTERACTIVE_WARNING_SCREEN_DISABLED_FOR_QA showLoadWarnings=false real_loading_errors_still_fatal=true'
 CLIENT_LOG="$PORT/more-rpg-native-client-integrated.log"; : > "$CLIENT_LOG"
 env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe ALSOFT_DRIVERS=null \
   xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +extension RENDER -noreset' \
