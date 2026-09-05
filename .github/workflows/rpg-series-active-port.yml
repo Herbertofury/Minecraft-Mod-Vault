@@ -53,11 +53,11 @@ jobs:
           echo "[RPG CI] Active runner: $SCRIPT" | tee "$LOG"
           bash "$SCRIPT" 2>&1 | tee -a "$LOG"
 
-      - name: Run More RPG Stage-1 native runtime graduation
+      - name: Run More RPG Stage-1 plus direct HUD transform graduation
         shell: bash
         run: |
           set -euo pipefail
-          SCRIPT='rpg-series-port/ci/run-more-rpg-library-runtime-stage1-diagnostic.sh'
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-runtime-stage1-hud-proof.sh'
           LOG='rpg-series-port/more-rpg-runtime-stage1.log'
           test -f "$SCRIPT"
           bash -n "$SCRIPT"
@@ -80,8 +80,10 @@ jobs:
             rpg-series-port/paladins-forge-1.20.1/.fresh-paladins-forge-server/logs/latest.log
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-packaged-server-smoke.log
             rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-native-client-integrated.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-mapped-client-state.log
             rpg-series-port/more-rpg-library-forge-1.20.1/.fresh-more-rpg-server/logs/latest.log
             .more-rpg-library-build/forge/run/logs/latest.log
+            .more-rpg-library-build/forge/run/.mixin.out/**/*.class
             rpg-series-port/*/forge/build/libs/*.jar
             rpg-series-port/*/generated/forge/build/libs/*.jar
             rpg-series-port/*/*.jar
