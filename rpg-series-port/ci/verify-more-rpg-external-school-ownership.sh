@@ -4,8 +4,49 @@ ROOT="${GITHUB_WORKSPACE:?}"
 JAR="$ROOT/rpg-series-port/more-rpg-library-forge-1.20.1/more_rpg_library-forge-2.7.2+1.20.1.jar"
 test -f "$JAR"; unzip -tq "$JAR" >/dev/null
 unzip -p "$JAR" META-INF/MANIFEST.MF | tr -d '\r' | grep -Fx 'MixinConfigs: more-rpg-classes.mixins.json' >/dev/null
-DUMP="$(mktemp)"; STRINGS="$(mktemp)"; HEART="$(mktemp)"; STEALTH="$(mktemp)"; REFMAP="$(mktemp)"; INDY="$(mktemp)"; BYTE_DIR="$(mktemp -d)"
-trap 'rm -f "$DUMP" "$STRINGS" "$HEART" "$STEALTH" "$REFMAP" "$INDY"; rm -rf "$BYTE_DIR"' EXIT
+
+# Lock the exact modern 2.7.2 JSON authority that the 1.20.1 compatibility class must represent.
+python3 - "$JAR" <<'PY'
+import json, sys, zipfile
+jar = sys.argv[1]
+expected = {
+    'typhoon': (['spell_power:air', 'spell_power:water'], '#more_rpg_classes:enchantable/typhoon'),
+    'stonebloom': (['spell_power:earth', 'spell_power:nature'], '#more_rpg_classes:enchantable/stonebloom'),
+}
+with zipfile.ZipFile(jar) as zf:
+    names = set(zf.namelist())
+    compat = 'net/more_rpg_classes/compat/MoreRpg1201Enchantments.class'
+    if compat not in names:
+        raise SystemExit('[More RPG 2.7.2] packaged 1.20.1 enchantment compatibility class missing')
+    for name, (attrs, supported) in expected.items():
+        p = f'data/more_rpg_classes/enchantment/{name}.json'
+        if p not in names:
+            raise SystemExit(f'[More RPG 2.7.2] authoritative enchantment JSON missing: {p}')
+        data = json.loads(zf.read(p))
+        if data.get('max_level') != 5 or data.get('weight') != 2 or data.get('slots') != ['armor']:
+            raise SystemExit(f'[More RPG 2.7.2] {name} level/weight/slot parity drift: {data}')
+        if data.get('exclusive_set') != '#spell_power:multi_school' or data.get('supported_items') != supported:
+            raise SystemExit(f'[More RPG 2.7.2] {name} exclusivity/tag parity drift: {data}')
+        effects = data.get('effects', {}).get('minecraft:attributes', [])
+        got = [e.get('attribute') for e in effects]
+        if got != attrs:
+            raise SystemExit(f'[More RPG 2.7.2] {name} school parity drift: {got} != {attrs}')
+        for effect in effects:
+            amount = effect.get('amount', {})
+            if effect.get('operation') != 'add_multiplied_base' or amount.get('type') != 'minecraft:linear' \
+                    or amount.get('base') != 0.03 or amount.get('per_level_above_first') != 0.03:
+                raise SystemExit(f'[More RPG 2.7.2] {name} +3% power parity drift: {effect}')
+print('[More RPG 2.7.2] PACKAGED_ENCHANTMENT_JSON_AUTHORITY_PASS typhoon=air+water stonebloom=earth+nature bonus=0.03 max_level=5 weight=2 armor_only=true exclusive=multi_school')
+PY
+
+DUMP="$(mktemp)"; STRINGS="$(mktemp)"; HEART="$(mktemp)"; STEALTH="$(mktemp)"; REFMAP="$(mktemp)"; INDY="$(mktemp)"; ENCHANT="$(mktemp)"; BYTE_DIR="$(mktemp -d)"
+trap 'rm -f "$DUMP" "$STRINGS" "$HEART" "$STEALTH" "$REFMAP" "$INDY" "$ENCHANT"; rm -rf "$BYTE_DIR"' EXIT
+javap -classpath "$JAR" -c -p net.more_rpg_classes.compat.MoreRpg1201Enchantments > "$ENCHANT"
+for needle in 'typhoon' 'stonebloom' 'SchoolFilteredEnchantment' 'PowerEnchantmentConfig' 'armorEnchantmentLevel'; do
+  grep -Fq "$needle" "$ENCHANT" || { echo "[More RPG 2.7.2] packaged enchantment compatibility bytecode missing $needle" >&2; cat "$ENCHANT" >&2; exit 1; }
+done
+echo '[More RPG 2.7.2] PACKAGED_ENCHANTMENT_1201_BRIDGE_PASS class=MoreRpg1201Enchantments spell_power_specialized=true'
+
 javap -classpath "$JAR" -c -p net.more_rpg_classes.custom.MoreSpellSchools > "$DUMP"
 external_count="$(grep -c 'SpellSchool\$Manage.EXTERNAL' "$DUMP" || true)"; write_count="$(grep -c 'SpellSchool.attributeManagement' "$DUMP" || true)"
 [[ "$external_count" -eq 3 ]] || { echo "[More RPG 2.7.2] packaged external school ownership count wrong: external=$external_count expected=3" >&2; cat "$DUMP" >&2; exit 1; }
