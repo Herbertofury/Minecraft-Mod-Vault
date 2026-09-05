@@ -40,6 +40,7 @@ jobs:
           for f in *.jar; do unzip -t "$f" >/dev/null; done
           sha256sum *.jar > SHA256SUMS.txt
           cat SHA256SUMS.txt
+          echo 'silent-hang fetch complete'
       - uses: actions/upload-artifact@v4
         with:
           name: noxviola-silent-hang-binaries
