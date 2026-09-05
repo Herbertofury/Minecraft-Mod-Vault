@@ -13,29 +13,20 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch exact public Noxviola dependency binaries
+      - name: Fetch exact compatibility patch binaries
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/noxviola-deps
-          cd /tmp/noxviola-deps
+          mkdir -p /tmp/noxviola-compat
+          cd /tmp/noxviola-compat
 
-          # These two exact public files were proven reachable by the first run.
-          curl -fL --retry 4 --retry-delay 2 -o traveloptics-6.3.0-1.20.1.jar \
-            'https://mediafilez.forgecdn.net/files/7424/522/traveloptics-6.3.0-1.20.1.jar'
-          curl -fL --retry 4 --retry-delay 2 -o compatdelight-1.0.1.1.jar \
-            'https://cdn.modrinth.com/data/iNJJU8Ib/versions/akFeLxqb/compatdelight-1.0.1.1.jar'
+          curl -fL --retry 4 --retry-delay 2 \
+            -o tomagic_cataclysm_compat-1.5.0.jar \
+            'https://github.com/Nicepower001/TOMagicCataclysmCompat/releases/download/1.5.0/tomagic_cataclysm_compat-1.5.0.jar'
 
-          # Resolve the exact installed dependency builds through Modrinth's public API
-          # instead of CurseForge CDN endpoints that returned HTTP 403 in run 1.
-          CAT_URL="$(curl -fsSL 'https://api.modrinth.com/v2/version/C3H0azzB' | jq -r '.files[] | select(.primary == true) | .url' | head -n1)"
-          test -n "$CAT_URL" && test "$CAT_URL" != null
-          curl -fL --retry 4 --retry-delay 2 -o L_Enders_Cataclysm-3.31.jar "$CAT_URL"
-
-          FD_URL="$(curl -fsSL 'https://api.modrinth.com/v2/project/farmers-delight/version?game_versions=%5B%221.20.1%22%5D&loaders=%5B%22forge%22%5D' \
-            | jq -r '[.[] | .files[] | select(.filename == "FarmersDelight-1.20.1-1.3.4.jar")][0].url')"
-          test -n "$FD_URL" && test "$FD_URL" != null
-          curl -fL --retry 4 --retry-delay 2 -o FarmersDelight-1.20.1-1.3.4.jar "$FD_URL"
+          curl -fL --retry 4 --retry-delay 2 \
+            -o mndfix-1.12.0-all.jar \
+            'https://mediafilez.forgecdn.net/files/8618/637/mndfix-1.12.0-all.jar'
 
           file *.jar
           for f in *.jar; do unzip -t "$f" >/dev/null; done
@@ -43,7 +34,7 @@ jobs:
           cat SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: noxviola-dependency-binaries
-          path: /tmp/noxviola-deps
+          name: noxviola-compat-patches
+          path: /tmp/noxviola-compat
           if-no-files-found: error
           retention-days: 1
