@@ -17,7 +17,9 @@ for entry in \
 done
 javap -classpath "$JAR" -c -p net.more_rpg_classes.forge.client.ForgeClientMod > "$MOD"
 javap -classpath "$JAR" -c -p net.more_rpg_classes.forge.client.ForgeClientEvents > "$GAME"
-javap -classpath "$JAR" -c -p net.more_rpg_classes.client.MoreRPGClassesClient > "$COMMON"
+# Verbose output is intentional: HeartRegistry::register is a method reference and its concrete
+# target is recorded in BootstrapMethods rather than the ordinary disassembly instruction text.
+javap -classpath "$JAR" -v -p net.more_rpg_classes.client.MoreRPGClassesClient > "$COMMON"
 javap -classpath "$JAR" -c -p net.more_rpg_classes.forge.ForgeMod > "$FORGE"
 for needle in \
   'MoreRPGClassesClient.init' \
