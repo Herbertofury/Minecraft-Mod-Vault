@@ -102,6 +102,11 @@ echo '[More RPG 2.7.2] PRODUCTION_PACKAGED_MOD_BYTES_LOCKED count=7'
 
 cp -a "$FRESH_SERVER/world" "$GAME_DIR/saves/MRPG-QA"
 printf 'earlyWindowControl = false\n' > "$GAME_DIR/config/fml.toml"
+cat > "$GAME_DIR/config/forge-client.toml" <<'FORGECLIENT'
+[client]
+showLoadWarnings = false
+FORGECLIENT
+echo '[More RPG 2.7.2] PRODUCTION_FORGE_INTERACTIVE_WARNING_SCREEN_DISABLED_FOR_QA showLoadWarnings=false real_loading_errors_still_fatal=true'
 printf 'onboardAccessibility:false\n' > "$GAME_DIR/options.txt"
 
 python3 "$HELPER" prepare \
