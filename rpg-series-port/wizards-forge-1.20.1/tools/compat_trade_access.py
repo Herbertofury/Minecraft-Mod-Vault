@@ -69,10 +69,12 @@ ordinary = {
 for old, new in ordinary.items():
     replace_exact(old, new, old)
 
+enchanted = {}
 for school in ('arcane', 'fire', 'frost'):
     old = f'''(entity, random) -> new TradeOffers.SellEnchantedToolFactory(\n                        WizardWeapons.{school}Staff.item(), 40, 3, 30, 0F).create(entity, random)'''
     new = f'sellEnchanted(WizardWeapons.{school}Staff.item(), 40, 3, 30, 0F)'
     replace_exact(old, new, f'{school} enchanted staff trade')
+    enchanted[school] = new
 
 helpers = '''
     private static TradeOffers.Factory sell(Item item, int emeraldCost, int count,
@@ -107,7 +109,25 @@ final = path.read_text()
 for forbidden in ('TradeOffers.SellItemFactory', 'TradeOffers.SellEnchantedToolFactory'):
     if forbidden in final:
         raise SystemExit(f'Wizards Forge runtime-inaccessible vanilla trade implementation survived: {forbidden}')
-if final.count('sell(') != 13 or final.count('sellEnchanted(') != 4:
-    raise SystemExit('Wizards trade compatibility helper/use inventory drifted')
+
+# Do not use a global substring count for `sell(` here: pinned Wizards 3.1.1 intentionally retains
+# a commented legacy Offer.sell(...) example block. Validate the live replacements structurally so
+# comments cannot create a false inventory-drift failure while every transformed trade still must be
+# present exactly once.
+for replacement in ordinary.values():
+    actual = final.count(replacement)
+    if actual != 1:
+        raise SystemExit(f'Wizards trade compatibility ordinary replacement drifted: expected 1, found {actual}: {replacement}')
+for school, replacement in enchanted.items():
+    actual = final.count(replacement)
+    if actual != 1:
+        raise SystemExit(f'Wizards trade compatibility enchanted replacement drifted for {school}: expected 1, found {actual}')
+for helper in (
+    'private static TradeOffers.Factory sell(Item item, int emeraldCost, int count,',
+    'private static TradeOffers.Factory sellEnchanted(Item item, int baseEmeraldCost,',
+):
+    actual = final.count(helper)
+    if actual != 1:
+        raise SystemExit(f'Wizards trade compatibility helper drifted: expected 1, found {actual}: {helper}')
 
 print('Wizards villager trade compatibility applied: package-private vanilla trade factories replaced with public TradeOffer semantics')
