@@ -30,6 +30,25 @@ jobs:
         continue-on-error: true
         run: bash projects/wayward-attributes-1.20.1-backport/prepare-port.sh
 
+      - name: Emit compact semantic compiler map
+        if: always()
+        shell: bash
+        run: |
+          echo '=== WAYWARD_SEMANTIC_MAP_BEGIN ==='
+          echo '-- residual future-version surfaces --'
+          if [[ -f projects/wayward-attributes-1.20.1-backport/reports/residual-surfaces.txt ]]; then
+            sed -n '1,160p' projects/wayward-attributes-1.20.1-backport/reports/residual-surfaces.txt
+          else
+            echo 'residual-surfaces.txt missing'
+          fi
+          echo '-- compiler error index --'
+          if [[ -f projects/wayward-attributes-1.20.1-backport/reports/error-index.txt ]]; then
+            sed -n '1,260p' projects/wayward-attributes-1.20.1-backport/reports/error-index.txt
+          else
+            echo 'error-index.txt missing'
+          fi
+          echo '=== WAYWARD_SEMANTIC_MAP_END ==='
+
       - name: Publish gate summary
         if: always()
         shell: bash
