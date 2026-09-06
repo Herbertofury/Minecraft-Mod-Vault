@@ -32,13 +32,19 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.safecrlf false
 
-      - name: Prepare pinned 1.8.2 release-parity port and compile
+      - name: Prepare pinned 1.8.2 release-parity source tree
         id: gate
-        continue-on-error: true
         shell: bash
-        run: bash projects/malum-1.20.1-backport/prepare-port.sh
+        run: |
+          SOURCE_SCRIPT="projects/malum-1.20.1-backport/prepare-port.sh"
+          PREP_ONLY="$RUNNER_TEMP/prepare-malum-source-only.sh"
+          marker_line="$(grep -n '^# First semantic compile gate\.$' "$SOURCE_SCRIPT" | cut -d: -f1)"
+          test -n "$marker_line"
+          head -n "$((marker_line - 1))" "$SOURCE_SCRIPT" > "$PREP_ONLY"
+          chmod +x "$PREP_ONLY"
+          bash "$PREP_ONLY"
 
-      - name: Apply proven Forge 1.20 owners and recompile
+      - name: Apply proven Forge 1.20 owners and compile once
         id: owner_bridge
         continue-on-error: true
         shell: bash
