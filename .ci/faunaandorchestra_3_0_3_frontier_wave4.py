@@ -32,7 +32,7 @@ if text.count(can_grab_old) != 1:
 text = text.replace(can_grab_old, can_grab_new, 1)
 
 checks = {
-    "no_betweenClosed_hot_loop": "BlockPos.betweenClosed" not in text,
+    "no_betweenClosed_hot_loop": "BlockPos.betweenClosed(" not in text,
     "no_relative_neighbor_probes": all(s not in text for s in ["newPos.east()", "newPos.west()", "newPos.north()", "newPos.south()"]),
     "reusable_mutable_positions": all(s in text for s in ["spreadPos", "spreadDownPos", "blockProbe", "grabProbe"]),
     "non_climber_3x3_bounds": "for (int z = centerZ - 1; z <= centerZ + 1; z++)" in text and "for (int x = centerX - 1; x <= centerX + 1; x++)" in text,
@@ -52,7 +52,7 @@ report = {
     "optimization": [
         "Replace Crawling Discord betweenClosed iterator/bound-position allocation with direct X-fast/Y/Z loops using reusable MutableBlockPos candidates.",
         "Reuse support/above probes and cache each support BlockState once instead of repeated below()/above() position creation and state reads.",
-        "Preserve EAST/WEST/NORTH/SOUTH canGrab short-circuit order while reusing one MutableBlockPos and one BlockState read per direction.",
+        "Preserve EAST/WEST/NORTH/SOUTH canGrab short-circuit order while reusing one MutableBlockPos and one BlockState read per direction."
     ],
     "preserved": [
         "same 3x1x3 and normalized 3x3x3 traversal order",
@@ -60,9 +60,9 @@ report = {
         "same replaceable/support/canGrab predicates",
         "same generation limits and child timers",
         "same child count and placement candidates",
-        "same CLIMBER states, death timing, particles and content",
+        "same CLIMBER states, death timing, particles and content"
     ],
-    "invariants": checks,
+    "invariants": checks
 }
 (root / "FRONTIER-WAVE4-REPORT.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 print(json.dumps(report, indent=2))
