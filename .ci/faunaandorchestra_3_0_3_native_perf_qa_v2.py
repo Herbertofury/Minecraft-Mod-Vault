@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Frontier Wave 3A A/B driver: production patch first, QA-only harness second.
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 base = Path(__file__).with_name("faunaandorchestra_3_0_3_native_perf_qa.py")
 subprocess.run([sys.executable, str(base), str(root)], check=True)
