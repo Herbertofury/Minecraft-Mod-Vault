@@ -120,6 +120,83 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$OUT/port/src/main/java" -type f -name '*.java' -print0)
 
+# Java 21 pattern-switch syntax -> Java 17 control flow. These rewrites preserve the
+# exact branch order and outputs from released 1.8.2; they only remove language syntax
+# unavailable to the Forge 1.20.1 / Java 17 target.
+python3 - "$OUT/port/src/main/java" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+
+crafting = root / "com/sammy/malum/client/screen/codex/pages/recipe/vanilla/CraftingPage.java"
+crafting_text = crafting.read_text()
+crafting_old = '''        return switch (tool.getItem()) {
+            case SwordItem swordItem ->
+                    new CraftingPage(tool, empty, metal, empty, empty, metal, empty, empty, stick, empty);
+            case AxeItem axeItem ->
+                    new CraftingPage(tool, metal, metal, empty, metal, stick, empty, empty, stick, empty);
+            case HoeItem hoeItem ->
+                    new CraftingPage(tool, metal, metal, empty, empty, stick, empty, empty, stick, empty);
+            case ShovelItem shovelItem ->
+                    new CraftingPage(tool, empty, metal, empty, empty, stick, empty, empty, stick, empty);
+            case PickaxeItem pickaxeItem ->
+                    new CraftingPage(tool, metal, metal, metal, empty, stick, empty, empty, stick, empty);
+            default -> null;
+        };'''
+crafting_new = '''        Item toolItem = tool.getItem();
+        if (toolItem instanceof SwordItem) {
+            return new CraftingPage(tool, empty, metal, empty, empty, metal, empty, empty, stick, empty);
+        }
+        if (toolItem instanceof AxeItem) {
+            return new CraftingPage(tool, metal, metal, empty, metal, stick, empty, empty, stick, empty);
+        }
+        if (toolItem instanceof HoeItem) {
+            return new CraftingPage(tool, metal, metal, empty, empty, stick, empty, empty, stick, empty);
+        }
+        if (toolItem instanceof ShovelItem) {
+            return new CraftingPage(tool, empty, metal, empty, empty, stick, empty, empty, stick, empty);
+        }
+        if (toolItem instanceof PickaxeItem) {
+            return new CraftingPage(tool, metal, metal, metal, empty, stick, empty, empty, stick, empty);
+        }
+        return null;'''
+if crafting_old not in crafting_text:
+    raise SystemExit("CraftingPage pattern switch signature changed; refusing a lossy rewrite")
+crafting.write_text(crafting_text.replace(crafting_old, crafting_new, 1))
+
+ether = root / "com/sammy/malum/common/block/ether/EtherBlockEntity.java"
+ether_text = ether.read_text()
+ether_old = '''        switch (getBlockState().getBlock()) { //TODO: this sucks
+            case EtherWallTorchBlock etherWallTorchBlock -> {
+                float offset = 0.15f;
+                Direction direction = getBlockState().getValue(WallTorchBlock.FACING);
+                x -= direction.getNormal().getX() * offset;
+                y += 0.4f;
+                z -= direction.getNormal().getZ() * offset;
+            }
+            case EtherTorchBlock etherTorchBlock -> y += 0.3f;
+            case EtherBrazierBlock etherBrazierBlock -> y -= 0.05f;
+            default -> {
+            }
+        }'''
+ether_new = '''        Block block = getBlockState().getBlock();
+        if (block instanceof EtherWallTorchBlock) {
+            float offset = 0.15f;
+            Direction direction = getBlockState().getValue(WallTorchBlock.FACING);
+            x -= direction.getNormal().getX() * offset;
+            y += 0.4f;
+            z -= direction.getNormal().getZ() * offset;
+        } else if (block instanceof EtherTorchBlock) {
+            y += 0.3f;
+        } else if (block instanceof EtherBrazierBlock) {
+            y -= 0.05f;
+        }'''
+if ether_old not in ether_text:
+    raise SystemExit("EtherBlockEntity pattern switch signature changed; refusing a lossy rewrite")
+ether.write_text(ether_text.replace(ether_old, ether_new, 1))
+PY
+
 # Resource-layout bridge that is unambiguously version-specific. 1.21 uses singular
 # data directories while 1.20.1 expects plural recipe/loot-table directories.
 while IFS= read -r -d '' d; do
