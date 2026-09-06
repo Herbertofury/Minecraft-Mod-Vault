@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Frontier Wave 4 A/B driver: accepted Wave 3A + Wave 3C, then candidate Wave 4.
+# Frontier Wave 4 A/B driver: accepted Wave 3A + Wave 3C, then candidate Wave 4. Guard fixed at a86f29b.
 # Rejected Wave 3B is intentionally NOT applied.
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 base = Path(__file__).with_name("faunaandorchestra_3_0_3_native_perf_qa.py")
