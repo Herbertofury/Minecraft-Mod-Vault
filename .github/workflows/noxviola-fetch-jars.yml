@@ -26,7 +26,7 @@ jobs:
             for url in "$@"; do
               echo "Trying $url"
               if curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' -o "$out.tmp" "$url"; then
-                if python3 -c 'import sys,zipfile; p=sys.argv[1]; f=open(p,"rb"); assert f.read(4)==b"PK\\x03\\x04"; f.close(); z=zipfile.ZipFile(p); assert z.testzip() is None; z.close()' "$out.tmp"; then
+                if python3 -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; z.close()' "$out.tmp"; then
                   mv "$out.tmp" "$out"
                   ok=1
                   break
