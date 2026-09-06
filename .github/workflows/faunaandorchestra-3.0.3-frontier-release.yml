@@ -8,6 +8,7 @@ on:
       - '.ci/faunaandorchestra_3_0_3_frontier_release_patch.py'
       - '.ci/faunaandorchestra_3_0_3_frontier_patch.py'
       - '.ci/faunaandorchestra_3_0_3_frontier_wave3c.py'
+      - '.ci/faunaandorchestra_3_0_3_frontier_wave4.py'
       - '.github/workflows/faunaandorchestra-3.0.3-frontier-release.yml'
   workflow_dispatch:
 
@@ -39,11 +40,11 @@ jobs:
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "131bdcbf76aec07267d68a57185bb103669af83e"
 
-      - name: Apply clean accepted frontier stack through Wave 3C
+      - name: Apply clean accepted frontier stack through Wave 4
         shell: bash
         run: |
           set -euxo pipefail
-          python3 .ci/faunaandorchestra_3_0_3_frontier_release_patch.py fauna | tee frontier-release-patch-output.txt
+          python3 .ci/faunaandorchestra_3_0_3_frontier_release_patch.py fauna --wave4 | tee frontier-release-patch-output.txt
           cd fauna
           git diff --check
           test ! -d src/main/java/net/migueel26/faunaandorchestra/qa
@@ -52,6 +53,7 @@ jobs:
           cp FRONTIER-RELEASE-PATCH-REPORT.json ..
           cp FRONTIER-PERFORMANCE-PATCH-REPORT.json ..
           cp FRONTIER-WAVE3C-REPORT.json ..
+          cp FRONTIER-WAVE4-REPORT.json ..
 
       - name: Build clean reobfuscated Forge release jar
         working-directory: fauna
@@ -68,26 +70,27 @@ jobs:
           mkdir -p out
           JAR="$(find fauna/build/libs -maxdepth 1 -type f -name 'faunaandorchestra-3.0.3.jar' -print -quit)"
           test -n "$JAR"
-          cp "$JAR" out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-wave3c.jar
+          cp "$JAR" out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-optimized.jar
           cp faunaandorchestra-3.0.3-frontier-release.patch out/
           cp FRONTIER-RELEASE-PATCH-REPORT.json out/
           cp FRONTIER-PERFORMANCE-PATCH-REPORT.json out/
           cp FRONTIER-WAVE3C-REPORT.json out/
+          cp FRONTIER-WAVE4-REPORT.json out/
           cp frontier-release-patch-output.txt out/
           cp frontier-release-diff-stat.txt out/
-          unzip -t out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-wave3c.jar | tee out/jar-integrity.txt
-          if unzip -l out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-wave3c.jar | grep -q 'net/migueel26/faunaandorchestra/qa/'; then
+          unzip -t out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-optimized.jar | tee out/jar-integrity.txt
+          if unzip -l out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-optimized.jar | grep -q 'net/migueel26/faunaandorchestra/qa/'; then
             echo 'QA-only classes leaked into release JAR' >&2
             exit 1
           fi
-          unzip -p out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-wave3c.jar META-INF/mods.toml > out/mods.toml.extracted
-          sha256sum out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-wave3c.jar > out/SHA256SUMS.txt
-          stat -c '%n %s bytes' out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-wave3c.jar | tee out/ARTIFACT-SIZE.txt
+          unzip -p out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-optimized.jar META-INF/mods.toml > out/mods.toml.extracted
+          sha256sum out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-optimized.jar > out/SHA256SUMS.txt
+          stat -c '%n %s bytes' out/faunaandorchestra-forge-1.20.1-3.0.3-frontier-optimized.jar | tee out/ARTIFACT-SIZE.txt
 
       - name: Upload frontier release evidence
         uses: actions/upload-artifact@v4
         with:
-          name: faunaandorchestra-3.0.3-frontier-wave3c-release
+          name: faunaandorchestra-3.0.3-frontier-release
           path: out/
           if-no-files-found: error
           retention-days: 30
