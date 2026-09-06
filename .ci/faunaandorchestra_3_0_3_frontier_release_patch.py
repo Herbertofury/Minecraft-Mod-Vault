@@ -54,13 +54,13 @@ qa_root = root / "src/main/java/net/migueel26/faunaandorchestra/qa"
 if qa_root.exists():
     raise SystemExit(f"release blocker: QA-only source exists at {qa_root}")
 
-# Frontier waves are intentionally narrow: only these production Java files may
-# be newly touched by the runtime-guided layer. Earlier verified base/extreme
-# changes remain governed by their own patch reports.
 beaver = root / "src/main/java/net/migueel26/faunaandorchestra/entity/goals/BeaverBuildsDamGoal.java"
 crawling = root / "src/main/java/net/migueel26/faunaandorchestra/block/entity/CrawlingDiscordBlockEntity.java"
-if "BlockPos.withinManhattan" in beaver.read_text(encoding="utf-8"):
-    raise SystemExit("release blocker: accepted Wave 3C direct traversal was not applied")
+btext = beaver.read_text(encoding="utf-8")
+if "for (BlockPos candidate : BlockPos.withinManhattan" in btext:
+    raise SystemExit("release blocker: pre-Wave-3C vanilla iterator loop remains")
+if "for (int depth = 0; depth <= 43; depth++)" not in btext or "BlockPos.MutableBlockPos candidate" not in btext:
+    raise SystemExit("release blocker: accepted Wave 3C direct traversal is missing")
 if args.wave4:
     ctext = crawling.read_text(encoding="utf-8")
     if "BlockPos.betweenClosed(" in ctext:
