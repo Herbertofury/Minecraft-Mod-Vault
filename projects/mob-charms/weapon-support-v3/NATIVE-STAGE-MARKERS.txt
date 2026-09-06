@@ -1,0 +1,17 @@
+[20:10:49] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] START stages=15 charm=bee
+[20:10:49] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=01 item=minecraft:diamond_sword lane=original full-item baseline
+[20:10:54] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=02 item=minecraft:diamond_axe lane=authored axe family
+[20:10:59] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=03 item=minecraft:diamond_pickaxe lane=authored pickaxe family
+[20:11:04] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=04 item=minecraft:diamond_shovel lane=model-preserving overlay
+[20:11:09] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=05 item=minecraft:diamond_hoe lane=model-preserving overlay
+[20:11:14] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=06 item=minecraft:trident lane=spear-style overlay
+[20:11:19] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=07 item=minecraft:bow lane=canonical sword-presentation overlay
+[20:11:24] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=08 item=minecraft:crossbow lane=canonical sword-presentation overlay
+[20:11:29] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=09 item=minecraft:fishing_rod lane=canonical sword-presentation overlay
+[20:11:34] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=10 item=simplyswords:diamond_longsword lane=model-preserving sword overlay
+[20:11:39] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=11 item=simplyswords:diamond_spear lane=provider spear overlay
+[20:11:44] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=12 item=simplyswords:diamond_greataxe lane=provider axe overlay
+[20:11:49] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=13 item=simplyswords:diamond_greathammer lane=provider mace overlay
+[20:11:54] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=14 item=simplyswords:diamond_warglaive lane=hard wrap + dangle
+[20:11:59] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] stage=15 item=simplyswords:diamond_twinblade lane=hard wrap + dangle
+[20:12:04] [Render thread/INFO] [minecraft/ChatComponent]: [System] [CHAT] [CHARMSY-WEAPON-QA] COMPLETE stages=15
