@@ -1,0 +1,69 @@
+name: Noxviola Fetch Upstream Jars
+
+on:
+  push:
+    branches:
+      - noxviola-serverlock-v4-jars
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact upstream jars
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p upstream
+
+          fetch_jar() {
+            local out="$1"
+            shift
+            local ok=0
+            for url in "$@"; do
+              echo "Trying $url"
+              if curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' -o "$out.tmp" "$url"; then
+                if python3 - "$out.tmp" <<'PY'
+import sys, zipfile
+p=sys.argv[1]
+try:
+    with open(p,'rb') as f:
+        assert f.read(4) == b'PK\x03\x04'
+    with zipfile.ZipFile(p) as z:
+        assert z.testzip() is None
+except Exception:
+    raise SystemExit(1)
+PY
+                then
+                  mv "$out.tmp" "$out"
+                  ok=1
+                  break
+                fi
+              fi
+              rm -f "$out.tmp"
+            done
+            test "$ok" -eq 1
+          }
+
+          fetch_jar upstream/c2meforge-0.2.0-forge.9.1-all.jar \
+            'https://www.curseforge.com/minecraft/mc-mods/concurrent-chunk-management-engine-forge/download/8821786/file' \
+            'https://edge.forgecdn.net/files/8821/786/c2meforge-0.2.0-forge.9.1-all.jar'
+
+          fetch_jar upstream/midnight-1.20.1-0.6.7.jar \
+            'https://www.curseforge.com/minecraft/mc-mods/the-midnight/download/6585605/file' \
+            'https://edge.forgecdn.net/files/6585/605/midnight-1.20.1-0.6.7.jar'
+
+          sha256sum upstream/*.jar | tee upstream/SHA256SUMS.txt
+          unzip -t upstream/c2meforge-0.2.0-forge.9.1-all.jar >/dev/null
+          unzip -t upstream/midnight-1.20.1-0.6.7.jar >/dev/null
+
+      - name: Upload upstream jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: noxviola-upstream-jars
+          path: upstream/
+          if-no-files-found: error
+          retention-days: 7
