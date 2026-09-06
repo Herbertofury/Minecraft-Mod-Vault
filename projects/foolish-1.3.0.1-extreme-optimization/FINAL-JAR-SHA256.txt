@@ -1,0 +1,1 @@
+d84f0afe46fba4257495d67af478fac7e33220cb5e71757aa50e309083c62d03  foolish-1.3.0.1-extreme-optimized.jar
