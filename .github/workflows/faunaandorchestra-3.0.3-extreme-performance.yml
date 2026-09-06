@@ -7,6 +7,7 @@ on:
     paths:
       - '.ci/faunaandorchestra_3_0_3_performance_patch_v2.py'
       - '.ci/faunaandorchestra_3_0_3_extreme_patch.py'
+      - '.ci/faunaandorchestra_3_0_3_extreme_safe_wave.py'
       - '.github/workflows/faunaandorchestra-3.0.3-extreme-performance.yml'
   workflow_dispatch:
 
@@ -68,12 +69,19 @@ jobs:
           p.write_text(s.replace(old, new, 1), encoding='utf-8')
           PY
           python3 .ci/faunaandorchestra_3_0_3_extreme_patch.py fauna | tee extreme-patch-output.txt
+
+      - name: Apply zero-regression Floating Blossom safe wave
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 .ci/faunaandorchestra_3_0_3_extreme_safe_wave.py fauna | tee safe-wave-output.txt
           cd fauna
           git diff --check
           git diff --stat
           git diff > ../faunaandorchestra-3.0.3-extreme-performance.patch
           cp PERFORMANCE-PATCH-REPORT.json ..
           cp EXTREME-PERFORMANCE-PATCH-REPORT.json ..
+          cp EXTREME-SAFE-WAVE-REPORT.json ..
 
       - name: Build reobfuscated Forge jar
         working-directory: fauna
@@ -94,8 +102,10 @@ jobs:
           cp faunaandorchestra-3.0.3-extreme-performance.patch out/
           cp PERFORMANCE-PATCH-REPORT.json out/
           cp EXTREME-PERFORMANCE-PATCH-REPORT.json out/
+          cp EXTREME-SAFE-WAVE-REPORT.json out/
           cp first-pass-output.txt out/
           cp extreme-patch-output.txt out/
+          cp safe-wave-output.txt out/
           unzip -t out/faunaandorchestra-forge-1.20.1-3.0.3-extreme-optimized.jar | tee out/jar-integrity.txt
           unzip -p out/faunaandorchestra-forge-1.20.1-3.0.3-extreme-optimized.jar META-INF/mods.toml > out/mods.toml.extracted
           sha256sum out/faunaandorchestra-forge-1.20.1-3.0.3-extreme-optimized.jar > out/SHA256SUMS.txt
