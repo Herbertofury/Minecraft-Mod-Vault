@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Frontier Wave 3C A/B driver: accepted Wave 3A + candidate Wave 3C.
+# Frontier Wave 4 A/B driver: accepted Wave 3A + Wave 3C, then candidate Wave 4.
 # Rejected Wave 3B is intentionally NOT applied.
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 base = Path(__file__).with_name("faunaandorchestra_3_0_3_native_perf_qa.py")
@@ -14,6 +14,8 @@ frontier = Path(__file__).with_name("faunaandorchestra_3_0_3_frontier_patch.py")
 subprocess.run([sys.executable, str(frontier), str(root)], check=True)
 frontier_wave3c = Path(__file__).with_name("faunaandorchestra_3_0_3_frontier_wave3c.py")
 subprocess.run([sys.executable, str(frontier_wave3c), str(root)], check=True)
+frontier_wave4 = Path(__file__).with_name("faunaandorchestra_3_0_3_frontier_wave4.py")
+subprocess.run([sys.executable, str(frontier_wave4), str(root)], check=True)
 
 path = root / "src/main/java/net/migueel26/faunaandorchestra/qa/FaunaPerfQaHarness.java"
 text = path.read_text(encoding="utf-8")
@@ -76,20 +78,56 @@ verify_block = '''    private static void verifyManhattanOrder() {
         FaunaAndOrchestra.LOGGER.info(PREFIX + "MANHATTAN_ORDER_EQUIVALENCE_PASS positions={}", index);
     }
 
+    private static void verifyBetweenClosedOrder() {
+        BlockPos center = new BlockPos(17, 70, -23);
+
+        java.util.Iterator<BlockPos> plane = BlockPos.betweenClosed(
+                center.offset(-1, 0, -1), center.offset(1, 0, 1)).iterator();
+        int planeIndex = 0;
+        for (int z = center.getZ() - 1; z <= center.getZ() + 1; z++) {
+            for (int x = center.getX() - 1; x <= center.getX() + 1; x++) {
+                assertVanillaPosition(plane, x, center.getY(), z, planeIndex++);
+            }
+        }
+        if (plane.hasNext() || planeIndex != 9) {
+            throw new IllegalStateException("Wave 4 plane order/count mismatch: " + planeIndex);
+        }
+
+        // Deliberately pass reversed corners, matching CrawlingDiscord's shipped
+        // climber scan. betweenClosed normalizes them; our direct loop must still
+        // emit exactly the same X-fast, then Y, then Z order.
+        java.util.Iterator<BlockPos> cube = BlockPos.betweenClosed(
+                center.offset(1, 1, 1), center.offset(-1, -1, -1)).iterator();
+        int cubeIndex = 0;
+        for (int z = center.getZ() - 1; z <= center.getZ() + 1; z++) {
+            for (int y = center.getY() - 1; y <= center.getY() + 1; y++) {
+                for (int x = center.getX() - 1; x <= center.getX() + 1; x++) {
+                    assertVanillaPosition(cube, x, y, z, cubeIndex++);
+                }
+            }
+        }
+        if (cube.hasNext() || cubeIndex != 27) {
+            throw new IllegalStateException("Wave 4 cube order/count mismatch: " + cubeIndex);
+        }
+
+        FaunaAndOrchestra.LOGGER.info(PREFIX + "BETWEEN_CLOSED_ORDER_EQUIVALENCE_PASS plane={} cube={}", planeIndex, cubeIndex);
+    }
+
     private static void assertVanillaPosition(java.util.Iterator<BlockPos> vanilla, int x, int y, int z, int index) {
         if (!vanilla.hasNext()) {
-            throw new IllegalStateException("Wave 3C order verifier exhausted vanilla at index " + index
+            throw new IllegalStateException("native order verifier exhausted vanilla at index " + index
                     + " expected=" + x + "," + y + "," + z);
         }
         BlockPos actual = vanilla.next();
         if (actual.getX() != x || actual.getY() != y || actual.getZ() != z) {
-            throw new IllegalStateException("Wave 3C order mismatch at index " + index
+            throw new IllegalStateException("native order mismatch at index " + index
                     + " expected=" + x + "," + y + "," + z + " actual=" + actual);
         }
     }
 
     private static void prepareScene(ServerLevel level, ServerPlayer player) {
         verifyManhattanOrder();
+        verifyBetweenClosedOrder();
         level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false, level.getServer());
 '''
 if text.count(prepare_anchor) != 1:
@@ -97,6 +135,8 @@ if text.count(prepare_anchor) != 1:
 text = text.replace(prepare_anchor, verify_block, 1)
 if text.count("MANHATTAN_ORDER_EQUIVALENCE_PASS") != 1 or text.count("verifyManhattanOrder();") != 1:
     raise SystemExit("Wave 3C order verifier injection failed")
+if text.count("BETWEEN_CLOSED_ORDER_EQUIVALENCE_PASS") != 1 or text.count("verifyBetweenClosedOrder();") != 1:
+    raise SystemExit("Wave 4 order verifier injection failed")
 path.write_text(text, encoding="utf-8", newline="\n")
 print(path)
 
