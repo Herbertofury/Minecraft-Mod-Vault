@@ -38,6 +38,26 @@ jobs:
         shell: bash
         run: bash projects/malum-1.20.1-backport/prepare-port.sh
 
+      - name: Apply proven Forge 1.20 owners and recompile
+        id: owner_bridge
+        continue-on-error: true
+        shell: bash
+        run: |
+          REPORT_DIR="$GITHUB_WORKSPACE/projects/malum-1.20.1-backport/reports"
+          PORT="$GITHUB_WORKSPACE/.malum-port-work/port"
+          python3 .ci/malum/apply-forge120-owner-bridges.py "$PORT/src/main/java"
+          set +e
+          (
+            cd "$PORT"
+            ./gradlew --no-daemon compileJava --stacktrace --console=plain
+          ) > "$REPORT_DIR/compile.log" 2>&1
+          status=$?
+          set -e
+          echo "$status" > "$REPORT_DIR/compile-exit-code.txt"
+          grep -E '(^|: )error:|cannot find symbol|does not exist|incompatible types|no suitable method|method .* cannot be applied' \
+            "$REPORT_DIR/compile.log" > "$REPORT_DIR/error-index.txt" || true
+          exit "$status"
+
       - name: Emit compact semantic compiler map
         if: always()
         shell: bash
@@ -49,7 +69,7 @@ jobs:
           else
             echo 'residual-surfaces.txt missing'
           fi
-          echo '-- compiler error index --'
+          echo '-- compiler error index after Forge 1.20 owner bridge --'
           if [[ -f projects/malum-1.20.1-backport/reports/error-index.txt ]]; then
             sed -n '1,260p' projects/malum-1.20.1-backport/reports/error-index.txt
           else
@@ -76,7 +96,7 @@ jobs:
               echo '```'
             fi
             if [[ -f projects/malum-1.20.1-backport/reports/error-index.txt ]]; then
-              echo '### First semantic compile errors (first 120 lines)'
+              echo '### First semantic compile errors after owner bridge (first 120 lines)'
               echo '```text'
               sed -n '1,120p' projects/malum-1.20.1-backport/reports/error-index.txt
               echo '```'
