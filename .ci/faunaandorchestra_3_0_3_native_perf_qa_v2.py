@@ -5,12 +5,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Frontier Wave 3A A/B driver: production patch first, QA-only harness second.
+# Frontier Wave 3B A/B driver: production patches first, QA-only harness second.
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 base = Path(__file__).with_name("faunaandorchestra_3_0_3_native_perf_qa.py")
 subprocess.run([sys.executable, str(base), str(root)], check=True)
 frontier = Path(__file__).with_name("faunaandorchestra_3_0_3_frontier_patch.py")
 subprocess.run([sys.executable, str(frontier), str(root)], check=True)
+frontier_wave3b = Path(__file__).with_name("faunaandorchestra_3_0_3_frontier_wave3b.py")
+subprocess.run([sys.executable, str(frontier_wave3b), str(root)], check=True)
 
 path = root / "src/main/java/net/migueel26/faunaandorchestra/qa/FaunaPerfQaHarness.java"
 text = path.read_text(encoding="utf-8")
