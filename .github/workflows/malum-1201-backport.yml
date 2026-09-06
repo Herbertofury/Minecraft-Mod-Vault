@@ -57,6 +57,7 @@ jobs:
           python3 .ci/malum/apply-sized-ingredient-bridge.py "$PORT/src/main/java"
           python3 .ci/malum/apply-entity-data-serializer-bridge.py "$PORT/src/main/java"
           python3 .ci/malum/apply-synched-entity-data-bridge.py "$PORT/src/main/java"
+          python3 .ci/malum/apply-core120-api-bridges.py "$PORT/src/main/java"
           set +e
           (
             cd "$PORT"
