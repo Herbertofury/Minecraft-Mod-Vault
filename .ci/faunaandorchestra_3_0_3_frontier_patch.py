@@ -82,7 +82,7 @@ new = '''    private Pair<Vec3, BlockPos> getDamPosition() {
     }
 
     /**
-     * Equivalent to BlockPos.findClosestMatch(center, 20, 3, this::isWaterApt),
+     * Equivalent to the vanilla nearest matching-position search at these bounds,
      * but avoids the stream/Optional wrapper. withinManhattan is the iterable
      * backing the vanilla closest-match stream, so nearest-first tie ordering,
      * horizontal radius 20 and vertical radius 3 are preserved exactly.
