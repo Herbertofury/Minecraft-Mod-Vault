@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MagicManagerMixin {
     @Inject(method = "regenPlayerMana", at = @At("HEAD"), cancellable = true, remap = false)
     private void slr$disablePassiveIronRegen(CallbackInfoReturnable<Boolean> cir) {
-        if (BridgeConfig.ENABLED.get() && BridgeConfig.SUPPRESS_ISS_PASSIVE_REGEN.get()) {
+        if (BridgeConfig.classicSharedMode() && BridgeConfig.SUPPRESS_ISS_PASSIVE_REGEN.get()) {
             cir.setReturnValue(false);
         }
     }

@@ -16,7 +16,7 @@ public final class ClientIntegration {
 
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
-        if (!BridgeConfig.HIDE_ISS_MANA_HUD.get()) return;
+        if (!BridgeConfig.classicSharedMode() || !BridgeConfig.HIDE_ISS_MANA_HUD.get()) return;
         event.enqueueWork(ClientIntegration::hideIronManaHud);
     }
 

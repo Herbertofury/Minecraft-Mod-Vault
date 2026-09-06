@@ -1,42 +1,27 @@
-
-#SLR Shared Mana - Forge 1.20.1
-#SLR MP is the authoritative mana pool. Iron's Spells reads and spends that pool on demand.
-#There is deliberately no player-tick mirror and no nearby-block scan in this mod.
 [shared_mana]
-	#Master switch. When false, Iron's Spells returns to its native mana behavior.
-	enabled = true
-	#Conversion scale. 10 means 1 Iron mana == 10 SLR MP.
-	#The original 1.21 shared-mana bridge used 10 and this remains the compatibility default.
-	#Range: 0.001 ~ 1000000.0
-	slrMpPerIronMana = 10.0
-	#Disable Iron's passive mana regeneration while sharing is active.
-	#Keep this true so SLR's native regen/cooldown rules remain authoritative.
-	#Active positive mana grants (potions, integrations, Iron's Botany ISS-primary conversion) are NOT blocked.
-	suppressIronPassiveRegen = true
-	#Translate intentional positive Iron mana changes into SLR MP.
-	#Recommended true. This is what makes Iron's Botany ISS_PRIMARY/bidirectional conversion feed the shared pool.
-	acceptPositiveIronManaCredits = true
-	#SLR native mana_refresh cooldown applied after an Iron mana spend.
-	#40 ticks (2 seconds) matches the original shared-mana bridge default.
-	#Range: 0 ~ 1200
-	slrManaRefreshTicks = 40
+# Master bridge switch. Default ON for backwards compatibility.
+enabled = true
 
-#Iron's Botany compatibility
-#The bridge intentionally does NOT duplicate or replace Iron's Botany's mana router.
-#Iron's Botany keeps full control of manaUnificationMode:
-#  HYBRID          - Botania and the SLR-backed ISS side cooperate exactly as Botany defines.
-#  BOTANIA_PRIMARY - Botany may pay a cast from Botania instead of ISS; SLR is not double-charged.
-#  ISS_PRIMARY     - Botany credits ISS; those credits become SLR MP when enabled above.
-#  SEPARATE        - Botania remains separate; the ISS side is simply backed by SLR MP.
-#  DISABLED        - Botany does no routing; SLR <-> ISS sharing still works.
-#Use Iron's Botany's own config to select those modes. This avoids conflicting duplicate mode knobs.
+# Opt-in alternate mode. Default OFF.
+# false = classic shared SLR-authoritative pool (v1.0 behavior)
+# true  = native separate pools; SLR borrows only an actual spending shortage from Iron
+separatePoolsBorrowFromIron = false
+
+# 1 Iron mana equals this many SLR MP.
+slrMpPerIronMana = 10.0
+
+# Classic shared mode only. Separate-pools mode keeps native Iron regeneration.
+suppressIronPassiveRegen = true
+
+# Classic shared mode only. Separate-pools mode keeps positive gains in their native pools.
+acceptPositiveIronManaCredits = true
+
+# Classic shared mode only.
+slrManaRefreshTicks = 40
+
 [irons_botany]
-	#Log the detected Iron's Botany mode once when a server starts.
-	logDetectedModeOnServerStart = true
+logDetectedModeOnServerStart = true
 
-#Client presentation
 [client]
-	#Hide Iron's mana bar so the SLR MP bar is the single source of truth.
-	#Spell bars and all other Iron's UI remain untouched.
-	hideIronsManaHud = true
-
+# Classic shared mode only. Separate-pools mode always retains Iron's native mana HUD.
+hideIronsManaHud = true

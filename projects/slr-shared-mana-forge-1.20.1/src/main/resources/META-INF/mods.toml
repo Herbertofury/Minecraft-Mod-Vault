@@ -9,8 +9,8 @@ displayName="SLR Shared Mana"
 authors="Bert"
 description='''
 A clean Forge 1.20.1 shared-mana bridge for Solo Leveling: Reawakening and Iron's Spells 'n Spellbooks.
-SLR MP is authoritative; Iron's Botany remains the owner of Botania/ISS routing modes.
-Designed without server tick scanning or continuous mirror packets.
+Classic shared SLR MP remains the default; an opt-in separate-pools mode lets SLR borrow only real shortages from Iron.
+Iron's Botany remains the owner of Botania/ISS routing modes. Designed without server tick scanning or continuous mirror packets.
 '''
 
 [[dependencies.slr_shared_mana]]

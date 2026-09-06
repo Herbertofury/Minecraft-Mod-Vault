@@ -13,7 +13,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '1.0.0'
+version = '1.1.0'
 group = 'com.bert.slrsharedmana'
 
 base {
@@ -34,8 +34,6 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'info'
-            // Production dependency jars (Botania/SLR/ISS) ship obfuscated mixin targets.
-            // Remap their refmaps into the official-mapped Forge userdev runtime exactly as SLR does.
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             property 'net.minecraftforge.gradle.GradleStart.srg.srg-mcp', "${projectDir}/build/createSrgToMcp/output.srg"

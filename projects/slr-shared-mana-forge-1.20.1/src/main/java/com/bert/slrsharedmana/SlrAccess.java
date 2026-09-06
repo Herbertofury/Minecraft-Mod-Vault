@@ -48,15 +48,24 @@ public final class SlrAccess {
 
     private static Optional<Object> variables(Entity player) {
         State s = state();
-        return player.getCapability(s.capability(), null).resolve();
+        Optional<Object> resolved = player.getCapability(s.capability(), null).resolve();
+        if (player instanceof ServerPlayer serverPlayer) {
+            resolved.ifPresent(v -> SlrBorrowBridge.bind(v, serverPlayer));
+        }
+        return resolved;
+    }
+
+    /** Bind the SLR PlayerVariables object to its server-side owner without polling. */
+    public static void bindOwner(ServerPlayer player) {
+        if (player != null) variables(player);
     }
 
     public static double current(Entity player) {
-        return variables(player).map(v -> read(state().currentMp(), v)).orElse(0.0D);
+        return variables(player).map(SlrAccess::rawCurrent).orElse(0.0D);
     }
 
     public static double max(Entity player) {
-        return variables(player).map(v -> Math.max(0.0D, read(state().maxMp(), v))).orElse(0.0D);
+        return variables(player).map(v -> Math.max(0.0D, rawMax(v))).orElse(0.0D);
     }
 
     public static double ironEquivalent(Entity player) {
@@ -64,7 +73,7 @@ public final class SlrAccess {
         return ratio <= 0.0D ? 0.0D : Math.max(0.0D, current(player) / ratio);
     }
 
-    /** Apply a delta in Iron-mana units and return the resulting SLR MP. */
+    /** Apply a delta in Iron-mana units and return the resulting SLR MP. Classic shared-mode path. */
     public static double applyIronDelta(ServerPlayer player, double ironDelta) {
         if (!Double.isFinite(ironDelta) || Math.abs(ironDelta) < 1.0e-7D) return current(player);
         double ratio = BridgeConfig.SLR_MP_PER_IRON_MANA.get();
@@ -74,18 +83,13 @@ public final class SlrAccess {
         Optional<Object> opt = variables(player);
         if (opt.isEmpty()) return 0.0D;
         Object v = opt.get();
-        State s = state();
-        double before = Math.max(0.0D, read(s.currentMp(), v));
-        double max = Math.max(0.0D, read(s.maxMp(), v));
+        double before = Math.max(0.0D, rawCurrent(v));
+        double max = Math.max(0.0D, rawMax(v));
         double requested = before + ironDelta * ratio;
         double after = Math.max(0.0D, Math.min(max, requested));
         if (Math.abs(after - before) > 1.0e-7D) {
-            write(s.currentMp(), v, after);
-            try {
-                s.sync().invoke(v, player);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("SLR player mana sync failed", e);
-            }
+            writeRawCurrent(v, after);
+            syncRaw(v, player);
         }
         return after;
     }
@@ -97,6 +101,30 @@ public final class SlrAccess {
             state().cooldownSet().invoke(null, player, "mana_refresh", ticks);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("SLR mana_refresh cooldown could not be applied", e);
+        }
+    }
+
+    static double rawCurrent(Object variables) {
+        if (variables == null) return 0.0D;
+        return read(state().currentMp(), variables);
+    }
+
+    static double rawMax(Object variables) {
+        if (variables == null) return 0.0D;
+        return read(state().maxMp(), variables);
+    }
+
+    static void writeRawCurrent(Object variables, double value) {
+        if (variables == null || !Double.isFinite(value)) return;
+        write(state().currentMp(), variables, value);
+    }
+
+    static void syncRaw(Object variables, ServerPlayer player) {
+        if (variables == null || player == null) return;
+        try {
+            state().sync().invoke(variables, player);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("SLR player mana sync failed", e);
         }
     }
 

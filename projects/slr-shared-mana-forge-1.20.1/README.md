@@ -1,46 +1,56 @@
-# SLR Shared Mana - Forge 1.20.1
+# SLR Shared Mana — Forge 1.20.1
 
-A clean Forge 1.20.1 shared-mana bridge for **Solo Leveling: Reawakening (SLR)** and **Iron's Spells 'n Spellbooks**, built to coexist with **Iron's Botany 2.0.1** without adding a competing mana router.
+Clean-room mana compatibility bridge for **Solo Leveling: Reawakening (SLR)** and **Iron's Spells 'n Spellbooks**, designed to coexist with **Iron's Botany 2.0.1**.
 
-## Install
+## Modes
 
-Drop `SLR-Shared-Mana-Forge-1.20.1-1.0.0.jar` into the same `mods` folder as:
+The common config is `config/slr-shared-mana.toml`.
 
-- Solo Leveling: Reawakening (SLR) 1.20.1
-- Iron's Spells 'n Spellbooks 1.20.1 (tested with 3.16.3)
-- Iron's Botany 2.0.1 when you want Botania/ISS routing
-- Iron's Botany's normal dependencies (Botania, Curios, Patchouli, Iron's Lib, etc.)
+### Classic shared pool — default
 
-Forge target: **1.20.1-47.4.23**. Java target: **17**.
+```toml
+[shared_mana]
+enabled = true
+separatePoolsBorrowFromIron = false
+```
 
-## What it does
+This is the original v1.0 behavior and remains the default:
 
-- **SLR MP is the authoritative pool.**
-- Iron mana reads resolve from SLR MP on demand at the configured ratio (default `10 SLR MP = 1 Iron mana`).
-- Iron mana spends debit SLR MP exactly once and start SLR's native `mana_refresh` cooldown.
-- Intentional positive Iron mana grants can credit SLR MP, which lets Iron's Botany `ISS_PRIMARY` feed the shared pool.
-- Native ISS passive regen is suppressed while sharing is active so SLR regen/cooldown rules stay authoritative.
-- Iron's mana HUD is hidden by default; SLR's MP HUD remains the one visible source of truth.
-- `/slrmana status` reports SLR MP, Iron-equivalent mana, ratio, and detected Iron's Botany mode.
+- SLR `MP` is authoritative.
+- Iron mana reads/spends resolve from SLR MP on demand; there is **no player-tick mirror**.
+- Iron mana writes reuse ISS's own cancellable `ChangeManaEvent`, then apply the accepted delta to SLR exactly once.
+- Native ISS passive mana regeneration is disabled while sharing is active; SLR regeneration remains authoritative.
+- Intentional positive ISS mana changes can feed SLR MP, preserving Iron's Botany `ISS_PRIMARY`/bidirectional behavior.
+- Iron's mana HUD is hidden by default so SLR is the single visible pool.
 
-## Iron's Botany modes
+### Separate pools + emergency SLR borrowing — opt in
 
-Iron's Botany remains the routing authority; use its own `manaUnificationMode` config. This bridge supports the full mode set without creating a duplicate selector:
+```toml
+[shared_mana]
+enabled = true
+separatePoolsBorrowFromIron = true
+```
 
-| Mode | Shared Mana behavior |
-|---|---|
-| `HYBRID` | Botany's combined behavior; the ISS side is backed by SLR MP. |
-| `BOTANIA_PRIMARY` | Botany can pay the cast from Botania; a zeroed ISS debit means SLR is not double-charged. |
-| `ISS_PRIMARY` | Botany's positive ISS credits become SLR MP. |
-| `SEPARATE` | Botania remains separate; the ISS side is still backed by SLR MP. |
-| `DISABLED` | Botany stops routing; SLR <-> ISS sharing itself remains active. |
+In this mode:
 
-## Config
+- SLR keeps its own native MP, regen, rewards, potions, resets and HUD.
+- Iron keeps its own native mana, regen, `ChangeManaEvent`, max-mana rules and HUD.
+- An SLR skill spends SLR MP first.
+- Only if that real SLR spend is short does the missing amount come from Iron, using `slrMpPerIronMana`.
+- No mana moves while idle. There is no tick poll, mirror map, nearby scan or passive drain.
+- Positive SLR gains stay SLR-only; they never credit Iron.
+- The bytecode bridge is intentionally restricted to verified SLR spend paths plus the Spirit Bow's pre-use affordability gate. SLR regen/reward/reset/HUD code is not virtualized.
 
-Forge generates `config/slr-shared-mana.toml`. A fully commented example is included as `slr-shared-mana-example.toml`.
+Set `enabled = false` to disable both bridge modes.
 
-The default config intentionally has **no second Botany mode switch**. Duplicating Iron's Botany's router would create conflicting state; the comments instead document exactly how each Botany mode behaves with the SLR-backed ISS pool.
+## Iron's Botany
+
+This mod does **not** add a second competing Botania router. In classic shared mode Iron's Botany retains ownership of its normal `manaUnificationMode`. In separate-pools mode Iron's side stays native, and SLR only borrows an actual spending deficit.
+
+## Command
+
+`/slrmana status` reports the active mode, SLR MP, Iron mana, ratio and detected Iron's Botany mode. In separate mode the Iron number is the actual native Iron pool.
 
 ## Performance design
 
-There is no player-tick mana mirror, no world/entity scan, no nearby-block search, and no scheduled synchronization loop in this mod. The bridge runs only on actual ISS mana reads/writes/regen attempts plus normal one-time lifecycle setup. See `evidence/final-performance-audit.txt`.
+The bridge is event/call driven. It does not run a new per-player tick loop. Owner binding occurs on login, respawn and dimension changes and is held with weak references; selected SLR mana field accesses are transformed once at class load.

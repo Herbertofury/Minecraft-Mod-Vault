@@ -21,7 +21,7 @@ public abstract class MagicDataMixin {
 
     @Inject(method = "getMana()F", at = @At("HEAD"), cancellable = true, remap = false)
     private void slr$authoritativeMana(CallbackInfoReturnable<Float> cir) {
-        if (!BridgeConfig.ENABLED.get() || serverPlayer == null) return;
+        if (!BridgeConfig.classicSharedMode() || serverPlayer == null) return;
         float value = (float) SlrAccess.ironEquivalent(serverPlayer);
         this.mana = value;
         cir.setReturnValue(value);
@@ -29,7 +29,7 @@ public abstract class MagicDataMixin {
 
     @Inject(method = "setMana(F)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void slr$routeManaChange(float requestedMana, CallbackInfo ci) {
-        if (!BridgeConfig.ENABLED.get() || serverPlayer == null) return;
+        if (!BridgeConfig.classicSharedMode() || serverPlayer == null) return;
         try {
             float before = (float) SlrAccess.ironEquivalent(serverPlayer);
             float accepted = IssManaEventBridge.resolve(serverPlayer, this, before, requestedMana);

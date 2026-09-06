@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MagicDataClientMixin {
     @Inject(method = "getMana()F", at = @At("HEAD"), cancellable = true, remap = false)
     private void slr$clientMana(CallbackInfoReturnable<Float> cir) {
-        if (!BridgeConfig.ENABLED.get()) return;
+        if (!BridgeConfig.classicSharedMode()) return;
         Float value = ClientManaView.getFor(this);
         if (value != null) cir.setReturnValue(value);
     }

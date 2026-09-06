@@ -1,51 +1,48 @@
-# SLR Shared Mana - Forge 1.20.1 v1.0.0 - Verified Checkpoint
+# SLR Shared Mana — v1.1.0 checkpoint
 
-## Objective
-Forge 1.20.1 downport/rebuild of SLR + Iron's Shared Mana with SLR MP authoritative, low-overhead ISS integration, polished configuration, and first-class Iron's Botany 2.0.1 compatibility.
+## Objective restored and completed
 
-## Canonical local workspace
-- Project: /mnt/data/slr_shared_mana_1201/project
-- Repository state: not-a-git-repository
-- Minecraft: 1.20.1
-- Forge: 47.4.23
-- Java: Temurin 17.0.20.1+1
-- Gradle: 8.8
+Add a second mana behavior as an explicit opt-in while preserving v1.0.0 as the default:
 
-## Final artifacts
-- SLR-Shared-Mana-Forge-1.20.1-1.0.0.jar | 25347 bytes | SHA-256 b50427c4b0204aa7dce3535c643fb60c6f99d927eb55d4778f0c889744365a13
-- SLR-Shared-Mana-Forge-1.20.1-1.0.0-sources.jar | 12428 bytes | SHA-256 07c011a9a62da1cde98858df9b600df0b41765ee265e2df2f72d8b16176f3a35
-- SLR-Shared-Mana-Forge-1.20.1-1.0.0-RELEASE.zip | 268687 bytes | SHA-256 0a6726ccb8792458a9ecebbb8711f057e8d91b295da64685900784fe74382d8d
-- SLR-Shared-Mana-Forge-1.20.1-1.0.0-SOURCE.zip | 16869 bytes | SHA-256 41d457f42acd23d7c17d19b617619b349906b8ac0400d07cc5b0fd20ef2e32cc
+- **Default ON:** classic shared SLR-authoritative mana (`enabled=true`).
+- **Default OFF:** separate native pools with SLR emergency borrowing (`separatePoolsBorrowFromIron=false`).
 
-## Architecture accepted
-- SLR MP is authoritative; default conversion is 10 SLR MP = 1 Iron mana.
-- ISS reads/writes translate on demand; no continuous player/world mana mirror.
-- ISS passive regen is suppressed while sharing is active so SLR's native regen/cooldown owns regeneration.
-- Positive ISS mana credits are translated into SLR MP so Iron's Botany ISS_PRIMARY-style grants remain functional.
-- Iron's Botany is the routing authority; this bridge does not create a competing unification-mode state machine.
-- Client reports shared mana through ISS while hiding the redundant Iron mana HUD.
-- /slrmana status exposes live SLR MP, Iron-equivalent mana, ratio, and detected Botany mode.
+## Separate-pools behavior
 
-## Iron's Botany compatibility
-Iron's Botany 2.0.1 modes inventoried exhaustively: BOTANIA_PRIMARY, ISS_PRIMARY, HYBRID, SEPARATE, DISABLED.
-- HYBRID: real dedicated-server, restart, and native integrated-client proof.
-- SEPARATE: independent detached real dedicated-server proof with bridge receipt mode=SEPARATE.
-- BOTANIA_PRIMARY / ISS_PRIMARY / DISABLED: exhaustive router-neutral audit proves bridge primitives do not branch on or overwrite Botany mode; zero-delta debits and positive credits preserve Botany semantics.
+When `separatePoolsBorrowFromIron=true`:
 
-## Runtime proof
-- Clean offline Forge build: BUILD SUCCESSFUL in 24s.
-- Dedicated server HYBRID: Done (52.491s)! with bridge receipt.
-- Restart same save/config: Done (10.354s)! with bridge receipt and all dimensions saved.
-- Native Forge client/integrated server: player joined; /slrmana status reported SLR 1000/1000 MP, Iron 100 mana, ratio 10:1, Botany HYBRID; SLR MP HUD visible and separate Iron mana bar absent; clean save/quit; BUILD SUCCESSFUL.
-- Dedicated server SEPARATE: Done (10.248s)! plus bridge receipt mode=SEPARATE; all dimensions saved.
-- Fresh release extraction: both ZIPs pass archive test and all SHA256SUMS entries validate.
-- Production-linkage audit: PASS against untouched production SLR 1.2.0, ISS 3.16.3, and Iron's Botany 2.0.1 JARs.
+- SLR MP remains native, including native regen, rewards, potions, resets and HUD.
+- Iron mana remains native, including regen, events, caps and HUD.
+- SLR spend paths consume SLR MP first.
+- Only the actual shortage is debited from Iron, using `slrMpPerIronMana`.
+- No idle transfer, mirror, player-tick polling or nearby scan exists.
+- Positive SLR gains remain SLR-only.
+- Iron debit uses Iron's native mana setter and native client mana sync.
 
-## Performance proof
-Static hot-path audit found no TickEvent/PlayerTick/ServerTick/LevelTick subscriber, no level.players() scan, no entity/AABB scan, and no scheduled synchronization loop. Reflection metadata is resolved once and cached. Result: effectively zero idle overhead by design; runtime work is demand-driven by actual mana/config/client events.
+## Coremod scope
 
-## Known QA-environment limitation
-A second installer-style packaged `forgeserver` launch of the reobfuscated JAR could not be constructed in this sandbox because the cached Forge userdev environment lacks the installer-generated server/server-extra Maven tree, and the sandbox cannot resolve maven.minecraftforge.net. This does not invalidate the green real dedicated-server/restart/native-client gates from the final source; the final reobfuscated artifact separately passed production-linkage audit.
+- 43 verified SLR mana-spend classes.
+- 1 read-only Spirit Bow pre-use affordability gate.
+- 44 unique transformer definitions total.
+- Regen/reward/reset/potion/HUD and `GuildBuffManager` are intentionally excluded.
+- Non-spending reserve checks such as Goliath manifestation are intentionally excluded.
 
-## Exact next action
-Release is complete. Install SLR-Shared-Mana-Forge-1.20.1-1.0.0.jar in the Forge 1.20.1 pack alongside SLR, Iron's Spells 'n Spellbooks, and optionally Iron's Botany 2.0.1. No further implementation action is pending.
+## Final validation
+
+- Acceptance matrix: GREEN.
+- Java 17 compile: GREEN.
+- Forge 47.4.23 production reobf: GREEN, 0 missing-class errors.
+- JAR integrity: GREEN.
+- Production SRG linkage: GREEN.
+- Packaged Nashorn + ASM coremod harness: GREEN (43 full + 1 read-only).
+- Default/classic regression gates: GREEN.
+- Final challenge pass fixed native Iron HUD synchronization after fallback debits.
+
+## Final binary
+
+- File: `SLR-Shared-Mana-Forge-1.20.1-1.1.0.jar`
+- SHA-256: `d8baab5056e01bd88dd4f7d3b306317a98476cf4d937faecf9252d9a5e4b08bb`
+
+## Known validation boundary
+
+The exact production SLR/ISS runtime JAR pair was unavailable in this environment for a fresh client/server launch, so no fresh full-game runtime claim is made for this checkpoint. See `QA-REPORT.md` and `evidence/` for the completed deterministic gates.
