@@ -7,6 +7,7 @@ on:
       - perf/faunaandorchestra-3.0.3-native-profiler
     paths:
       - '.ci/faunaandorchestra_3_0_3_native_perf_qa.py'
+      - '.ci/faunaandorchestra_3_0_3_native_perf_qa_v2.py'
       - '.github/workflows/faunaandorchestra-3.0.3-native-profile.yml'
 
 permissions:
@@ -71,7 +72,7 @@ jobs:
           cd fauna
           git diff --check
           cd ..
-          python3 .ci/faunaandorchestra_3_0_3_native_perf_qa.py fauna
+          python3 .ci/faunaandorchestra_3_0_3_native_perf_qa_v2.py fauna
 
       - name: Compile native QA source
         working-directory: fauna
@@ -130,7 +131,7 @@ jobs:
           })
           req = urllib.request.Request(
               'https://api.modrinth.com/v2/project/spark/version?' + params,
-              headers={'User-Agent': 'Minecraft-Mod-Vault-Fauna-Perf-QA/1.0'}
+              headers={'User-Agent': 'Minecraft-Mod-Vault-Fauna-Perf-QA/2.0'}
           )
           with urllib.request.urlopen(req, timeout=30) as r:
               versions = json.load(r)
@@ -142,7 +143,7 @@ jobs:
           if not chosen:
               raise SystemExit('Spark version has no downloadable file')
           out = pathlib.Path('fauna/run/mods') / chosen['filename']
-          req2 = urllib.request.Request(chosen['url'], headers={'User-Agent': 'Minecraft-Mod-Vault-Fauna-Perf-QA/1.0'})
+          req2 = urllib.request.Request(chosen['url'], headers={'User-Agent': 'Minecraft-Mod-Vault-Fauna-Perf-QA/2.0'})
           with urllib.request.urlopen(req2, timeout=60) as r:
               data = r.read()
           out.write_bytes(data)
@@ -162,14 +163,14 @@ jobs:
           print(json.dumps(meta, indent=2))
           PY
 
-      - name: Launch real Forge client and capture active scene profile
+      - name: Launch real Forge client and capture Spark plus JFR profile
         shell: bash
         run: |
           set -euxo pipefail
           export DISPLAY=:99
           export LIBGL_ALWAYS_SOFTWARE=1
           export ALSOFT_DRIVERS=null
-          export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dfauna.perfQa=true -Djava.awt.headless=false"
+          export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dfauna.perfQa=true -Dspark.backgroundProfiler=false -Djava.awt.headless=false"
           Xvfb "$DISPLAY" -screen 0 1280x720x24 -nolisten tcp > xvfb.log 2>&1 &
           xvfb_pid=$!
           sleep 2
@@ -198,7 +199,28 @@ jobs:
             exit 1
           fi
 
+          sleep 4
           ffmpeg -hide_banner -loglevel error -y -f x11grab -draw_mouse 0 -video_size 1280x720 -i "$DISPLAY.0" -frames:v 1 native-scene.png
+          xdotool search --name 'Minecraft' | tee minecraft-window-ids.txt || true
+          window_id="$(xdotool search --onlyvisible --name 'Minecraft' 2>/dev/null | head -n1 || true)"
+          if [ -z "$window_id" ]; then
+            window_id="$(xdotool search --name 'Minecraft' 2>/dev/null | head -n1 || true)"
+          fi
+          spark_client_started=0
+          if [ -n "$window_id" ]; then
+            echo "$window_id" | tee minecraft-window.id
+            xdotool windowfocus --sync "$window_id" || true
+            sleep 1
+            xdotool key --window "$window_id" t
+            sleep 1
+            xdotool type --window "$window_id" --delay 2 '/sparkc profiler start --thread * --force-java-sampler'
+            xdotool key --window "$window_id" Return
+            spark_client_started=1
+            echo 'sparkc profiler start submitted' | tee spark-client-command-status.txt
+          else
+            echo 'Minecraft window not resolved; JFR remains authoritative' | tee spark-client-command-status.txt
+          fi
+
           jcmd -l | tee jcmd-list.txt
           client_pid=''
           for pid in $(jcmd -l | awk '{print $1}'); do
@@ -218,14 +240,23 @@ jobs:
           echo "$client_pid" | tee client-jvm.pid
           jcmd "$client_pid" VM.version | tee jvm-version.txt
           jcmd "$client_pid" JFR.start name=FaunaFrontier settings=profile duration=45s filename="$(pwd)/fauna-frontier.jfr" | tee jfr-start.txt
-          sleep 55
+          sleep 50
           test -s fauna-frontier.jfr
+
+          if [ "$spark_client_started" -eq 1 ]; then
+            xdotool windowfocus --sync "$window_id" || true
+            xdotool key --window "$window_id" t
+            sleep 1
+            xdotool type --window "$window_id" --delay 2 '/sparkc profiler stop --save-to-file'
+            xdotool key --window "$window_id" Return
+            echo 'sparkc profiler stop --save-to-file submitted' >> spark-client-command-status.txt
+            sleep 10
+          fi
+
           jfr summary fauna-frontier.jfr | tee jfr-summary.txt
           jfr print --json --events jdk.ExecutionSample fauna-frontier.jfr > jfr-execution-samples.json
           jfr print --json --events jdk.ObjectAllocationSample fauna-frontier.jfr > jfr-allocation-samples.json || true
           ffmpeg -hide_banner -loglevel error -y -f x11grab -draw_mouse 0 -video_size 1280x720 -i "$DISPLAY.0" -frames:v 1 native-scene-after-profile.png
-
-          # Spark runs from inside the integrated server via the QA harness. Preserve any profile it emitted.
           find fauna/run -type f \( -name '*.sparkprofile' -o -name '*.sparkprofile.gz' \) -print | tee spark-profile-files.txt
 
           kill -TERM "$client_pid" 2>/dev/null || true
@@ -245,8 +276,6 @@ jobs:
           python3 - <<'PY'
           import collections, json, pathlib
 
-          MOD_PREFIX = 'net.migueel26.faunaandorchestra'
-
           def load(path):
               p = pathlib.Path(path)
               if not p.exists() or p.stat().st_size == 0:
@@ -263,9 +292,11 @@ jobs:
           def method_name(frame):
               method = frame.get('method') or {}
               typ = method.get('type') or {}
-              cls = typ.get('name') or typ.get('className') or ''
-              name = method.get('name') or ''
-              return cls, name
+              cls = str(typ.get('name') or typ.get('className') or '').replace('/', '.')
+              return cls, method.get('name') or ''
+
+          def is_mod(cls):
+              return cls.startswith('net.migueel26.faunaandorchestra')
 
           exec_events = load('jfr-execution-samples.json')
           inclusive = collections.Counter()
@@ -275,28 +306,24 @@ jobs:
           mod_samples = 0
           for ev in exec_events:
               vals = ev.get('values') or ev
-              st = vals.get('stackTrace') or {}
-              frames = st.get('frames') or []
+              frames = (vals.get('stackTrace') or {}).get('frames') or []
               if not frames:
                   continue
               total += 1
               thread = vals.get('sampledThread') or vals.get('eventThread') or {}
               tname = thread.get('javaName') or thread.get('osName') or thread.get('name') or 'unknown'
-              seen_mod = False
               first_mod = None
               for fr in frames:
                   cls, name = method_name(fr)
-                  if cls.startswith(MOD_PREFIX):
+                  if is_mod(cls):
                       key = f'{cls}.{name}'
                       inclusive[key] += 1
-                      seen_mod = True
                       if first_mod is None:
                           first_mod = key
-              if seen_mod:
+              if first_mod:
                   mod_samples += 1
                   by_thread[tname] += 1
-                  if first_mod:
-                      leaf[first_mod] += 1
+                  leaf[first_mod] += 1
 
           alloc_events = load('jfr-allocation-samples.json')
           alloc_by_site = collections.Counter()
@@ -308,14 +335,12 @@ jobs:
               try: weight = int(weight)
               except Exception: weight = 1
               cls_obj = vals.get('objectClass') or {}
-              cname = cls_obj.get('name') or str(cls_obj)
+              cname = cls_obj.get('name') if isinstance(cls_obj, dict) else str(cls_obj)
               if cname:
-                  alloc_by_class[cname] += weight
-              st = vals.get('stackTrace') or {}
-              frames = st.get('frames') or []
-              for fr in frames:
+                  alloc_by_class[str(cname).replace('/', '.')] += weight
+              for fr in (vals.get('stackTrace') or {}).get('frames') or []:
                   cls, name = method_name(fr)
-                  if cls.startswith(MOD_PREFIX):
+                  if is_mod(cls):
                       alloc_by_site[f'{cls}.{name}'] += weight
                       alloc_weight += weight
                       break
@@ -348,7 +373,8 @@ jobs:
             client.log server-bootstrap.log spark-version.json native-scene.png native-scene-after-profile.png \
             fauna-frontier.jfr jfr-summary.txt jfr-start.txt jcmd-list.txt client-jvm.pid jvm-version.txt \
             FAUNA-NATIVE-PROFILE-REPORT.json fauna-perf-qa-markers.txt native-relevant-log.txt \
-            spark-profile-files.txt native-profile-SHA256SUMS.txt xvfb.log process-tree.txt; do
+            spark-profile-files.txt spark-client-command-status.txt minecraft-window-ids.txt minecraft-window.id \
+            native-profile-SHA256SUMS.txt xvfb.log process-tree.txt; do
             [ ! -e "$f" ] || cp "$f" native-profile-out/
           done
           [ ! -e fauna/run/logs/latest.log ] || cp fauna/run/logs/latest.log native-profile-out/minecraft-latest.log
@@ -361,7 +387,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: faunaandorchestra-3.0.3-native-profile
+          name: faunaandorchestra-3.0.3-native-profile-v2
           path: native-profile-out/
           if-no-files-found: error
           retention-days: 30
