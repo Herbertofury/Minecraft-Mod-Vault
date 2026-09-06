@@ -35,3 +35,15 @@ if "serverProfilerAttempted" in text or "SERVER_SPARK_COMMAND" in text:
     raise SystemExit("server Spark profiling remnants remain")
 path.write_text(text, encoding="utf-8", newline="\n")
 print(path)
+
+ci_path = root / "src/main/java/net/migueel26/faunaandorchestra/event/CITestHandler.java"
+ci_text = ci_path.read_text(encoding="utf-8")
+ci_old = '        if (System.getenv("CI") != null) {\n'
+ci_new = '        if (System.getenv("CI") != null && !Boolean.getBoolean("fauna.perfQa")) {\n'
+if ci_text.count(ci_old) != 1:
+    raise SystemExit("CITestHandler CI guard shape changed unexpectedly")
+ci_text = ci_text.replace(ci_old, ci_new, 1)
+if ci_text.count('!Boolean.getBoolean("fauna.perfQa")') != 1:
+    raise SystemExit("native perf QA CI bypass was not applied exactly once")
+ci_path.write_text(ci_text, encoding="utf-8", newline="\n")
+print(ci_path)
