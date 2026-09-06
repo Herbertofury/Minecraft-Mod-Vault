@@ -58,6 +58,16 @@ jobs:
           python3 .ci/malum/apply-entity-data-serializer-bridge.py "$PORT/src/main/java"
           python3 .ci/malum/apply-synched-entity-data-bridge.py "$PORT/src/main/java"
           python3 .ci/malum/apply-core120-api-bridges.py "$PORT/src/main/java"
+          python3 .ci/malum/apply-particle120-network-bridge.py "$PORT/src/main/java"
+          python3 .ci/malum/apply-recipe120-foundation.py "$PORT/src/main/java"
+
+          # Preserve the exact generated post-bridge source so subsequent compiler fixes
+          # can be made locally against the authoritative tree instead of re-reading files
+          # one at a time through the connector.
+          tar -czf "$REPORT_DIR/port-source.tar.gz" \
+            -C "$PORT" \
+            src/main/java src/main/resources build.gradle gradle.properties
+
           set +e
           (
             cd "$PORT"
