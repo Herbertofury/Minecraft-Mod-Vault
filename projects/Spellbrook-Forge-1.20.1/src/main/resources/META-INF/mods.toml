@@ -1,0 +1,32 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="Code: MIT; Spellbrook art/audio assets: permission-bound, see NOTICE-SPELLBROOK.md"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Bert"
+credits="Original Spellbrook broom art/audio and design: Levah, Crocwise, Team Spellbrook / Spellbrook Ltd. (used with permission). Optional Hexerei integration: JoeFoxe / Hexerei."
+description='''Standalone Spellbrook broom flight, storage, customization and core-crystal systems with optional native Hexerei broom integration.'''
+
+[[dependencies.${mod_id}]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="hexerei"
+mandatory=false
+versionRange="[0.4.2.3,)"
+ordering="AFTER"
+side="BOTH"
