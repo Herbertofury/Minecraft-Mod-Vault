@@ -54,9 +54,11 @@ if p.is_file():
     if new != old:
         p.write_text(new, encoding='utf-8')
 
-# Lodestone 1.20 block entities expose InteractionResult onUse(Player, InteractionHand).
-# Convert only BlockEntity source files that actually contain the 1.21 ItemInteractionResult
-# API; ordinary Block.useItemOn implementations are deliberately untouched.
+# Lodestone 1.20 block entities expose InteractionResult. Released Malum's old Forge
+# owners prove the direct semantic mapping for CONSUME and FAIL as well as SUCCESS/PASS:
+# client-side consumption remains CONSUME and rejected inventory actions remain FAIL.
+# Convert only BlockEntity source files; ordinary Block.useItemOn implementations are
+# deliberately untouched.
 changed = 0
 unknown = []
 for p in (root / 'com/sammy/malum/common/block').rglob('*BlockEntity.java'):
@@ -64,7 +66,7 @@ for p in (root / 'com/sammy/malum/common/block').rglob('*BlockEntity.java'):
     if 'ItemInteractionResult' not in text and 'ItemAbilities.AXE_STRIP' not in text:
         continue
     old = text
-    for bad in ('ItemInteractionResult.FAIL', 'ItemInteractionResult.CONSUME', 'ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION'):
+    for bad in ('ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION',):
         if bad in text:
             unknown.append(f'{p}: {bad}')
     pattern = re.compile(
@@ -77,6 +79,8 @@ for p in (root / 'com/sammy/malum/common/block').rglob('*BlockEntity.java'):
     text = pattern.sub(repl, text)
     text = text.replace('ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION', 'InteractionResult.PASS')
     text = text.replace('ItemInteractionResult.SUCCESS', 'InteractionResult.SUCCESS')
+    text = text.replace('ItemInteractionResult.CONSUME', 'InteractionResult.CONSUME')
+    text = text.replace('ItemInteractionResult.FAIL', 'InteractionResult.FAIL')
     text = re.sub(r'\bItemInteractionResult\b', 'InteractionResult', text)
     text = re.sub(
         r'super\.onUseWithItem\((\w+),\s*\w+,\s*(\w+)\)',
