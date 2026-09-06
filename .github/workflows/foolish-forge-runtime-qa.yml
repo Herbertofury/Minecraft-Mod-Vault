@@ -1,0 +1,50 @@
+name: Foolish Forge Production Runtime QA
+
+on:
+  push:
+    branches:
+      - qa/foolish-forge-runtime-20260906
+
+permissions:
+  contents: read
+
+jobs:
+  build-forge-server-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download verified Forge installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output forge-installer.jar \
+            https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar
+          echo 'ed31ce02ac69176f34353235cb2508d5a0f1e088  forge-installer.jar' | sha1sum -c -
+
+      - name: Install production Forge server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p forge-server
+          cd forge-server
+          java -jar ../forge-installer.jar --installServer
+          test -f libraries/net/minecraftforge/forge/1.20.1-47.4.23/unix_args.txt
+          test -f libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-server.jar
+          test -f run.sh
+          printf 'Installed Forge production server runtime files: '
+          find . -type f | wc -l
+
+      - name: Upload production runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-production-runtime
+          path: forge-server/
+          if-no-files-found: error
+          compression-level: 1
+          retention-days: 1
