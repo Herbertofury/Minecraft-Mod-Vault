@@ -74,8 +74,12 @@ text = text.replace(
     """    public int getTicksUntilDeath() {\n        return ticksUntilDeath;\n    }\n\n    public void setTicksUntilDeath(int ticks) {\n        this.ticksUntilDeath = ticks;\n    }\n""",
     1,
 )
-if "TICKS_UNTIL_DEATH" in text or "EntityDataAccessor" in text or "EntityDataSerializers" in text:
-    raise RuntimeError(f"{rel}: synced countdown remnants remain")
+remnants = [
+    line.strip() for line in text.splitlines()
+    if "TICKS_UNTIL_DEATH" in line or "EntityDataAccessor" in line or "EntityDataSerializers" in line
+]
+if remnants:
+    raise RuntimeError(f"{rel}: synced countdown remnants remain: {remnants}")
 write(rel, text)
 NOTES.append("LivingMusicEntity countdown is now ordinary persisted state instead of dirtying SynchedEntityData every server tick; lifetime/trap timing is unchanged.")
 
