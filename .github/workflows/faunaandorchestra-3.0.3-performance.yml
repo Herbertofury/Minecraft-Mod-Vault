@@ -6,6 +6,7 @@ on:
       - build/faunaandorchestra-3.0.3-performance
     paths:
       - '.ci/faunaandorchestra_3_0_3_performance_patch.py'
+      - '.ci/faunaandorchestra_3_0_3_performance_patch_v2.py'
       - '.github/workflows/faunaandorchestra-3.0.3-performance.yml'
   workflow_dispatch:
 
@@ -41,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          python3 .ci/faunaandorchestra_3_0_3_performance_patch.py fauna | tee performance-patch-output.txt
+          python3 .ci/faunaandorchestra_3_0_3_performance_patch_v2.py fauna | tee performance-patch-output.txt
           cd fauna
           git diff --check
           git diff --stat
