@@ -1,0 +1,402 @@
+name: Fauna & Orchestra 3.0.3 native performance profile v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - perf/faunaandorchestra-3.0.3-native-profiler
+    paths:
+      - '.ci/faunaandorchestra_3_0_3_native_perf_qa.py'
+      - '.ci/faunaandorchestra_3_0_3_native_perf_qa_v2.py'
+      - '.github/workflows/faunaandorchestra-3.0.3-native-profile-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout profiling harness
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install native client runtime dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xdotool ffmpeg libgl1-mesa-dri libgl1 libopenal1 \
+            libxrandr2 libxi6 libxinerama1 libxcursor1 libxxf86vm1
+
+      - name: Checkout exact upstream and apply verified extreme optimization
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git init fauna
+          cd fauna
+          git remote add origin https://github.com/migueel26/Fauna-And-Orchestra.git
+          git fetch --depth=1 origin 131bdcbf76aec07267d68a57185bb103669af83e
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "131bdcbf76aec07267d68a57185bb103669af83e"
+          cd ..
+          python3 .ci/faunaandorchestra_3_0_3_performance_patch_v2.py fauna > first-pass-output.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.ci/faunaandorchestra_3_0_3_extreme_patch.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''remnants = [
+              line.strip() for line in text.splitlines()
+              if "TICKS_UNTIL_DEATH" in line or "EntityDataAccessor" in line or "EntityDataSerializers" in line
+          ]'''
+          new = '''remnants = [
+              line.strip() for line in text.splitlines()
+              if "EntityDataAccessor<Integer> TICKS_UNTIL_DEATH" in line
+              or "entityData.define(TICKS_UNTIL_DEATH" in line
+              or "entityData.get(TICKS_UNTIL_DEATH" in line
+              or "entityData.set(TICKS_UNTIL_DEATH" in line
+          ]'''
+          if s.count(old) != 1:
+              raise SystemExit('extreme patch guard shape changed unexpectedly')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+          python3 .ci/faunaandorchestra_3_0_3_extreme_patch.py fauna > extreme-patch-output.txt
+          python3 .ci/faunaandorchestra_3_0_3_extreme_safe_wave.py fauna > safe-wave-output.txt
+          cd fauna
+          git diff --check
+          cd ..
+          python3 .ci/faunaandorchestra_3_0_3_native_perf_qa_v2.py fauna
+
+      - name: Compile native QA source
+        working-directory: fauna
+        shell: bash
+        run: |
+          set -euxo pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon classes --stacktrace
+
+      - name: Create disposable deterministic QA world
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd fauna
+          rm -rf run/world run/saves/QA-World
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          rm -f run/server.in
+          mkfifo run/server.in
+          (cat run/server.in | ./gradlew --no-daemon runServer) > ../server-bootstrap.log 2>&1 &
+          wrapper=$!
+          ready=0
+          for i in $(seq 1 180); do
+            if grep -q 'Done (' run/logs/latest.log 2>/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$wrapper" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            tail -n 300 run/logs/latest.log 2>/dev/null || true
+            tail -n 300 ../server-bootstrap.log || true
+            exit 1
+          fi
+          printf 'stop\n' > run/server.in
+          wait "$wrapper" || true
+          rm -f run/server.in
+          test -s run/world/level.dat
+          mkdir -p run/saves
+          cp -a run/world run/saves/QA-World
+          test -s run/saves/QA-World/level.dat
+
+      - name: Install current Forge 1.20.1 Spark
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p fauna/run/mods
+          python3 - <<'PY'
+          import hashlib, json, pathlib, urllib.parse, urllib.request
+          params = urllib.parse.urlencode({
+              'loaders': json.dumps(['forge']),
+              'game_versions': json.dumps(['1.20.1']),
+          })
+          req = urllib.request.Request(
+              'https://api.modrinth.com/v2/project/spark/version?' + params,
+              headers={'User-Agent': 'Minecraft-Mod-Vault-Fauna-Perf-QA/2.0'}
+          )
+          with urllib.request.urlopen(req, timeout=30) as r:
+              versions = json.load(r)
+          if not versions:
+              raise SystemExit('No Forge 1.20.1 Spark version found')
+          version = versions[0]
+          files = version.get('files') or []
+          chosen = next((f for f in files if f.get('primary')), files[0] if files else None)
+          if not chosen:
+              raise SystemExit('Spark version has no downloadable file')
+          out = pathlib.Path('fauna/run/mods') / chosen['filename']
+          req2 = urllib.request.Request(chosen['url'], headers={'User-Agent': 'Minecraft-Mod-Vault-Fauna-Perf-QA/2.0'})
+          with urllib.request.urlopen(req2, timeout=60) as r:
+              data = r.read()
+          out.write_bytes(data)
+          got = hashlib.sha512(data).hexdigest()
+          expected = (chosen.get('hashes') or {}).get('sha512')
+          if expected and got.lower() != expected.lower():
+              raise SystemExit('Spark SHA-512 mismatch')
+          meta = {
+              'version_id': version['id'],
+              'version_number': version.get('version_number'),
+              'date_published': version.get('date_published'),
+              'filename': chosen['filename'],
+              'url': chosen['url'],
+              'sha512': got,
+          }
+          pathlib.Path('spark-version.json').write_text(json.dumps(meta, indent=2) + '\n')
+          print(json.dumps(meta, indent=2))
+          PY
+
+      - name: Launch real Forge client and capture Spark plus JFR profile
+        shell: bash
+        run: |
+          set -euxo pipefail
+          export DISPLAY=:99
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export ALSOFT_DRIVERS=null
+          export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dfauna.perfQa=true -Dspark.backgroundProfiler=false -Djava.awt.headless=false"
+          Xvfb "$DISPLAY" -screen 0 1280x720x24 -nolisten tcp > xvfb.log 2>&1 &
+          xvfb_pid=$!
+          sleep 2
+
+          cd fauna
+          ./gradlew --no-daemon runClient --args='--width 1280 --height 720 --quickPlaySingleplayer QA-World' > ../client.log 2>&1 &
+          wrapper=$!
+          cd ..
+
+          scene=0
+          for i in $(seq 1 300); do
+            if grep -q '\[FAUNA-PERF-QA\] SCENE_READY' fauna/run/logs/latest.log 2>/dev/null; then
+              scene=1
+              break
+            fi
+            if ! kill -0 "$wrapper" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$scene" -ne 1 ]; then
+            tail -n 400 fauna/run/logs/latest.log 2>/dev/null || true
+            tail -n 400 client.log || true
+            kill -TERM "$wrapper" 2>/dev/null || true
+            kill -TERM "$xvfb_pid" 2>/dev/null || true
+            exit 1
+          fi
+
+          sleep 4
+          ffmpeg -hide_banner -loglevel error -y -f x11grab -draw_mouse 0 -video_size 1280x720 -i "$DISPLAY.0" -frames:v 1 native-scene.png
+          xdotool search --name 'Minecraft' | tee minecraft-window-ids.txt || true
+          window_id="$(xdotool search --onlyvisible --name 'Minecraft' 2>/dev/null | head -n1 || true)"
+          if [ -z "$window_id" ]; then
+            window_id="$(xdotool search --name 'Minecraft' 2>/dev/null | head -n1 || true)"
+          fi
+          spark_client_started=0
+          if [ -n "$window_id" ]; then
+            echo "$window_id" | tee minecraft-window.id
+            xdotool windowfocus --sync "$window_id" || true
+            sleep 1
+            xdotool key --window "$window_id" t
+            sleep 1
+            xdotool type --window "$window_id" --delay 2 '/sparkc profiler start --thread * --force-java-sampler'
+            xdotool key --window "$window_id" Return
+            spark_client_started=1
+            echo 'sparkc profiler start submitted' | tee spark-client-command-status.txt
+          else
+            echo 'Minecraft window not resolved; JFR remains authoritative' | tee spark-client-command-status.txt
+          fi
+
+          jcmd -l | tee jcmd-list.txt
+          client_pid=''
+          for pid in $(jcmd -l | awk '{print $1}'); do
+            cwd=$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)
+            if [ "$cwd" = "$(pwd)/fauna/run" ]; then
+              client_pid="$pid"
+              break
+            fi
+          done
+          if [ -z "$client_pid" ]; then
+            echo 'Could not resolve native client JVM by working directory' >&2
+            ps -eo pid,ppid,args --forest | tee process-tree.txt
+            kill -TERM "$wrapper" 2>/dev/null || true
+            kill -TERM "$xvfb_pid" 2>/dev/null || true
+            exit 1
+          fi
+          echo "$client_pid" | tee client-jvm.pid
+          jcmd "$client_pid" VM.version | tee jvm-version.txt
+          jcmd "$client_pid" JFR.start name=FaunaFrontier settings=profile duration=45s filename="$(pwd)/fauna-frontier.jfr" | tee jfr-start.txt
+          sleep 50
+          test -s fauna-frontier.jfr
+
+          if [ "$spark_client_started" -eq 1 ]; then
+            xdotool windowfocus --sync "$window_id" || true
+            xdotool key --window "$window_id" t
+            sleep 1
+            xdotool type --window "$window_id" --delay 2 '/sparkc profiler stop --save-to-file'
+            xdotool key --window "$window_id" Return
+            echo 'sparkc profiler stop --save-to-file submitted' >> spark-client-command-status.txt
+            sleep 10
+          fi
+
+          jfr summary fauna-frontier.jfr | tee jfr-summary.txt
+          jfr print --json --events jdk.ExecutionSample fauna-frontier.jfr > jfr-execution-samples.json
+          jfr print --json --events jdk.ObjectAllocationSample fauna-frontier.jfr > jfr-allocation-samples.json || true
+          ffmpeg -hide_banner -loglevel error -y -f x11grab -draw_mouse 0 -video_size 1280x720 -i "$DISPLAY.0" -frames:v 1 native-scene-after-profile.png
+          find fauna/run -type f \( -name '*.sparkprofile' -o -name '*.sparkprofile.gz' \) -print | tee spark-profile-files.txt
+
+          kill -TERM "$client_pid" 2>/dev/null || true
+          for i in $(seq 1 30); do
+            if ! kill -0 "$wrapper" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          kill -TERM "$wrapper" 2>/dev/null || true
+          wait "$wrapper" || true
+          kill -TERM "$xvfb_pid" 2>/dev/null || true
+          wait "$xvfb_pid" 2>/dev/null || true
+
+      - name: Aggregate mod-owned native hotspots
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import collections, json, pathlib
+
+          MOD_PREFIXES = ('net.migueel26.faunaandorchestra', 'net/migueel26/faunaandorchestra')
+
+          def load(path):
+              p = pathlib.Path(path)
+              if not p.exists() or p.stat().st_size == 0:
+                  return []
+              obj = json.loads(p.read_text(encoding='utf-8'))
+              if isinstance(obj, dict):
+                  rec = obj.get('recording')
+                  if isinstance(rec, dict) and isinstance(rec.get('events'), list):
+                      return rec['events']
+                  if isinstance(obj.get('events'), list):
+                      return obj['events']
+              return []
+
+          def method_name(frame):
+              method = frame.get('method') or {}
+              typ = method.get('type') or {}
+              cls = typ.get('name') or typ.get('className') or ''
+              name = method.get('name') or ''
+              return str(cls).replace('/', '.'), name
+
+          def is_mod(cls):
+              return cls.startswith('net.migueel26.faunaandorchestra')
+
+          exec_events = load('jfr-execution-samples.json')
+          inclusive = collections.Counter()
+          leaf = collections.Counter()
+          by_thread = collections.Counter()
+          total = 0
+          mod_samples = 0
+          for ev in exec_events:
+              vals = ev.get('values') or ev
+              st = vals.get('stackTrace') or {}
+              frames = st.get('frames') or []
+              if not frames:
+                  continue
+              total += 1
+              thread = vals.get('sampledThread') or vals.get('eventThread') or {}
+              tname = thread.get('javaName') or thread.get('osName') or thread.get('name') or 'unknown'
+              seen_mod = False
+              first_mod = None
+              for fr in frames:
+                  cls, name = method_name(fr)
+                  if is_mod(cls):
+                      key = f'{cls}.{name}'
+                      inclusive[key] += 1
+                      seen_mod = True
+                      if first_mod is None:
+                          first_mod = key
+              if seen_mod:
+                  mod_samples += 1
+                  by_thread[tname] += 1
+                  if first_mod:
+                      leaf[first_mod] += 1
+
+          alloc_events = load('jfr-allocation-samples.json')
+          alloc_by_site = collections.Counter()
+          alloc_by_class = collections.Counter()
+          alloc_weight = 0
+          for ev in alloc_events:
+              vals = ev.get('values') or ev
+              weight = vals.get('weight') or vals.get('allocationSize') or 1
+              try: weight = int(weight)
+              except Exception: weight = 1
+              cls_obj = vals.get('objectClass') or {}
+              cname = cls_obj.get('name') if isinstance(cls_obj, dict) else str(cls_obj)
+              if cname:
+                  alloc_by_class[str(cname).replace('/', '.')] += weight
+              st = vals.get('stackTrace') or {}
+              frames = st.get('frames') or []
+              for fr in frames:
+                  cls, name = method_name(fr)
+                  if is_mod(cls):
+                      alloc_by_site[f'{cls}.{name}'] += weight
+                      alloc_weight += weight
+                      break
+
+          report = {
+              'execution_samples_total': total,
+              'execution_samples_with_mod_frame': mod_samples,
+              'mod_sample_share': (mod_samples / total if total else 0.0),
+              'top_mod_leaf_hotspots': leaf.most_common(60),
+              'top_mod_inclusive_hotspots': inclusive.most_common(100),
+              'mod_samples_by_thread': by_thread.most_common(),
+              'allocation_weight_at_mod_sites': alloc_weight,
+              'top_mod_allocation_sites': alloc_by_site.most_common(80),
+              'top_allocated_classes_global': alloc_by_class.most_common(80),
+          }
+          pathlib.Path('FAUNA-NATIVE-PROFILE-REPORT.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+          grep '\[FAUNA-PERF-QA\]' fauna/run/logs/latest.log > fauna-perf-qa-markers.txt || true
+          grep -Ei 'spark|FAUNA-PERF-QA|error|exception|fatal' fauna/run/logs/latest.log > native-relevant-log.txt || true
+          sha256sum fauna-frontier.jfr FAUNA-NATIVE-PROFILE-REPORT.json native-scene.png > native-profile-SHA256SUMS.txt
+
+      - name: Collect native profile evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p native-profile-out
+          for f in \
+            client.log server-bootstrap.log spark-version.json native-scene.png native-scene-after-profile.png \
+            fauna-frontier.jfr jfr-summary.txt jfr-start.txt jcmd-list.txt client-jvm.pid jvm-version.txt \
+            FAUNA-NATIVE-PROFILE-REPORT.json fauna-perf-qa-markers.txt native-relevant-log.txt \
+            spark-profile-files.txt spark-client-command-status.txt minecraft-window-ids.txt minecraft-window.id \
+            native-profile-SHA256SUMS.txt xvfb.log process-tree.txt; do
+            [ ! -e "$f" ] || cp "$f" native-profile-out/
+          done
+          [ ! -e fauna/run/logs/latest.log ] || cp fauna/run/logs/latest.log native-profile-out/minecraft-latest.log
+          while IFS= read -r f; do
+            [ -z "$f" ] || cp "$f" native-profile-out/
+          done < spark-profile-files.txt 2>/dev/null || true
+          find native-profile-out -maxdepth 1 -type f -printf '%f %s bytes\n' | sort | tee native-profile-out/ARTIFACTS.txt
+
+      - name: Upload native profile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: faunaandorchestra-3.0.3-native-profile-v2
+          path: native-profile-out/
+          if-no-files-found: error
+          retention-days: 30
