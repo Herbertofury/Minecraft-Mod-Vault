@@ -1,0 +1,41 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+issueTrackerURL="https://github.com/ZsoltMolnarrr/Rogues/issues"
+[[mods]]
+modId="rogues"
+version="${version}"
+displayName="Rogues & Warriors (RPG Series)"
+authors="Daedelus"
+description='''Rogue and warrior combat equipment, spells and progression.'''
+logoFile="icon.png"
+[[dependencies.rogues]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.23,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.rogues]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.rogues]]
+modId="armor_model_api"
+mandatory=true
+versionRange="[${armor_model_api_version},)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.rogues]]
+modId="structure_pool_api"
+mandatory=true
+versionRange="[${structure_pool_api_version},)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.rogues]]
+modId="spell_engine"
+mandatory=true
+versionRange="[${spell_engine_version},)"
+ordering="BEFORE"
+side="BOTH"

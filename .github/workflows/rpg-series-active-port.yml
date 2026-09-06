@@ -8,7 +8,7 @@ on:
       - '.github/workflows/rpg-series-active-port.yml'
 
 concurrency:
-  group: rpg-series-active-port-${{ github.event.pull_request.number }}
+  group: rpg-series-active-port-workbench-rpg-series-forge-1.20.1
   cancel-in-progress: true
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
 jobs:
   verify-active-port:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v5
@@ -36,11 +36,12 @@ jobs:
           gradle-version: '8.8'
           cache-read-only: false
 
-      - name: Run active RPG port verifier from PR head
+      - name: Run active RPG port verifier from exact head
         shell: bash
         run: |
           set -euo pipefail
           ACTIVE_FILE='rpg-series-port/ci/ACTIVE_RUNNER'
+          LOG='rpg-series-port/active-port-verifier.log'
           test -f "$ACTIVE_FILE"
           RUNNER="$(tr -d '\r\n ' < "$ACTIVE_FILE")"
           case "$RUNNER" in
@@ -49,8 +50,71 @@ jobs:
           esac
           SCRIPT="rpg-series-port/ci/$RUNNER"
           test -f "$SCRIPT"
-          echo "[RPG CI] Active runner: $SCRIPT"
-          bash "$SCRIPT"
+          echo "[RPG CI] Active runner: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+
+      - name: Verify More RPG packaged ownership and production linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/verify-more-rpg-external-school-ownership.sh'
+          LOG='rpg-series-port/more-rpg-package-linkage.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          bash "$SCRIPT" 2>&1 | tee "$LOG"
+
+      - name: Run More RPG Stage-1 plus direct HUD transform graduation
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-runtime-stage1-hud-proof.sh'
+          LOG='rpg-series-port/more-rpg-runtime-stage1.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          echo "[RPG CI] Runtime gate: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+
+      - name: Run More RPG real Forge production client Stage-2
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-production-client-stage2.sh'
+          LOG='rpg-series-port/more-rpg-production-stage2.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          echo "[RPG CI] Production client gate: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+
+      - name: Run More RPG production restart persistence Stage-3
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-production-client-stage3-restart.sh'
+          LOG='rpg-series-port/more-rpg-production-stage3-restart.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          echo "[RPG CI] Production restart gate: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+
+      - name: Prove More RPG independent replay identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-reproducibility.sh'
+          LOG='rpg-series-port/more-rpg-reproducibility.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          bash "$SCRIPT" 2>&1 | tee "$LOG"
+
+      - name: Seal More RPG first-green or frozen graduation authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT='rpg-series-port/ci/run-more-rpg-library-final-freeze.sh'
+          LOG='rpg-series-port/more-rpg-final-freeze.log'
+          test -f "$SCRIPT"
+          bash -n "$SCRIPT"
+          bash "$SCRIPT" 2>&1 | tee "$LOG"
 
       - name: Preserve active-port evidence
         if: always()
@@ -59,8 +123,41 @@ jobs:
           name: rpg-series-active-port-${{ github.event.pull_request.head.sha }}
           retention-days: 7
           if-no-files-found: warn
+          include-hidden-files: true
           path: |
+            rpg-series-port/active-port-verifier.log
+            rpg-series-port/more-rpg-package-linkage.log
+            rpg-series-port/more-rpg-runtime-stage1.log
+            rpg-series-port/more-rpg-production-stage2.log
+            rpg-series-port/more-rpg-production-stage3-restart.log
+            rpg-series-port/more-rpg-reproducibility.log
+            rpg-series-port/more-rpg-final-freeze.log
+            rpg-series-integration-client.log
+            rpg-series-integration-server.log
+            rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
+            rpg-series-port/paladins-forge-1.20.1/.fresh-paladins-forge-server/logs/latest.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-packaged-server-smoke.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-native-client-integrated.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-mapped-client-state.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-production-forgeclient.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-production-restart.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-forge-install-client.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/MORE_RPG_LIBRARY_GRADUATION.env
+            rpg-series-port/more-rpg-library-forge-1.20.1/.fresh-more-rpg-server/logs/latest.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/logs/latest.log
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-launch.json
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-libraryfinder.sha256
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/more-rpg-production-mods.sha256
+            rpg-series-port/more-rpg-library-forge-1.20.1/.production-client-run/.mixin.out/**/*.class
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-library-replay-source-manifest.sha256
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-library-source-package.sha256
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-library-2.7.2-forge-1.20.1-source-ci.zip
+            rpg-series-port/more-rpg-library-forge-1.20.1/more-rpg-library-2.7.2-forge-1.20.1-source-replay-ci.zip
+            .more-rpg-library-build/forge/run/logs/latest.log
+            .more-rpg-library-build/forge/run/.mixin.out/**/*.class
             rpg-series-port/*/forge/build/libs/*.jar
+            rpg-series-port/*/generated/forge/build/libs/*.jar
+            rpg-series-port/*/*.jar
             rpg-series-port/*/*sha256
             rpg-series-port/*/*smoke.log
             *-source-ci.zip
