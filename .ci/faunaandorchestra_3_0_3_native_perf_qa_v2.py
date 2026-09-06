@@ -8,6 +8,8 @@ from pathlib import Path
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 base = Path(__file__).with_name("faunaandorchestra_3_0_3_native_perf_qa.py")
 subprocess.run([sys.executable, str(base), str(root)], check=True)
+frontier = Path(__file__).with_name("faunaandorchestra_3_0_3_frontier_patch.py")
+subprocess.run([sys.executable, str(frontier), str(root)], check=True)
 
 path = root / "src/main/java/net/migueel26/faunaandorchestra/qa/FaunaPerfQaHarness.java"
 text = path.read_text(encoding="utf-8")
