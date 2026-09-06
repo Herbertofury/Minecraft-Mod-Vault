@@ -48,6 +48,25 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.ci/faunaandorchestra_3_0_3_extreme_patch.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''remnants = [
+              line.strip() for line in text.splitlines()
+              if "TICKS_UNTIL_DEATH" in line or "EntityDataAccessor" in line or "EntityDataSerializers" in line
+          ]'''
+          new = '''remnants = [
+              line.strip() for line in text.splitlines()
+              if "EntityDataAccessor<Integer> TICKS_UNTIL_DEATH" in line
+              or "entityData.define(TICKS_UNTIL_DEATH" in line
+              or "entityData.get(TICKS_UNTIL_DEATH" in line
+              or "entityData.set(TICKS_UNTIL_DEATH" in line
+          ]'''
+          if s.count(old) != 1:
+              raise SystemExit('extreme patch guard shape changed unexpectedly')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
           python3 .ci/faunaandorchestra_3_0_3_extreme_patch.py fauna | tee extreme-patch-output.txt
           cd fauna
           git diff --check
