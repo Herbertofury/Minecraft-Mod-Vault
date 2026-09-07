@@ -1,11 +1,12 @@
-name: RPG Series - Active Native Forge 1.20.1 Port
+name: RPG Series - Active Port Push Fallback
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - workbench/rpg-series-forge-1.20.1
     paths:
       - 'rpg-series-port/**'
-      - '.github/workflows/rpg-series-active-port.yml'
+      - '.github/workflows/rpg-series-ranged-weapon-api-build.yml'
 
 concurrency:
   group: rpg-series-active-port-workbench-rpg-series-forge-1.20.1
@@ -19,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout exact PR head
+      - name: Checkout exact push head
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -36,12 +37,11 @@ jobs:
           gradle-version: '8.8'
           cache-read-only: false
 
-      - name: Run active RPG port verifier from exact head
+      - name: Run active RPG port verifier from exact push head
         shell: bash
         run: |
           set -euo pipefail
           ACTIVE_FILE='rpg-series-port/ci/ACTIVE_RUNNER'
-          LOG='rpg-series-port/active-port-verifier.log'
           test -f "$ACTIVE_FILE"
           RUNNER="$(tr -d '\r\n ' < "$ACTIVE_FILE")"
           case "$RUNNER" in
@@ -50,22 +50,18 @@ jobs:
           esac
           SCRIPT="rpg-series-port/ci/$RUNNER"
           test -f "$SCRIPT"
-          echo "[RPG CI] Active runner: $SCRIPT" | tee "$LOG"
-          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
+          echo "[RPG CI] Active runner: $SCRIPT"
+          bash "$SCRIPT" 2>&1 | tee rpg-series-port/active-port-verifier.log
 
       - name: Preserve active-port evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rpg-series-active-port-${{ github.event.pull_request.head.sha }}
+          name: rpg-series-active-port-${{ github.sha }}
           retention-days: 7
           if-no-files-found: warn
           path: |
             rpg-series-port/active-port-verifier.log
-            rpg-series-integration-client.log
-            rpg-series-integration-server.log
-            rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
-            rpg-series-port/paladins-forge-1.20.1/.fresh-paladins-forge-server/logs/latest.log
             rpg-series-port/*/forge/build/libs/*.jar
             rpg-series-port/*/generated/forge/build/libs/*.jar
             rpg-series-port/*/*.jar
