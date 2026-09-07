@@ -1,0 +1,31 @@
+name: Noxviola Fetch Scorched Guns
+
+on:
+  push:
+    branches:
+      - noxviola-fps-cleanup-wave1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact CurseForge release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p upstream
+          url='https://edge.forgecdn.net/files/7232/063/ScorchedGuns-0.5.5-1.20.1.jar'
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' -o upstream/ScorchedGuns-0.5.5-1.20.1.jar "$url"
+          python3 -c 'import zipfile; p="upstream/ScorchedGuns-0.5.5-1.20.1.jar"; z=zipfile.ZipFile(p); assert z.testzip() is None; z.close()'
+          sha256sum upstream/ScorchedGuns-0.5.5-1.20.1.jar | tee upstream/SHA256SUMS.txt
+      - name: Upload exact binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorchedguns-0.5.5-upstream
+          path: upstream/
+          if-no-files-found: error
+          retention-days: 7
