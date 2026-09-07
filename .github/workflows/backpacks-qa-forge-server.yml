@@ -1,0 +1,37 @@
+name: Backpacks QA Forge 47.4.23 Server Harness
+
+on:
+  push:
+    branches:
+      - backpacks-qa-platform-fetch-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  forge-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install exact Forge production server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p harness
+          cd harness
+          curl -fL --retry 3 --retry-delay 2 \
+            'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar' \
+            -o forge-installer.jar
+          java -jar forge-installer.jar --installServer .
+          rm -f forge-installer.jar forge-installer.jar.log
+          printf 'eula=true\n' > eula.txt
+          test -f run.sh
+          test -f libraries/net/minecraftforge/forge/1.20.1-47.4.23/unix_args.txt
+          find . -type f -print0 | sort -z | xargs -0 sha256sum > HARNESS-SHA256SUMS.txt
+      - name: Upload exact server harness
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-server-harness
+          path: harness/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 1
