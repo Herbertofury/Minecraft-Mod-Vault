@@ -1,0 +1,39 @@
+name: Backpacks QA Forge Server Runtime
+
+on:
+  push:
+    branches:
+      - backpacks-qa-platform-fetch-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  install-forge-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install exact Forge 1.20.1-47.4.23 server runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runtime
+          cd runtime
+          curl -fL --retry 3 --retry-delay 2 \
+            'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar' \
+            -o forge-installer.jar
+          java -jar forge-installer.jar --installServer
+          test -f run.sh
+          test -f user_jvm_args.txt
+          test -f libraries/net/minecraftforge/forge/1.20.1-47.4.23/unix_args.txt
+          rm -f forge-installer.jar forge-installer.jar.log
+          printf '%s\n' '=== unix_args ===' > RUNTIME-MANIFEST.txt
+          cat libraries/net/minecraftforge/forge/1.20.1-47.4.23/unix_args.txt >> RUNTIME-MANIFEST.txt
+          printf '%s\n' '=== hashes ===' >> RUNTIME-MANIFEST.txt
+          find . -type f -print0 | sort -z | xargs -0 sha256sum >> RUNTIME-MANIFEST.txt
+      - name: Upload production Forge runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-production-server-runtime
+          path: runtime/
+          if-no-files-found: error
+          retention-days: 1
