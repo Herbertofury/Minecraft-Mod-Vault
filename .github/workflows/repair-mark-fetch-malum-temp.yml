@@ -1,4 +1,4 @@
-name: Repair Mark - Fetch Malum Official Art
+name: Repair Mark - Fetch Official Mod Art
 
 on:
   push:
@@ -14,21 +14,40 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch exact official Malum 1.20.1 artwork
+      - name: Fetch exact official Modrinth project art
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p out
-          curl -fL --retry 3 --retry-all-errors \
-            'https://raw.githubusercontent.com/SammySemicolon/Malum-Mod/1.20.1/src/main/resources/malum.png' \
-            -o out/malum-official-1.20.1.png
-          test "$(git hash-object out/malum-official-1.20.1.png)" = '3c4b86cee6e6b4fb4ee11692bada0696d2e720ef'
-          file out/malum-official-1.20.1.png
-          sha256sum out/malum-official-1.20.1.png > out/SHA256SUMS.txt
+          mkdir -p out/projects out/art
+
+          fetch_project() {
+            local id="$1"
+            local key="$2"
+            curl -fL --retry 3 --retry-all-errors \
+              "https://api.modrinth.com/v2/project/${id}" \
+              -o "out/projects/${key}.json"
+            local art
+            art="$(jq -r '.raw_icon_url // .icon_url' "out/projects/${key}.json")"
+            test -n "$art" && test "$art" != "null"
+            ext="${art##*.}"
+            ext="${ext%%\?*}"
+            case "$ext" in png|jpg|jpeg|webp) ;; *) ext="img" ;; esac
+            curl -fL --retry 3 --retry-all-errors "$art" -o "out/art/${key}-official.${ext}"
+          }
+
+          fetch_project 'gFlYdPkO' 'the-deep-void'
+          fetch_project 'lDzXAiqs' 'scorched-guns-2'
+          fetch_project 'znkjY5Gb' 'knaves-needs'
+          fetch_project 'VpmCsizY' 'iceandfire-ce'
+
+          jq -r '[.id,.slug,.title,.icon_url,.raw_icon_url] | @tsv' out/projects/*.json > out/PROJECT-ART.tsv
+          sha256sum out/art/* > out/SHA256SUMS.txt
+          file out/art/* > out/FILE-TYPES.txt
+
       - name: Upload exact official artwork
         uses: actions/upload-artifact@v4
         with:
-          name: repair-mark-malum-official-art
+          name: repair-mark-official-mod-art
           path: out/
           if-no-files-found: error
           retention-days: 1
