@@ -1,0 +1,69 @@
+name: Backpacks QA Minecraft 1.20.1 Assets
+
+on:
+  push:
+    branches:
+      - backpacks-qa-platform-fetch-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  client-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch official 1.20.1 assets and Linux natives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,shutil,urllib.request,zipfile
+          from concurrent.futures import ThreadPoolExecutor
+          from pathlib import Path
+          root=Path('client-runtime'); assets=root/'assets'; natives=root/'natives'
+          (assets/'indexes').mkdir(parents=True,exist_ok=True); (assets/'objects').mkdir(parents=True,exist_ok=True); natives.mkdir(parents=True,exist_ok=True)
+          def getj(url):
+              with urllib.request.urlopen(url,timeout=60) as r:return json.load(r)
+          manifest=getj('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json')
+          v=next(x for x in manifest['versions'] if x['id']=='1.20.1')
+          meta=getj(v['url']); (root/'version-1.20.1.json').write_text(json.dumps(meta,indent=2))
+          ai=meta['assetIndex']; index=getj(ai['url']); (assets/'indexes'/f"{ai['id']}.json").write_text(json.dumps(index,separators=(',',':')))
+          def dl_obj(item):
+              name,o=item; h=o['hash']; dst=assets/'objects'/h[:2]/h
+              if dst.exists() and dst.stat().st_size==o['size']: return
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              urllib.request.urlretrieve(f'https://resources.download.minecraft.net/{h[:2]}/{h}',dst)
+          with ThreadPoolExecutor(max_workers=32) as ex:list(ex.map(dl_obj,index['objects'].items()))
+          # Extract Linux native classifiers from the exact 1.20.1 metadata.
+          tmp=Path('native-jars'); tmp.mkdir(exist_ok=True)
+          for lib in meta['libraries']:
+              d=lib.get('downloads',{}); cls=d.get('classifiers',{})
+              key='natives-linux'
+              if key not in cls: continue
+              ent=cls[key]; fn=tmp/Path(ent['path']).name
+              urllib.request.urlretrieve(ent['url'],fn)
+              with zipfile.ZipFile(fn) as z:
+                  for n in z.namelist():
+                      base=Path(n).name
+                      if base.endswith('.so'):
+                          with z.open(n) as src, open(natives/base,'wb') as dst: shutil.copyfileobj(src,dst)
+          # Verify every asset hash/size and record a concise manifest.
+          import hashlib
+          bad=[]
+          for name,o in index['objects'].items():
+              h=o['hash']; p=assets/'objects'/h[:2]/h
+              if not p.exists() or p.stat().st_size!=o['size'] or hashlib.sha1(p.read_bytes()).hexdigest()!=h: bad.append(name)
+          if bad: raise SystemExit(f'bad asset objects: {bad[:10]} count={len(bad)}')
+          summary={'asset_index':ai['id'],'objects':len(index['objects']),'natives':sorted(p.name for p in natives.glob('*.so'))}
+          (root/'QA-RUNTIME-MANIFEST.json').write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary,indent=2))
+          PY
+          du -sh client-runtime client-runtime/assets client-runtime/natives
+      - name: Upload runtime cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-linux-natives
+          path: client-runtime/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
