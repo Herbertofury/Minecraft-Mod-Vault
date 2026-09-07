@@ -34,20 +34,18 @@ jobs:
               dst.parent.mkdir(parents=True,exist_ok=True)
               urllib.request.urlretrieve(f'https://resources.download.minecraft.net/{h[:2]}/{h}',dst)
           with ThreadPoolExecutor(max_workers=32) as ex:list(ex.map(dl_obj,index['objects'].items()))
-          # Extract Linux native classifiers from the exact 1.20.1 metadata.
           tmp=Path('native-jars'); tmp.mkdir(exist_ok=True)
           for lib in meta['libraries']:
               d=lib.get('downloads',{}); cls=d.get('classifiers',{})
-              key='natives-linux'
-              if key not in cls: continue
-              ent=cls[key]; fn=tmp/Path(ent['path']).name
+              ent=cls.get('natives-linux')
+              if not ent: continue
+              fn=tmp/Path(ent['path']).name
               urllib.request.urlretrieve(ent['url'],fn)
               with zipfile.ZipFile(fn) as z:
                   for n in z.namelist():
                       base=Path(n).name
                       if base.endswith('.so'):
                           with z.open(n) as src, open(natives/base,'wb') as dst: shutil.copyfileobj(src,dst)
-          # Verify every asset hash/size and record a concise manifest.
           import hashlib
           bad=[]
           for name,o in index['objects'].items():
@@ -58,12 +56,93 @@ jobs:
           (root/'QA-RUNTIME-MANIFEST.json').write_text(json.dumps(summary,indent=2))
           print(json.dumps(summary,indent=2))
           PY
-          du -sh client-runtime client-runtime/assets client-runtime/natives
-      - name: Upload runtime cache
+          # Transport-only sharding: preserve exact assets/objects/XX/hash layout.
+          mkdir -p shards/meta/assets/indexes shards/meta/natives
+          cp -a client-runtime/assets/indexes/. shards/meta/assets/indexes/
+          cp -a client-runtime/natives/. shards/meta/natives/
+          cp -a client-runtime/version-1.20.1.json client-runtime/QA-RUNTIME-MANIFEST.json shards/meta/
+          python3 - <<'PY'
+          import os,shutil
+          from pathlib import Path
+          src=Path('client-runtime/assets/objects')
+          ranges=[(0x00,0x1f),(0x20,0x3f),(0x40,0x5f),(0x60,0x7f),(0x80,0x9f),(0xa0,0xbf),(0xc0,0xdf),(0xe0,0xff)]
+          for a,b in ranges:
+              root=Path('shards')/f'{a:02x}-{b:02x}'/'assets'/'objects'
+              root.mkdir(parents=True,exist_ok=True)
+              for i in range(a,b+1):
+                  p=f'{i:02x}'; s=src/p
+                  if s.exists(): shutil.copytree(s,root/p,copy_function=os.link)
+          PY
+          du -sh client-runtime shards/*
+      - name: Upload metadata and Linux natives
         uses: actions/upload-artifact@v4
         with:
-          name: minecraft-1.20.1-assets-linux-natives
-          path: client-runtime/
+          name: minecraft-1.20.1-assets-meta-natives
+          path: shards/meta/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects 00-1f
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-00-1f
+          path: shards/00-1f/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects 20-3f
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-20-3f
+          path: shards/20-3f/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects 40-5f
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-40-5f
+          path: shards/40-5f/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects 60-7f
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-60-7f
+          path: shards/60-7f/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects 80-9f
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-80-9f
+          path: shards/80-9f/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects a0-bf
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-a0-bf
+          path: shards/a0-bf/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects c0-df
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-c0-df
+          path: shards/c0-df/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload asset objects e0-ff
+        uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-1.20.1-assets-e0-ff
+          path: shards/e0-ff/
           if-no-files-found: error
           compression-level: 0
           retention-days: 1
