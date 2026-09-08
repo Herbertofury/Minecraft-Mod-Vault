@@ -1,0 +1,30 @@
+name: Fetch Lilis Lucky Lures Official Source
+on:
+  push:
+    branches:
+      - repair-art-fetch-lilis-lucky-lures-20260908
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch official Modrinth metadata, exact release, and project art
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/DMDVFZSF' -o out/modrinth-project.json
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/version/Jj8XQNhw' -o out/modrinth-version.json
+          icon_url="$(jq -r '.icon_url' out/modrinth-project.json)"
+          test -n "$icon_url" && test "$icon_url" != "null"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$icon_url" -o out/modrinth-project-icon
+          jar_url="$(jq -r '.files[] | select(.primary==true) | .url' out/modrinth-version.json | head -n 1)"
+          test -n "$jar_url" && test "$jar_url" != "null"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$jar_url" -o out/letsdo-lilis_lucky_lures-forge-1.0.2.jar
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://media.forgecdn.net/avatars/1677/155/639066220200033067.png' -o out/curseforge-project-avatar.png || true
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lilis-lucky-lures-official-source
+          path: out/
+          retention-days: 1
