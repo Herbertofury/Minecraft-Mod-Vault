@@ -1,0 +1,41 @@
+name: Fetch Illage and Spillage Official Source
+
+on:
+  push:
+    branches:
+      - repair-art-fetch-illage-spillage-20260908
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-official:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact official Modrinth metadata, avatar, and 1.2.8 jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --retry-all-errors 'https://api.modrinth.com/v2/project/kLoMCc4b' -o project.json
+          curl --fail --location --retry 3 --retry-all-errors 'https://api.modrinth.com/v2/version/90YOIp4K' -o version.json
+          ICON_URL=$(jq -r '.icon_url' project.json)
+          FILE_URL=$(jq -r '.files[] | select(.primary == true) | .url' version.json | head -n1)
+          if [ -z "$FILE_URL" ] || [ "$FILE_URL" = "null" ]; then FILE_URL=$(jq -r '.files[0].url' version.json); fi
+          curl --fail --location --retry 3 --retry-all-errors "$ICON_URL" -o illage-spillage-modrinth-avatar.webp
+          curl --fail --location --retry 3 --retry-all-errors "$FILE_URL" -o illageandspillagerespillaged-1.2.8-stock.jar
+          file illage-spillage-modrinth-avatar.webp illageandspillagerespillaged-1.2.8-stock.jar
+          sha256sum illage-spillage-modrinth-avatar.webp illageandspillagerespillaged-1.2.8-stock.jar | tee SHA256SUMS.txt
+          jq '{id,slug,title,icon_url,versions}' project.json > project-summary.json
+          jq '{id,version_number,name,game_versions,loaders,files}' version.json > version-summary.json
+      - name: Upload exact official source
+        uses: actions/upload-artifact@v4
+        with:
+          name: illage-spillage-official-source
+          path: |
+            illage-spillage-modrinth-avatar.webp
+            illageandspillagerespillaged-1.2.8-stock.jar
+            SHA256SUMS.txt
+            project-summary.json
+            version-summary.json
+          if-no-files-found: error
+          retention-days: 1
