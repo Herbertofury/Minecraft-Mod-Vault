@@ -1,0 +1,37 @@
+name: Fetch TFThreadSafetyAddon CurseForge Art 1430534
+on:
+  push:
+    branches:
+      - repair-fetch-tfthreadsafetyaddon-exact-20260908b
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and assert exact fork project page
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          url='https://www.curseforge.com/minecraft/mc-mods/fork-twilightforest-thread-safety-addon-for-forge'
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' -w '%{url_effective}\n' "$url" -o out/page.html > out/effective-url.txt
+          grep -q 'fork-twilightforest-thread-safety-addon-for-forge' out/page.html
+          grep -q '1430534' out/page.html
+          python3 - <<'PY'
+import re, html
+s=open('out/page.html',encoding='utf-8',errors='ignore').read()
+m=re.search(r'<meta[^>]+property=["\x27]og:image["\x27][^>]+content=["\x27]([^"\x27]+)',s,re.I)
+if not m:
+    m=re.search(r'<meta[^>]+content=["\x27]([^"\x27]+)["\x27][^>]+property=["\x27]og:image["\x27]',s,re.I)
+if not m: raise SystemExit('no og:image')
+u=html.unescape(m.group(1))
+print(u)
+open('out/avatar-url.txt','w').write(u+'\n')
+PY
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$(cat out/avatar-url.txt)" -o out/curseforge-project-1430534-avatar
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfthreadsafetyaddon-cf-art-1430534
+          path: out/
+          retention-days: 1
