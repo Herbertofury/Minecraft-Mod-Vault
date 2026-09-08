@@ -1,0 +1,36 @@
+name: Fetch Cataclysm Spellbooks Official Source
+
+on:
+  push:
+    branches:
+      - repair-art-fetch-cataclysm-spellbooks-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact official Modrinth release and avatar
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --retry-all-errors \
+            'https://cdn.modrinth.com/data/3FEg0A8D/versions/e7VE8bSy/cataclysm_spellbooks-1.2.9-1.20.1-all.jar' \
+            --output cataclysm_spellbooks-1.2.9-1.20.1-all.jar
+          curl --fail --location --retry 3 --retry-all-errors \
+            'https://cdn.modrinth.com/data/3FEg0A8D/ec63ffe082905379e7061cde6c53b9b7c8d40bb7_96.webp' \
+            --output cataclysm-spellbooks-modrinth-96.webp
+          file cataclysm_spellbooks-1.2.9-1.20.1-all.jar cataclysm-spellbooks-modrinth-96.webp
+          sha256sum cataclysm_spellbooks-1.2.9-1.20.1-all.jar cataclysm-spellbooks-modrinth-96.webp | tee SHA256SUMS.txt
+      - name: Upload exact bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: cataclysm-spellbooks-official-source
+          path: |
+            cataclysm_spellbooks-1.2.9-1.20.1-all.jar
+            cataclysm-spellbooks-modrinth-96.webp
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 1
