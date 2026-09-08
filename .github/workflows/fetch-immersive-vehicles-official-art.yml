@@ -1,0 +1,57 @@
+name: Fetch Immersive Vehicles Official Art
+
+on:
+  push:
+    branches:
+      - repair-art-fetch-immersive-vehicles-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-official-art:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact official file and project metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE='https://www.curseforge.com/minecraft/mc-mods/minecraft-transport-simulator'
+          curl --fail --location --retry 3 --retry-all-errors "$PAGE" -o curseforge-project.html
+          python3 - <<'PY'
+          import html,re
+          s=open('curseforge-project.html',encoding='utf-8',errors='replace').read()
+          pats=[
+            r'<meta[^>]+property=["\x27]og:image["\x27][^>]+content=["\x27]([^"\x27]+)',
+            r'<meta[^>]+content=["\x27]([^"\x27]+)["\x27][^>]+property=["\x27]og:image["\x27]',
+            r'<meta[^>]+name=["\x27]twitter:image["\x27][^>]+content=["\x27]([^"\x27]+)',
+            r'<meta[^>]+content=["\x27]([^"\x27]+)["\x27][^>]+name=["\x27]twitter:image["\x27]'
+          ]
+          urls=[]
+          for p in pats:
+            for m in re.finditer(p,s,re.I):
+              u=html.unescape(m.group(1))
+              if u not in urls: urls.append(u)
+          open('storefront-image-urls.txt','w').write('\n'.join(urls)+'\n')
+          if not urls:
+            raise SystemExit('No storefront image URL found')
+          print('\n'.join(urls))
+          PY
+          URL="$(head -n1 storefront-image-urls.txt)"
+          curl --fail --location --retry 3 --retry-all-errors "$URL" --output immersive-vehicles-storefront
+          curl --fail --location --retry 3 --retry-all-errors \
+            'https://mediafilez.forgecdn.net/files/7926/604/Immersive%20Vehicles-1.20.1-24.0.0.jar' \
+            --output 'Immersive Vehicles-1.20.1-24.0.0-OFFICIAL.jar'
+          file immersive-vehicles-storefront 'Immersive Vehicles-1.20.1-24.0.0-OFFICIAL.jar'
+          sha256sum immersive-vehicles-storefront 'Immersive Vehicles-1.20.1-24.0.0-OFFICIAL.jar' | tee SHA256SUMS.txt
+      - name: Upload exact bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: immersive-vehicles-official-source
+          path: |
+            immersive-vehicles-storefront
+            storefront-image-urls.txt
+            Immersive Vehicles-1.20.1-24.0.0-OFFICIAL.jar
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 1
