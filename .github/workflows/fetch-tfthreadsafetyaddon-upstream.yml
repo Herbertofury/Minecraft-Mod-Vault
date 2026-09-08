@@ -1,0 +1,25 @@
+name: Fetch TFThreadSafetyAddon Upstream Identity
+on:
+  push:
+    branches:
+      - repair-art-fetch-tfthreadsafetyaddon-20260908
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact upstream source snapshot and official icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          commit='ae83404b424389eb06220b81ca95885a30d2f8d8'
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "https://raw.githubusercontent.com/CoZooo/TFThreadSafetyAddon-for-Forge-1.20.1/${commit}/src/main/resources/assets/tfthreadsafetyaddon/icon.png" -o out/upstream-icon.png
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "https://github.com/CoZooo/TFThreadSafetyAddon-for-Forge-1.20.1/archive/${commit}.zip" -o out/upstream-source-${commit}.zip
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "https://raw.githubusercontent.com/CoZooo/TFThreadSafetyAddon-for-Forge-1.20.1/${commit}/src/main/resources/META-INF/mods.toml" -o out/upstream-mods.toml
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfthreadsafetyaddon-upstream-identity
+          path: out/
+          retention-days: 1
