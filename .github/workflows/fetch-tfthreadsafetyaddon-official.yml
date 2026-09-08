@@ -7,29 +7,30 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch official metadata, 1.1.0 release, and project artwork
+      - name: Fetch exact official Modrinth 1.1.0 and project artwork
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p out
-          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/fork-twilightforest-thread-safety-addon' -o out/modrinth-project.json
-          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/fork-twilightforest-thread-safety-addon/version' -o out/modrinth-versions.json
-          jq '.[] | select(.version_number=="forge-1.20.1-1.1.0" or .version_number=="1.1.0")' out/modrinth-versions.json > out/modrinth-version-1.1.0.json
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/VFGmWf7t' -o out/modrinth-project.json
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/version/rVYNBGf8' -o out/modrinth-version-1.1.0.json
           icon_url="$(jq -r '.icon_url' out/modrinth-project.json)"
           test -n "$icon_url" && test "$icon_url" != "null"
           curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$icon_url" -o out/modrinth-project-icon
           jar_url="$(jq -r '.files[] | select(.primary==true) | .url' out/modrinth-version-1.1.0.json | head -n 1)"
           test -n "$jar_url" && test "$jar_url" != "null"
           curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$jar_url" -o out/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar
-          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://www.curseforge.com/minecraft/mc-mods/fork-twilightforest-thread-safety-addon-for-forge' -o out/curseforge-page.html
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://www.curseforge.com/minecraft/mc-mods/fork-twilightforest-thread-safety-addon-for-forge' -o out/curseforge-page.html || true
           cf_icon="$(python3 - <<'PY'
-import re, html
-s=open('out/curseforge-page.html',encoding='utf-8',errors='ignore').read()
-patterns=[r'<meta[^>]+property=["\x27]og:image["\x27][^>]+content=["\x27]([^"\x27]+)',r'<meta[^>]+content=["\x27]([^"\x27]+)["\x27][^>]+property=["\x27]og:image["\x27]']
-for p in patterns:
- m=re.search(p,s,re.I)
- if m:
-  print(html.unescape(m.group(1))); break
+import re, html, pathlib
+p=pathlib.Path('out/curseforge-page.html')
+if p.exists():
+ s=p.read_text(encoding='utf-8',errors='ignore')
+ patterns=[r'<meta[^>]+property=["\x27]og:image["\x27][^>]+content=["\x27]([^"\x27]+)',r'<meta[^>]+content=["\x27]([^"\x27]+)["\x27][^>]+property=["\x27]og:image["\x27]']
+ for pat in patterns:
+  m=re.search(pat,s,re.I)
+  if m:
+   print(html.unescape(m.group(1))); break
 PY
 )"
           if [ -n "$cf_icon" ]; then curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$cf_icon" -o out/curseforge-project-icon || true; fi
