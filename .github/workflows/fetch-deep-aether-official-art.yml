@@ -1,0 +1,36 @@
+name: Fetch Deep Aether Official Art
+
+on:
+  push:
+    branches:
+      - repair-art-fetch-deep-aether-20260907
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-official-art:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact official storefront artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --retry-all-errors \
+            'https://media.forgecdn.net/avatars/thumbnails/1094/609/256/256/638639296143733455.png' \
+            --output deep-aether-curseforge-256.png
+          curl --fail --location --retry 3 --retry-all-errors \
+            'https://cdn.modrinth.com/data/gcHIih5B/4c6fe24090f1f247b0ae0fcbcd3f532329d4e9ea_96.webp' \
+            --output deep-aether-modrinth-96.webp
+          file deep-aether-curseforge-256.png deep-aether-modrinth-96.webp
+          sha256sum deep-aether-curseforge-256.png deep-aether-modrinth-96.webp | tee SHA256SUMS.txt
+      - name: Upload exact bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-aether-official-art
+          path: |
+            deep-aether-curseforge-256.png
+            deep-aether-modrinth-96.webp
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 1
