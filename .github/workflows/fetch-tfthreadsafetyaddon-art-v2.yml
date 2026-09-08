@@ -1,0 +1,23 @@
+name: Fetch TFThreadSafetyAddon Official Artwork v2
+on:
+  push:
+    branches: [repair-art-fetch-tfthreadsafetyaddon-20260908]
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact upstream source art and current CurseForge page
+        run: |
+          set -euxo pipefail
+          mkdir -p out
+          curl -fL --retry 3 -A 'Mozilla/5.0' 'https://raw.githubusercontent.com/CoZooo/TFThreadSafetyAddon-for-Forge-1.20.1/ae83404b424389eb06220b81ca95885a30d2f8d8/src/main/resources/assets/tfthreadsafetyaddon/icon.png' -o out/upstream-1.20.1-icon.png
+          curl -fL --retry 3 -A 'Mozilla/5.0' 'https://www.curseforge.com/minecraft/mc-mods/tfthreadsafetyaddon' -o out/curseforge-page.html
+          grep -oE 'https://media\.forgecdn\.net/avatars/[^" ]+' out/curseforge-page.html | head -n 1 | sed 's/&amp;/\&/g' > out/curseforge-avatar-url.txt || true
+          if test -s out/curseforge-avatar-url.txt; then curl -fL --retry 3 -A 'Mozilla/5.0' "$(cat out/curseforge-avatar-url.txt)" -o out/curseforge-project-avatar || true; fi
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfthreadsafetyaddon-official-art-v2
+          path: out/
+          retention-days: 1
