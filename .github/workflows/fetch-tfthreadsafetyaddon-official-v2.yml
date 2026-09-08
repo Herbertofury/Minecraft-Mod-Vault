@@ -1,0 +1,39 @@
+name: Fetch TFThreadSafetyAddon Official Source v2
+on:
+  push:
+    branches:
+      - repair-art-fetch-tfthreadsafetyaddon-20260908
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact 1.1.0 fork release and official storefront art
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/VFGmWf7t' -o out/modrinth-project.json
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/version/rVYNBGf8' -o out/modrinth-version.json
+          icon_url="$(jq -r '.icon_url' out/modrinth-project.json)"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$icon_url" -o out/modrinth-project-icon
+          jar_url="$(jq -r '.files[] | select(.primary==true) | .url' out/modrinth-version.json | head -n 1)"
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$jar_url" -o out/forge-1.20.1-1.1.0.jar
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://www.curseforge.com/minecraft/mc-mods/fork-twilightforest-thread-safety-addon-for-forge' -o out/curseforge-page.html
+          cf_icon="$(python3 - <<'PY'
+import re, html
+s=open('out/curseforge-page.html',encoding='utf-8',errors='ignore').read()
+for p in [r'<meta[^>]+property=["\x27]og:image["\x27][^>]+content=["\x27]([^"\x27]+)',r'<meta[^>]+content=["\x27]([^"\x27]+)["\x27][^>]+property=["\x27]og:image["\x27]']:
+ m=re.search(p,s,re.I)
+ if m:
+  print(html.unescape(m.group(1))); break
+PY
+)"
+          printf '%s\n' "$cf_icon" > out/curseforge-icon-url.txt
+          if [ -n "$cf_icon" ]; then curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$cf_icon" -o out/curseforge-project-icon || true; fi
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfthreadsafetyaddon-official-source-v2
+          path: out/
+          retention-days: 1
