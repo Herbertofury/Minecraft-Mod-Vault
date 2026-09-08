@@ -1,0 +1,27 @@
+name: Fetch TFThreadSafetyAddon Official Source v3
+on:
+  push:
+    branches:
+      - repair-art-fetch-tfthreadsafetyaddon-20260908
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact Modrinth release and project art
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/VFGmWf7t' -o out/modrinth-project.json
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/version/rVYNBGf8' -o out/modrinth-version.json
+          ICON_URL=$(jq -r '.icon_url' out/modrinth-project.json)
+          JAR_URL=$(jq -r '.files[] | select(.primary==true) | .url' out/modrinth-version.json | head -n 1)
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$ICON_URL" -o out/modrinth-project-icon
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$JAR_URL" -o out/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfthreadsafetyaddon-official-source-v3
+          path: out/
+          retention-days: 1
