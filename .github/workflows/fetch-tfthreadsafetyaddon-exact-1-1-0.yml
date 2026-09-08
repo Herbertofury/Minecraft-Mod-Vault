@@ -1,0 +1,31 @@
+name: Fetch TFThreadSafetyAddon Exact 1.1.0
+on:
+  push:
+    branches:
+      - repair-fetch-tfthreadsafetyaddon-exact-20260908b
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact Modrinth release and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/project/VFGmWf7t' -o out/project.json
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' 'https://api.modrinth.com/v2/version/rVYNBGf8' -o out/version.json
+          jar_url="$(jq -r '.files[] | select(.primary==true) | .url' out/version.json | head -n1)"
+          test -n "$jar_url" && test "$jar_url" != null
+          printf '%s\n' "$jar_url" > out/jar-url.txt
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$jar_url" -o out/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar
+          icon_url="$(jq -r '.icon_url' out/project.json)"
+          printf '%s\n' "$icon_url" > out/icon-url.txt
+          curl -fL --retry 3 --retry-delay 2 -A 'Mozilla/5.0' "$icon_url" -o out/modrinth-icon
+          sha256sum out/* > out/SHA256SUMS.txt
+          file out/* > out/FILETYPES.txt
+          unzip -t out/tfthreadsafetyaddon-forge-1.20.1-1.1.0.jar > out/unzip-test.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfthreadsafetyaddon-exact-1-1-0
+          path: out/
+          retention-days: 1
