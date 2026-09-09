@@ -1,0 +1,29 @@
+name: Fetch Patchouli runtime
+
+on:
+  push:
+    paths:
+      - .github/workflows/fetch-patchouli-runtime.yml
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Fetch official Patchouli Forge runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            https://github.com/VazkiiMods/Patchouli/releases/download/release-1.20.1-85/Patchouli-1.20.1-85-FORGE.jar \
+            -o Patchouli-1.20.1-85-FORGE.jar
+          echo '05f7b5d52f6b8f0fd7f8b4822fa07a192d1394d83a264309c9d221d6d4fd21c5  Patchouli-1.20.1-85-FORGE.jar' | sha256sum -c -
+      - name: Upload verified runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: patchouli-1.20.1-85-forge
+          path: Patchouli-1.20.1-85-FORGE.jar
+          if-no-files-found: error
+          retention-days: 1
