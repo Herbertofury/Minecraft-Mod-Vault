@@ -1,0 +1,76 @@
+name: Backpacks Forge 1.20.1 Packaged Server Export
+
+on:
+  push:
+    branches:
+      - qa/backpacks-2.0.2.4-native-visual
+    paths:
+      - '.github/workflows/backpacks-forge-packaged-server-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install exact Forge packaged server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/forge-server
+          curl -fL --retry 3 --retry-delay 2 \
+            'https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-installer.jar' \
+            -o /tmp/forge-installer.jar
+          echo 'ed31ce02ac69176f34353235cb2508d5a0f1e088  /tmp/forge-installer.jar' | sha1sum -c -
+          java -jar /tmp/forge-installer.jar --installServer /tmp/forge-server
+          test -f /tmp/forge-server/run.sh
+          test -d /tmp/forge-server/libraries
+          sed -i 's/^#\? *-Xmx.*/-Xmx1536m/' /tmp/forge-server/user_jvm_args.txt || true
+          sha256sum /tmp/forge-installer.jar > /tmp/forge-server/FORGE-INSTALLER-SHA256.txt
+          java -version 2> /tmp/forge-server/JAVA-VERSION.txt
+          du -sh /tmp/forge-server
+      - name: Smoke packaged server install
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/forge-server
+          printf 'eula=true\n' > eula.txt
+          timeout 90s ./run.sh nogui > packaged-install-smoke.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 90); do
+            if grep -q 'Done (' packaged-install-smoke.log 2>/dev/null; then
+              kill -INT "$PID" 2>/dev/null || true
+              break
+            fi
+            if ! kill -0 "$PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          wait "$PID" || true
+          grep -q 'Done (' packaged-install-smoke.log
+          grep -q 'All dimensions are saved' packaged-install-smoke.log
+      - name: Archive reusable runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/forge-server/world /tmp/forge-server/logs /tmp/forge-server/crash-reports
+          tar -C /tmp -cf /tmp/forge-1.20.1-47.4.23-packaged-server.tar forge-server
+          zstd -T0 -10 --rm /tmp/forge-1.20.1-47.4.23-packaged-server.tar
+          sha256sum /tmp/forge-1.20.1-47.4.23-packaged-server.tar.zst > /tmp/forge-packaged-server-SHA256SUMS.txt
+          du -h /tmp/forge-1.20.1-47.4.23-packaged-server.tar.zst
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-packaged-server
+          path: |
+            /tmp/forge-1.20.1-47.4.23-packaged-server.tar.zst
+            /tmp/forge-packaged-server-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
