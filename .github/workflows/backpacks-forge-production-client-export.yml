@@ -88,7 +88,6 @@ jobs:
           UNIVERSAL2="$ROOT2/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-universal.jar"
           for f in "$SRG" "$EXTRA" "$FORGE_CLIENT" "$UNIVERSAL" "$SRG2" "$EXTRA2" "$FORGE_CLIENT2" "$UNIVERSAL2"; do test -f "$f"; done
 
-          # The three downloaded artifacts are deterministic and remain pinned byte-for-byte.
           for f in "$EXTRA" "$EXTRA2"; do
             test "$(sha256sum "$f" | awk '{print $1}')" = 'f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317'
           done
@@ -99,9 +98,6 @@ jobs:
             test "$(sha256sum "$f" | awk '{print $1}')" = '98a6c0a2318c1788db6f592357eb00d09b15316f054942ba432f71027f074fef'
           done
 
-          # Forge generates the SRG JAR locally. ZIP metadata can make whole-file SHA-256 unstable,
-          # so prove the generated payload is reproducible by hashing every entry name + body in a
-          # stable order from two independent library/version trees.
           SRG="$SRG" SRG2="$SRG2" python - <<'PY'
           import hashlib
           import json
@@ -121,7 +117,6 @@ jobs:
               total = 0
               records = []
               with zipfile.ZipFile(path) as jar:
-                  # Preserve duplicate-name entries deterministically with their original index.
                   infos = sorted(enumerate(jar.infolist()), key=lambda pair: (pair[1].filename, pair[0]))
                   for original_index, info in infos:
                       data = jar.read(info)
@@ -133,44 +128,23 @@ jobs:
                       aggregate.update(len(data).to_bytes(8, 'big'))
                       aggregate.update(body)
                       total += len(data)
-                      records.append({
-                          'name': info.filename,
-                          'original_index': original_index,
-                          'size': len(data),
-                          'sha256': body.hex(),
-                      })
-              return {
-                  'path': str(path),
-                  'file_sha256': file_sha256(path),
-                  'normalized_sha256': aggregate.hexdigest(),
-                  'entry_count': len(records),
-                  'total_uncompressed_bytes': total,
-                  'entries': records,
-              }
+                      records.append({'name': info.filename, 'original_index': original_index, 'size': len(data), 'sha256': body.hex()})
+              return {'path': str(path), 'file_sha256': file_sha256(path), 'normalized_sha256': aggregate.hexdigest(), 'entry_count': len(records), 'total_uncompressed_bytes': total, 'entries': records}
 
           first = normalized_jar(Path(os.environ['SRG']))
           second = normalized_jar(Path(os.environ['SRG2']))
-          same = (
-              first['normalized_sha256'] == second['normalized_sha256']
-              and first['entry_count'] == second['entry_count']
-              and first['total_uncompressed_bytes'] == second['total_uncompressed_bytes']
-          )
+          same = first['normalized_sha256'] == second['normalized_sha256'] and first['entry_count'] == second['entry_count'] and first['total_uncompressed_bytes'] == second['total_uncompressed_bytes']
           report = {
               'artifact': 'client-1.20.1-20230612.114412-srg.jar',
               'policy': 'two independent Forge 47.4.23 generations; normalized over sorted entry name/index/size/body SHA-256',
               'first': {k: v for k, v in first.items() if k != 'entries'},
               'second': {k: v for k, v in second.items() if k != 'entries'},
-              'entry_diff': [] if same else [
-                  {'first': a, 'second': b}
-                  for a, b in zip(first['entries'], second['entries'])
-                  if a != b
-              ],
+              'entry_diff': [] if same else [{'first': a, 'second': b} for a, b in zip(first['entries'], second['entries']) if a != b],
               'pass': same,
           }
           if len(first['entries']) != len(second['entries']):
               report['entry_count_delta'] = len(first['entries']) - len(second['entries'])
-          out = Path('/tmp/pmc/SRG-NORMALIZED-VERIFY.json')
-          out.write_text(json.dumps(report, indent=2) + '\n')
+          Path('/tmp/pmc/SRG-NORMALIZED-VERIFY.json').write_text(json.dumps(report, indent=2) + '\n')
           print(json.dumps(report, indent=2))
           if not same:
               raise SystemExit(2)
@@ -236,9 +210,31 @@ jobs:
           python -m venv /tmp/export/launcher/venv
           /tmp/export/launcher/venv/bin/pip install --no-index --find-links /tmp/wheelhouse portablemc==4.4.1
           cp -a /tmp/wheelhouse /tmp/export/launcher/
-          for d in {0..5}; do [ -d "$ROOT/assets/objects/$d" ] && cp -a "$ROOT/assets/objects/$d" /tmp/export/assets-a/; done
-          for d in {6..9} a b; do [ -d "$ROOT/assets/objects/$d" ] && cp -a "$ROOT/assets/objects/$d" /tmp/export/assets-b/; done
-          for d in c d e f; do [ -d "$ROOT/assets/objects/$d" ] && cp -a "$ROOT/assets/objects/$d" /tmp/export/assets-c/; done
+
+          copy_asset_range() {
+            target="$1"
+            start="$2"
+            end="$3"
+            for i in $(seq "$start" "$end"); do
+              d=$(printf '%02x' "$i")
+              if [ -d "$ROOT/assets/objects/$d" ]; then
+                cp -a "$ROOT/assets/objects/$d" "/tmp/export/$target/"
+              fi
+            done
+          }
+          copy_asset_range assets-a 0 95
+          copy_asset_range assets-b 96 191
+          copy_asset_range assets-c 192 255
+
+          SRC_COUNT=$(find "$ROOT/assets/objects" -type f | wc -l)
+          COPY_COUNT=$(find /tmp/export/assets-a /tmp/export/assets-b /tmp/export/assets-c -type f | wc -l)
+          SRC_BYTES=$(find "$ROOT/assets/objects" -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
+          COPY_BYTES=$(find /tmp/export/assets-a /tmp/export/assets-b /tmp/export/assets-c -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
+          test "$SRC_COUNT" -gt 0
+          test "$SRC_COUNT" = "$COPY_COUNT"
+          test "$SRC_BYTES" = "$COPY_BYTES"
+          printf 'source_files=%s\ncopied_files=%s\nsource_bytes=%s\ncopied_bytes=%s\npass=true\n' "$SRC_COUNT" "$COPY_COUNT" "$SRC_BYTES" "$COPY_BYTES" | tee /tmp/export/core/ASSET-SPLIT-VERIFY.txt
+
           for part in core assets-a assets-b assets-c launcher; do
             tar -C /tmp/export -cf "/tmp/$part.tar" "$part"
             zstd -T0 -10 --rm "/tmp/$part.tar"
