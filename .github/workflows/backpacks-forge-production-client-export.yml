@@ -34,6 +34,44 @@ jobs:
           test -d /tmp/pmc/main/libraries
           test -d /tmp/pmc/main/assets
           test -d /tmp/pmc/main/versions
+      - name: Capture current production-client oracle
+        shell: bash
+        run: |
+          set -uo pipefail
+          ROOT=/tmp/pmc/main
+          OUT=/tmp/pmc/ORACLE-DIAGNOSTIC.txt
+          : > "$OUT"
+          {
+            echo '=== expected canonical paths ==='
+            for f in \
+              "$ROOT/libraries/net/minecraft/client/1.20.1-20230612.114412/client-1.20.1-20230612.114412-srg.jar" \
+              "$ROOT/libraries/net/minecraft/client/1.20.1-20230612.114412/client-1.20.1-20230612.114412-extra.jar" \
+              "$ROOT/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-client.jar" \
+              "$ROOT/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-universal.jar"
+            do
+              if [ -f "$f" ]; then
+                stat --printf='%n %s bytes\n' "$f"
+                sha256sum "$f"
+              else
+                echo "MISSING $f"
+              fi
+            done
+            echo '=== discovered minecraft/forge jar candidates ==='
+            find "$ROOT/libraries/net/minecraft" "$ROOT/libraries/net/minecraftforge" -type f \( -name '*.jar' -o -name '*.json' \) -print 2>/dev/null | sort
+            echo '=== candidate hashes ==='
+            find "$ROOT/libraries/net/minecraft" "$ROOT/libraries/net/minecraftforge" -type f -name '*.jar' -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum
+          } | tee "$OUT"
+      - name: Upload oracle diagnostic
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forge-production-client-oracle-diagnostic
+          path: |
+            /tmp/pmc/ORACLE-DIAGNOSTIC.txt
+            /tmp/pmc/install.log
+          if-no-files-found: warn
+          retention-days: 3
+          compression-level: 0
       - name: Verify prior production-harness byte oracle
         shell: bash
         run: |
@@ -44,6 +82,7 @@ jobs:
           FORGE_CLIENT="$ROOT/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-client.jar"
           UNIVERSAL="$ROOT/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-universal.jar"
           for f in "$SRG" "$EXTRA" "$FORGE_CLIENT" "$UNIVERSAL"; do test -f "$f"; done
+          sha256sum "$SRG" "$EXTRA" "$FORGE_CLIENT" "$UNIVERSAL"
           test "$(sha256sum "$SRG" | awk '{print $1}')" = 'e7ed6e44b4181da5770b5f4aa06e908e5008068cddc84446913ccdc2f435c903'
           test "$(sha256sum "$EXTRA" | awk '{print $1}')" = 'f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317'
           test "$(sha256sum "$FORGE_CLIENT" | awk '{print $1}')" = 'ad9f1da4f4ae6121c3fd4ec6a67b0e89bb7466d7039879b75d7cb9592c0e5605'
