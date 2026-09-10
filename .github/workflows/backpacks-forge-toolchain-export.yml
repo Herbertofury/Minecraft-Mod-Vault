@@ -1,0 +1,63 @@
+name: Backpacks Forge 1.20.1 Toolchain Export
+
+on:
+  push:
+    branches:
+      - qa/backpacks-2.0.2.4-native-visual
+    paths:
+      - '.github/workflows/backpacks-forge-toolchain-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+      - name: Restore proven minimal Forge fixture and populate exact cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT='qa/backpacks-2.0.2.4-native-visual/input'
+          OVERRIDE='qa/backpacks-2.0.2.4-native-visual/overrides/NativeVisualQaClient.java'
+          rm -rf /tmp/forge-cache-seed
+          mkdir -p /tmp/forge-cache-seed
+          cat "$INPUT"/fixture.b64.part* | base64 -d > /tmp/fixture.tar.gz
+          echo '94a0fc8833dffc4ba4dc50995e35a65c18c873bec079895688d6b6f4f6654779  /tmp/fixture.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/fixture.tar.gz -C /tmp/forge-cache-seed
+          cp "$OVERRIDE" /tmp/forge-cache-seed/src/main/java/dev/scaiquest/backpacks20/nativeqa/NativeVisualQaClient.java
+          for d in 16 23 26; do
+            base64 -d "qa/backpacks-2.0.2.4-native-visual/overrides/emissive/$d/0.png.b64" > "/tmp/forge-cache-seed/src/main/resources/assets/sqst_bkpk/textures/backpacks/emissive/$d/0.png"
+          done
+          cd /tmp/forge-cache-seed
+          gradle --no-daemon clean build
+      - name: Export Java 17, Gradle 8.8 and populated Gradle cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/export
+          JAVA_REAL="$(readlink -f "$JAVA_HOME")"
+          GRADLE_BIN="$(readlink -f "$(command -v gradle)")"
+          GRADLE_HOME_REAL="$(dirname "$(dirname "$GRADLE_BIN")")"
+          printf 'JAVA_HOME=%s\nGRADLE_HOME=%s\n' "$JAVA_REAL" "$GRADLE_HOME_REAL" | tee /tmp/export/paths.txt
+          tar -C "$(dirname "$JAVA_REAL")" -cf /tmp/export/jdk17.tar "$(basename "$JAVA_REAL")"
+          tar -C "$(dirname "$GRADLE_HOME_REAL")" -cf /tmp/export/gradle88.tar "$(basename "$GRADLE_HOME_REAL")"
+          tar -C "$HOME" -cf /tmp/export/gradle-cache.tar .gradle/caches
+          zstd -T0 -10 --rm /tmp/export/jdk17.tar /tmp/export/gradle88.tar /tmp/export/gradle-cache.tar
+          sha256sum /tmp/export/* > /tmp/export/SHA256SUMS.txt
+          du -h /tmp/export/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-1.20.1-47.4.23-gradle88-java17-cache
+          path: /tmp/export
+          if-no-files-found: error
+          retention-days: 3
