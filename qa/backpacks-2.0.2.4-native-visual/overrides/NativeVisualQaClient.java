@@ -63,10 +63,10 @@ public final class NativeVisualQaClient {
                 int x = xs[i];
                 graphics.drawCenteredString(font, names[i], x, 105, 0xFFFFFFFF);
                 graphics.drawCenteredString(font, "geometry " + designs[i], x, 119, 0xFF7F8FA6);
-                renderDesign(graphics, designs[i], x, 265, LightTexture.FULL_BRIGHT, 142.0f);
-                graphics.drawCenteredString(font, "FULL LIGHT", x, 386, 0xFFB8C4D8);
-                renderDesign(graphics, designs[i], x, 535, 0, 142.0f);
-                graphics.drawCenteredString(font, "DARK / EMISSIVE", x, 655, 0xFFE5F4FF);
+                renderDesign(graphics, designs[i], x, 255, LightTexture.FULL_BRIGHT, 100.0f);
+                graphics.drawCenteredString(font, "FULL LIGHT", x, 365, 0xFFB8C4D8);
+                renderDesign(graphics, designs[i], x, 515, 0, 100.0f);
+                graphics.drawCenteredString(font, "DARK / EMISSIVE", x, 635, 0xFFE5F4FF);
             }
 
             graphics.drawCenteredString(font, "NATIVE QA: source basis (-X pivot/origin, -X/-Y rotation) + entity_emissive_alpha bridge", width / 2, 690, 0xFF7FC8FF);
@@ -94,7 +94,7 @@ public final class NativeVisualQaClient {
             pose.scale(scale, -scale, scale);
             pose.mulPose(Axis.XP.rotationDegrees(18.0f));
             pose.mulPose(Axis.YP.rotationDegrees(180.0f));
-            pose.translate(0.0f, -0.25f, 0.0f);
+            pose.translate(0.0f, -modelCenterY(design), 0.0f);
 
             RenderSystem.enableDepthTest();
             MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
@@ -110,6 +110,14 @@ public final class NativeVisualQaClient {
             );
             buffers.endBatch();
             pose.popPose();
+        }
+
+        private float modelCenterY(int design) {
+            return switch (design) {
+                case 23 -> 10.055f / 16.0f;
+                case 16, 26 -> 6.0f / 16.0f;
+                default -> 0.5f;
+            };
         }
 
         @Override
