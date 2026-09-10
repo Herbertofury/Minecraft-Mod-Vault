@@ -1,0 +1,149 @@
+name: Backpacks Forge 1.20.1 Production Client Export
+
+on:
+  push:
+    branches:
+      - qa/backpacks-2.0.2.4-production-client
+    paths:
+      - '.github/workflows/backpacks-forge-production-client-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install launcher and exact Forge client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'portablemc==4.4.1'
+          mkdir -p /tmp/pmc/main /tmp/pmc/work /tmp/wheelhouse
+          python -m pip download --disable-pip-version-check --dest /tmp/wheelhouse 'portablemc==4.4.1'
+          portablemc --main-dir /tmp/pmc/main --work-dir /tmp/pmc/work -vv start --dry forge:1.20.1-47.4.23 | tee /tmp/pmc/install.log
+          test -d /tmp/pmc/main/libraries
+          test -d /tmp/pmc/main/assets
+          test -d /tmp/pmc/main/versions
+      - name: Verify prior production-harness byte oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=/tmp/pmc/main
+          SRG="$ROOT/libraries/net/minecraft/client/1.20.1-20230612.114412/client-1.20.1-20230612.114412-srg.jar"
+          EXTRA="$ROOT/libraries/net/minecraft/client/1.20.1-20230612.114412/client-1.20.1-20230612.114412-extra.jar"
+          FORGE_CLIENT="$ROOT/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-client.jar"
+          UNIVERSAL="$ROOT/libraries/net/minecraftforge/forge/1.20.1-47.4.23/forge-1.20.1-47.4.23-universal.jar"
+          for f in "$SRG" "$EXTRA" "$FORGE_CLIENT" "$UNIVERSAL"; do test -f "$f"; done
+          test "$(sha256sum "$SRG" | awk '{print $1}')" = 'e7ed6e44b4181da5770b5f4aa06e908e5008068cddc84446913ccdc2f435c903'
+          test "$(sha256sum "$EXTRA" | awk '{print $1}')" = 'f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317'
+          test "$(sha256sum "$FORGE_CLIENT" | awk '{print $1}')" = 'ad9f1da4f4ae6121c3fd4ec6a67b0e89bb7466d7039879b75d7cb9592c0e5605'
+          test "$(sha256sum "$UNIVERSAL" | awk '{print $1}')" = '98a6c0a2318c1788db6f592357eb00d09b15316f054942ba432f71027f074fef'
+          sha256sum "$SRG" "$EXTRA" "$FORGE_CLIENT" "$UNIVERSAL" > /tmp/pmc/PRODUCTION-CLIENT-ORACLE-SHA256SUMS.txt
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          root=Path('/tmp/pmc/main')
+          idx=json.loads((root/'assets/indexes/5.json').read_text())
+          objs=idx['objects']
+          bad=[]
+          for name,meta in objs.items():
+              h=meta['hash']; p=root/'assets/objects'/h[:2]/h
+              if not p.is_file() or p.stat().st_size != meta['size']:
+                  bad.append((name,'missing-or-size'))
+                  continue
+              if hashlib.sha1(p.read_bytes()).hexdigest()!=h:
+                  bad.append((name,'sha1'))
+          actual=sum(1 for p in (root/'assets/objects').glob('*/*') if p.is_file())
+          report={'asset_index':'5','logical_entries':len(objs),'unique_hashes':len({m['hash'] for m in objs.values()}),'actual_object_files':actual,'failures':bad,'pass':not bad}
+          Path('/tmp/pmc/CLIENT-ASSET-VERIFY.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if bad: raise SystemExit(2)
+          PY
+      - name: Build portable launch wrapper and split runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=/tmp/pmc/main
+          WORK=/tmp/pmc/work
+          mkdir -p /tmp/export/core /tmp/export/assets-a /tmp/export/assets-b /tmp/export/assets-c /tmp/export/launcher
+          cat > /tmp/export/core/run-production-client.sh <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "$0")" && pwd)"
+          PMC="$ROOT/../launcher/venv/bin/portablemc"
+          JAVA_BIN="${JAVA_BIN:-java}"
+          exec "$PMC" --main-dir "$ROOT/main" --work-dir "$ROOT/work" --timeout 0 start --jvm "$JAVA_BIN" -u QAPlayer forge:1.20.1-47.4.23 "$@"
+          SH
+          chmod +x /tmp/export/core/run-production-client.sh
+          cp -a "$ROOT" /tmp/export/core/main
+          cp -a "$WORK" /tmp/export/core/work
+          rm -rf /tmp/export/core/main/assets/objects
+          mkdir -p /tmp/export/core/main/assets/objects
+          cp /tmp/pmc/install.log /tmp/pmc/PRODUCTION-CLIENT-ORACLE-SHA256SUMS.txt /tmp/pmc/CLIENT-ASSET-VERIFY.json /tmp/export/core/
+          python -m venv /tmp/export/launcher/venv
+          /tmp/export/launcher/venv/bin/pip install --no-index --find-links /tmp/wheelhouse portablemc==4.4.1
+          cp -a /tmp/wheelhouse /tmp/export/launcher/
+          for d in {0..5}; do [ -d "$ROOT/assets/objects/$d" ] && cp -a "$ROOT/assets/objects/$d" /tmp/export/assets-a/; done
+          for d in {6..9} a b; do [ -d "$ROOT/assets/objects/$d" ] && cp -a "$ROOT/assets/objects/$d" /tmp/export/assets-b/; done
+          for d in c d e f; do [ -d "$ROOT/assets/objects/$d" ] && cp -a "$ROOT/assets/objects/$d" /tmp/export/assets-c/; done
+          for part in core assets-a assets-b assets-c launcher; do
+            tar -C /tmp/export -cf "/tmp/$part.tar" "$part"
+            zstd -T0 -10 --rm "/tmp/$part.tar"
+            sha256sum "/tmp/$part.tar.zst" > "/tmp/$part.SHA256SUMS.txt"
+            du -h "/tmp/$part.tar.zst"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-production-client-core
+          path: |
+            /tmp/core.tar.zst
+            /tmp/core.SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-production-client-assets-a
+          path: |
+            /tmp/assets-a.tar.zst
+            /tmp/assets-a.SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-production-client-assets-b
+          path: |
+            /tmp/assets-b.tar.zst
+            /tmp/assets-b.SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-production-client-assets-c
+          path: |
+            /tmp/assets-c.tar.zst
+            /tmp/assets-c.SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: forge-production-client-launcher
+          path: |
+            /tmp/launcher.tar.zst
+            /tmp/launcher.SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
