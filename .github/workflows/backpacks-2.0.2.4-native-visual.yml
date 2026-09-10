@@ -77,6 +77,11 @@ jobs:
           XVFB_PID=$!
           sleep 2
 
+          mkdir -p run
+          printf 'guiScale:1\n' > run/options.txt
+          echo 'QA_OPTIONS:'
+          cat run/options.txt
+
           set +e
           gradle --no-daemon runClient > /tmp/backpacks-native-client.log 2>&1 &
           GRADLE_PID=$!

@@ -32,6 +32,7 @@ public final class NativeVisualQaClient {
         if (startupTicks >= 40 && mc.level == null && mc.screen != null) {
             opened = true;
             System.out.println("QA_NATIVE_REPLACING_SCREEN=" + mc.screen.getClass().getName());
+            System.out.println("QA_NATIVE_GUI=" + mc.getWindow().getGuiScaledWidth() + "x" + mc.getWindow().getGuiScaledHeight() + " scale=" + mc.getWindow().getGuiScale());
             BedrockModelRenderer.clearCache();
             mc.setScreen(new ProofScreen());
             System.out.println("QA_NATIVE_SCREEN_OPEN");
@@ -63,10 +64,10 @@ public final class NativeVisualQaClient {
                 int x = xs[i];
                 graphics.drawCenteredString(font, names[i], x, 105, 0xFFFFFFFF);
                 graphics.drawCenteredString(font, "geometry " + designs[i], x, 119, 0xFF7F8FA6);
-                renderDesign(graphics, designs[i], x, 80, LightTexture.FULL_BRIGHT, 80.0f);
-                graphics.drawCenteredString(font, "FULL LIGHT", x, 380, 0xFFB8C4D8);
-                renderDesign(graphics, designs[i], x, 340, 0, 80.0f);
-                graphics.drawCenteredString(font, "DARK / EMISSIVE", x, 650, 0xFFE5F4FF);
+                renderDesign(graphics, designs[i], x, 255, LightTexture.FULL_BRIGHT, 100.0f);
+                graphics.drawCenteredString(font, "FULL LIGHT", x, 365, 0xFFB8C4D8);
+                renderDesign(graphics, designs[i], x, 515, 0, 100.0f);
+                graphics.drawCenteredString(font, "DARK / EMISSIVE", x, 635, 0xFFE5F4FF);
             }
 
             graphics.drawCenteredString(font, "NATIVE QA: source basis (-X pivot/origin, -X/-Y rotation) + entity_emissive_alpha bridge", width / 2, 690, 0xFF7FC8FF);
