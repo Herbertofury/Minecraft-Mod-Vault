@@ -40,8 +40,13 @@ jobs:
           echo '94a0fc8833dffc4ba4dc50995e35a65c18c873bec079895688d6b6f4f6654779  /tmp/backpacks-native-ci-fixture.tar.gz' | sha256sum -c -
           tar -xzf /tmp/backpacks-native-ci-fixture.tar.gz -C /tmp/backpacks-native-qa
           cp "$OVERRIDE" /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/nativeqa/NativeVisualQaClient.java
-          echo '--- immutable renderer + QA override ---'
-          sha256sum /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/client/BedrockModelRenderer.java /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/nativeqa/NativeVisualQaClient.java
+          for d in 16 23 26; do
+            base64 -d "qa/backpacks-2.0.2.4-native-visual/overrides/emissive/$d/0.png.b64" > "/tmp/backpacks-native-qa/src/main/resources/assets/sqst_bkpk/textures/backpacks/emissive/$d/0.png"
+          done
+          echo '--- immutable renderer + repaired mask overrides + QA override ---'
+          sha256sum /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/client/BedrockModelRenderer.java \
+            /tmp/backpacks-native-qa/src/main/resources/assets/sqst_bkpk/textures/backpacks/emissive/{16,23,26}/0.png \
+            /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/nativeqa/NativeVisualQaClient.java
           cat /tmp/backpacks-native-qa/SOURCE-PROVENANCE.txt
 
       - name: Build exact Forge QA mod
