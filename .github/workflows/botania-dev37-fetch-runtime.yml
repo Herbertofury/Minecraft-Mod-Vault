@@ -1,0 +1,47 @@
+name: Botania dev37 runtime dependencies
+
+on:
+  push:
+    paths:
+      - '.github/workflows/botania-dev37-fetch-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch exact runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir runtime
+          curl -fL --retry 4 --retry-delay 2 \
+            'https://github.com/VazkiiMods/Botania/releases/download/release-1.20.1-455/Botania-1.20.1-455-FORGE.jar' \
+            -o runtime/Botania-1.20.1-455-FORGE.jar
+          echo 'b33a7cf5ac2cf859d78f13daf9bc45678ffd32a85e91661304cdec5dfd296700  runtime/Botania-1.20.1-455-FORGE.jar' | sha256sum -c -
+
+          curl -fL --retry 4 --retry-delay 2 \
+            'https://github.com/VazkiiMods/Patchouli/releases/download/release-1.20.1-85/Patchouli-1.20.1-85-FORGE.jar' \
+            -o runtime/Patchouli-1.20.1-85-FORGE.jar
+          echo '05f7b5d52f6b8f0fd7f8b4822fa07a192d1394d83a264309c9d221d6d4fd21c5  runtime/Patchouli-1.20.1-85-FORGE.jar' | sha256sum -c -
+
+          curl -fL --retry 4 --retry-delay 2 \
+            'https://www.curseforge.com/api/v1/mods/309927/files/6418456/download' \
+            -o runtime/curios-forge-5.14.1+1.20.1.jar
+
+          test "$(stat -c %s runtime/curios-forge-5.14.1+1.20.1.jar)" -gt 390000
+          unzip -p 'runtime/curios-forge-5.14.1+1.20.1.jar' META-INF/mods.toml | grep -F 'modId="curios"'
+          unzip -p 'runtime/curios-forge-5.14.1+1.20.1.jar' META-INF/mods.toml | grep -F 'version="5.14.1+1.20.1"'
+          sha256sum runtime/* > runtime/SHA256SUMS.txt
+          cat runtime/SHA256SUMS.txt
+
+      - name: Upload exact runtime set
+        uses: actions/upload-artifact@v4
+        with:
+          name: botania-dev37-runtime-dependencies
+          path: runtime
+          if-no-files-found: error
+          retention-days: 1
