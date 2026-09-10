@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -53,11 +53,38 @@ jobs:
           tar -C "$(dirname "$GRADLE_HOME_REAL")" -cf /tmp/export/gradle88.tar "$(basename "$GRADLE_HOME_REAL")"
           tar -C "$HOME" -cf /tmp/export/gradle-cache.tar .gradle/caches
           zstd -T0 -10 --rm /tmp/export/jdk17.tar /tmp/export/gradle88.tar /tmp/export/gradle-cache.tar
-          sha256sum /tmp/export/* > /tmp/export/SHA256SUMS.txt
+          sha256sum /tmp/export/jdk17.tar.zst /tmp/export/gradle88.tar.zst /tmp/export/gradle-cache.tar.zst > /tmp/export/SHA256SUMS.txt
           du -h /tmp/export/*
-      - uses: actions/upload-artifact@v4
+      - name: Upload Forge Gradle cache
+        uses: actions/upload-artifact@v4
         with:
-          name: forge-1.20.1-47.4.23-gradle88-java17-cache
-          path: /tmp/export
+          name: forge-1.20.1-47.4.23-build-cache
+          path: /tmp/export/gradle-cache.tar.zst
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - name: Upload Gradle 8.8
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-8.8-linux
+          path: /tmp/export/gradle88.tar.zst
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - name: Upload Temurin Java 17
+        uses: actions/upload-artifact@v4
+        with:
+          name: temurin-17.0.20-linux
+          path: /tmp/export/jdk17.tar.zst
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+      - name: Upload toolchain manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-toolchain-manifest
+          path: |
+            /tmp/export/SHA256SUMS.txt
+            /tmp/export/paths.txt
           if-no-files-found: error
           retention-days: 3
