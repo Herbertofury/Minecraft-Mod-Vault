@@ -30,7 +30,7 @@ jobs:
           python -m pip install --disable-pip-version-check 'portablemc==4.4.1'
           mkdir -p /tmp/pmc/main /tmp/pmc/work /tmp/wheelhouse
           python -m pip download --disable-pip-version-check --dest /tmp/wheelhouse 'portablemc==4.4.1'
-          portablemc --main-dir /tmp/pmc/main --work-dir /tmp/pmc/work -vv start --dry forge:1.20.1-47.4.23 | tee /tmp/pmc/install.log
+          portablemc --main-dir /tmp/pmc/main --work-dir /tmp/pmc/work -v start --dry forge:1.20.1-47.4.23 | tee /tmp/pmc/install.log
           test -d /tmp/pmc/main/libraries
           test -d /tmp/pmc/main/assets
           test -d /tmp/pmc/main/versions
