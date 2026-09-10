@@ -23,14 +23,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$JAVA_HOME/bin/java" -version 2>&1 | tee /tmp/JAVA-IDENTITY.txt
-          "$JAVA_HOME/bin/java" -XshowSettings:properties -version 2>&1 | grep -E 'java\.home|java\.version|java\.vendor' | tee -a /tmp/JAVA-IDENTITY.txt
-          test "$("$JAVA_HOME/bin/java" -XshowSettings:properties -version 2>&1 | sed -n 's/^[[:space:]]*java.version = \(.*\)$/\1/p' | head -n 1 | cut -d. -f1)" = '17'
-          BASE=$(dirname "$JAVA_HOME")
-          NAME=$(basename "$JAVA_HOME")
+          REAL_HOME=$(readlink -f "$JAVA_HOME")
+          test -n "$REAL_HOME"
+          test -x "$REAL_HOME/bin/java"
+          {
+            echo "JAVA_HOME=$JAVA_HOME"
+            echo "REAL_HOME=$REAL_HOME"
+            "$REAL_HOME/bin/java" -version 2>&1
+            "$REAL_HOME/bin/java" -XshowSettings:properties -version 2>&1 | grep -E 'java\.home|java\.version|java\.vendor'
+          } | tee /tmp/JAVA-IDENTITY.txt
+          test "$("$REAL_HOME/bin/java" -XshowSettings:properties -version 2>&1 | sed -n 's/^[[:space:]]*java.version = \(.*\)$/\1/p' | head -n 1 | cut -d. -f1)" = '17'
+          BASE=$(dirname "$REAL_HOME")
+          NAME=$(basename "$REAL_HOME")
           tar -C "$BASE" -cf /tmp/temurin17-linux-x64.tar "$NAME"
           zstd -T0 -10 --rm /tmp/temurin17-linux-x64.tar
+          test "$(stat -c %s /tmp/temurin17-linux-x64.tar.zst)" -gt 50000000
           sha256sum /tmp/temurin17-linux-x64.tar.zst | tee /tmp/temurin17-linux-x64.SHA256SUMS.txt
+          zstd -t /tmp/temurin17-linux-x64.tar.zst
+          zstd -dc /tmp/temurin17-linux-x64.tar.zst | tar -tf - | grep -q '/bin/java$'
       - uses: actions/upload-artifact@v4
         with:
           name: temurin17-linux-x64
