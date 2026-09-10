@@ -64,8 +64,9 @@ jobs:
           rm -rf /tmp/forge-server/world /tmp/forge-server/logs /tmp/forge-server/crash-reports
           tar -C /tmp -cf /tmp/forge-1.20.1-47.4.23-packaged-server.tar forge-server
           zstd -T0 -10 --rm /tmp/forge-1.20.1-47.4.23-packaged-server.tar
-          sha256sum /tmp/forge-1.20.1-47.4.23-packaged-server.tar.zst > /tmp/forge-packaged-server-SHA256SUMS.txt
-          du -h /tmp/forge-1.20.1-47.4.23-packaged-server.tar.zst
+          cd /tmp
+          sha256sum forge-1.20.1-47.4.23-packaged-server.tar.zst > forge-packaged-server-SHA256SUMS.txt
+          du -h forge-1.20.1-47.4.23-packaged-server.tar.zst
       - uses: actions/upload-artifact@v4
         with:
           name: forge-1.20.1-47.4.23-packaged-server
