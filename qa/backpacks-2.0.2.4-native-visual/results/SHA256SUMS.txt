@@ -1,0 +1,2 @@
+88dab03910fd809fb69e33b330eda6a928cf134e49cdd0dc5d7ac53e780d8e0b  build/libs/Backpacks-2.0.2.4-Native-Visual-QA-2.0.2.4-native-visual-qa.jar
+959114092e640b1e24cc15e31a600ce91b1d95e0ce13727cf195e9bcd455274a  /tmp/backpacks-native-result/Backpacks-2.0.2.4-Native-Forge-Proof.png

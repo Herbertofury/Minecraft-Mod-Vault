@@ -1,0 +1,6 @@
+Forge=1.20.1-47.4.23
+Java=17
+Gradle=8.8
+Renderer=exact Backpacks 2.0.2.4 BedrockModelRenderer.java
+Designs=16 Honey Bee, 23 Warden, 26 Creaking
+QA_NATIVE_VISUAL_READY=PASS
