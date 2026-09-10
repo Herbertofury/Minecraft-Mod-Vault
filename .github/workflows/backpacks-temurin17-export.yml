@@ -1,0 +1,43 @@
+name: Backpacks Temurin 17 Runtime Export
+
+on:
+  push:
+    branches:
+      - qa/backpacks-2.0.2.4-production-client
+    paths:
+      - '.github/workflows/backpacks-temurin17-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify and package Java 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$JAVA_HOME/bin/java" -version 2>&1 | tee /tmp/JAVA-IDENTITY.txt
+          "$JAVA_HOME/bin/java" -XshowSettings:properties -version 2>&1 | grep -E 'java\.home|java\.version|java\.vendor' | tee -a /tmp/JAVA-IDENTITY.txt
+          test "$("$JAVA_HOME/bin/java" -XshowSettings:properties -version 2>&1 | sed -n 's/^[[:space:]]*java.version = \(.*\)$/\1/p' | head -n 1 | cut -d. -f1)" = '17'
+          BASE=$(dirname "$JAVA_HOME")
+          NAME=$(basename "$JAVA_HOME")
+          tar -C "$BASE" -cf /tmp/temurin17-linux-x64.tar "$NAME"
+          zstd -T0 -10 --rm /tmp/temurin17-linux-x64.tar
+          sha256sum /tmp/temurin17-linux-x64.tar.zst | tee /tmp/temurin17-linux-x64.SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: temurin17-linux-x64
+          path: |
+            /tmp/temurin17-linux-x64.tar.zst
+            /tmp/temurin17-linux-x64.SHA256SUMS.txt
+            /tmp/JAVA-IDENTITY.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
