@@ -1,0 +1,158 @@
+name: Backpacks 2.0.2.4 Native Visual QA
+
+on:
+  push:
+    branches:
+      - qa/backpacks-2.0.2.4-native-visual
+    paths:
+      - 'qa/backpacks-2.0.2.4-native-visual/input/**'
+      - '.github/workflows/backpacks-2.0.2.4-native-visual.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  native-forge-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.8'
+
+      - name: Restore exact QA fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT_DIR='qa/backpacks-2.0.2.4-native-visual/input'
+          mkdir -p /tmp/backpacks-native-qa
+          cat "$INPUT_DIR"/fixture.b64.part* > /tmp/backpacks-native-ci-fixture.tar.gz.b64
+          base64 -d /tmp/backpacks-native-ci-fixture.tar.gz.b64 > /tmp/backpacks-native-ci-fixture.tar.gz
+          echo '94a0fc8833dffc4ba4dc50995e35a65c18c873bec079895688d6b6f4f6654779  /tmp/backpacks-native-ci-fixture.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/backpacks-native-ci-fixture.tar.gz -C /tmp/backpacks-native-qa
+          cat /tmp/backpacks-native-qa/SOURCE-PROVENANCE.txt
+
+      - name: Build exact Forge QA mod
+        working-directory: /tmp/backpacks-native-qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version
+          gradle --version
+          gradle --no-daemon clean build | tee /tmp/backpacks-native-build.log
+          test -n "$(find build/libs -maxdepth 1 -type f -name '*.jar' -print -quit)"
+
+      - name: Install headless visual runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb ffmpeg libgl1-mesa-dri libglx-mesa0
+          fi
+          Xvfb -version 2>&1 | head -5 || true
+          ffmpeg -version | head -2
+
+      - name: Launch real Forge client and capture patched models
+        working-directory: /tmp/backpacks-native-qa
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DISPLAY=:99
+          export LIBGL_ALWAYS_SOFTWARE=1
+          export ALSOFT_DRIVERS=null
+          Xvfb :99 -screen 0 1280x720x24 -nolisten tcp > /tmp/backpacks-xvfb.log 2>&1 &
+          XVFB_PID=$!
+          sleep 2
+
+          set +e
+          gradle --no-daemon runClient > /tmp/backpacks-native-client.log 2>&1 &
+          GRADLE_PID=$!
+          set -e
+
+          READY=0
+          for i in $(seq 1 240); do
+            if grep -q 'QA_NATIVE_VISUAL_READY' /tmp/backpacks-native-client.log 2>/dev/null; then
+              READY=1
+              break
+            fi
+            if ! kill -0 "$GRADLE_PID" 2>/dev/null; then
+              echo 'Forge client exited before native visual readiness.'
+              tail -300 /tmp/backpacks-native-client.log || true
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            echo 'Timed out waiting for QA_NATIVE_VISUAL_READY.'
+            tail -300 /tmp/backpacks-native-client.log || true
+            exit 1
+          fi
+
+          mkdir -p /tmp/backpacks-native-result
+          ffmpeg -hide_banner -loglevel error -y \
+            -f x11grab -draw_mouse 0 -video_size 1280x720 -i :99.0 \
+            -frames:v 1 /tmp/backpacks-native-result/Backpacks-2.0.2.4-Native-Forge-Proof.png
+          test -s /tmp/backpacks-native-result/Backpacks-2.0.2.4-Native-Forge-Proof.png
+
+          EXITED=0
+          for i in $(seq 1 90); do
+            if ! kill -0 "$GRADLE_PID" 2>/dev/null; then
+              EXITED=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$EXITED" -ne 1 ]; then
+            kill -TERM "$GRADLE_PID" 2>/dev/null || true
+          fi
+          wait "$GRADLE_PID" || true
+          kill "$XVFB_PID" 2>/dev/null || true
+
+          grep -q 'QA_NATIVE_SCREEN_OPEN' /tmp/backpacks-native-client.log
+          grep -q 'QA_NATIVE_VISUAL_READY' /tmp/backpacks-native-client.log
+          if grep -q 'Unable to load Bedrock geometry' /tmp/backpacks-native-client.log; then
+            echo 'Task-owned Bedrock geometry load failure detected.'
+            tail -300 /tmp/backpacks-native-client.log
+            exit 1
+          fi
+
+          JAR=$(find build/libs -maxdepth 1 -type f -name '*.jar' -print -quit)
+          sha256sum "$JAR" /tmp/backpacks-native-result/Backpacks-2.0.2.4-Native-Forge-Proof.png > /tmp/backpacks-native-result/SHA256SUMS.txt
+          cp /tmp/backpacks-native-client.log /tmp/backpacks-native-result/native-client.log
+          cp /tmp/backpacks-native-build.log /tmp/backpacks-native-result/build.log
+          cp SOURCE-PROVENANCE.txt /tmp/backpacks-native-result/SOURCE-PROVENANCE.txt
+          printf 'Forge=1.20.1-47.4.23\nJava=17\nGradle=8.8\nRenderer=exact Backpacks 2.0.2.4 BedrockModelRenderer.java\nDesigns=16 Honey Bee, 23 Warden, 26 Creaking\nQA_NATIVE_VISUAL_READY=PASS\n' > /tmp/backpacks-native-result/RESULT.txt
+
+      - name: Upload native proof bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Backpacks-2.0.2.4-Native-Forge-Proof
+          path: /tmp/backpacks-native-result
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Persist screenshot readback on QA branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT_DIR='qa/backpacks-2.0.2.4-native-visual/results'
+          mkdir -p "$RESULT_DIR"
+          base64 -w0 /tmp/backpacks-native-result/Backpacks-2.0.2.4-Native-Forge-Proof.png > "$RESULT_DIR/Backpacks-2.0.2.4-Native-Forge-Proof.png.b64"
+          cp /tmp/backpacks-native-result/RESULT.txt "$RESULT_DIR/RESULT.txt"
+          cp /tmp/backpacks-native-result/SHA256SUMS.txt "$RESULT_DIR/SHA256SUMS.txt"
+          tail -n 500 /tmp/backpacks-native-result/native-client.log > "$RESULT_DIR/native-client-tail.log"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$RESULT_DIR"
+          if ! git diff --cached --quiet; then
+            git commit -m 'qa: persist Backpacks 2.0.2.4 native Forge visual proof'
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
