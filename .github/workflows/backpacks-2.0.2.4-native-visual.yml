@@ -6,6 +6,7 @@ on:
       - qa/backpacks-2.0.2.4-native-visual
     paths:
       - 'qa/backpacks-2.0.2.4-native-visual/input/**'
+      - 'qa/backpacks-2.0.2.4-native-visual/overrides/**'
       - '.github/workflows/backpacks-2.0.2.4-native-visual.yml'
 
 permissions:
@@ -32,11 +33,15 @@ jobs:
         run: |
           set -euo pipefail
           INPUT_DIR='qa/backpacks-2.0.2.4-native-visual/input'
+          OVERRIDE='qa/backpacks-2.0.2.4-native-visual/overrides/NativeVisualQaClient.java'
           mkdir -p /tmp/backpacks-native-qa
           cat "$INPUT_DIR"/fixture.b64.part* > /tmp/backpacks-native-ci-fixture.tar.gz.b64
           base64 -d /tmp/backpacks-native-ci-fixture.tar.gz.b64 > /tmp/backpacks-native-ci-fixture.tar.gz
           echo '94a0fc8833dffc4ba4dc50995e35a65c18c873bec079895688d6b6f4f6654779  /tmp/backpacks-native-ci-fixture.tar.gz' | sha256sum -c -
           tar -xzf /tmp/backpacks-native-ci-fixture.tar.gz -C /tmp/backpacks-native-qa
+          cp "$OVERRIDE" /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/nativeqa/NativeVisualQaClient.java
+          echo '--- immutable renderer + QA override ---'
+          sha256sum /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/client/BedrockModelRenderer.java /tmp/backpacks-native-qa/src/main/java/dev/scaiquest/backpacks20/nativeqa/NativeVisualQaClient.java
           cat /tmp/backpacks-native-qa/SOURCE-PROVENANCE.txt
 
       - name: Build exact Forge QA mod
