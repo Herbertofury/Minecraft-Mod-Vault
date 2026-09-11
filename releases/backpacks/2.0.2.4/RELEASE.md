@@ -52,3 +52,15 @@ The same rules are now in the packaged Minecraft Dev Kit / Repair skill updates 
 ## GitHub publication note
 
 This repository record is the GitHub durable index for the release. The connected GitHub tool in this session supports repository/branch/text mutations but does not expose binary release-asset upload. Therefore the complete binary artifacts are hash-verified on Google Drive and linked above; no false claim is made that the binary files were uploaded to GitHub.
+
+## Post-release latest Sophisticated compatibility
+
+The frozen 2.0.2.4 JAR has now also passed a fresh packaged-client + dedicated-server compatibility challenge against **Sophisticated Backpacks 3.26.3.2157** and **Sophisticated Core 1.5.1.2335**, using Forge 47.4.23, Temurin 17.0.20.1+1, Curios 5.14.1, VanillaBackport 1.1.7.10, and Platform 1.3.4.
+
+- No compatibility patch was required; the release JAR remains byte-identical at SHA-256 `252e83b9f7fbe20fd15a4de047d4b02f1abcf87852dbbe7944beb386a85b1342`.
+- Native server boots reached `Done (...)!` and shut down with `All dimensions are saved`.
+- The production Forge client joined the real server, opened the Guide UI, and rendered the Warden backpack live in Curios at midnight with emissive geometry active.
+- Strict scan remained at zero for `NoSuchMethodError`, `NoSuchFieldError`, `AbstractMethodError`, `VerifyError`, `LinkageError`, `ClassCastException`, the custom recipe-category warning, and candidate-owned `sqst_bkpk` errors.
+- GitHub certificate: `LATEST-SOPHISTICATED-COMPATIBILITY.md` in this release directory.
+- Full compatibility evidence: https://drive.google.com/file/d/1iCEgDhxdYyyOjUPVADrj-q5yKrO_6vM1/view
+- Compatibility checksums: https://drive.google.com/file/d/1zuino0t7e-Iq1xHwhNcsqSpH7kUlJe1y/view
