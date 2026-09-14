@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "outcome": "partial",
+  "minecraft": "1.20.1",
+  "loader": {"name": "Forge", "version": "47.4.20"},
+  "java": "17",
+  "mods": [{"id": "grassiergrass", "version": "1.4.5", "display_name": "Grassier Grass", "filename": "Grassier-Grass-1.4.5-Render-Performance-Fix-REPLACEMENT-2.jar"}],
+  "artifacts": [
+    {"filename": "Grassier-Grass-1.4.5-Render-Performance-Fix-REPLACEMENT-2.jar", "role": "active replacement", "sha256": "91006e8220e65572d7e9e1e54b6058526c4adf908faedc750c9f19f13623df8c"},
+    {"filename": "Grassier-Grass-1.4.5-Repair-Mark-v2.png", "role": "embedded Repair Mark v2 source", "sha256": "7e3abc159d75fe4ac7f2fc0a0ff3eaa3ff0a34bdf3b9f86d15726fc8d5a4f659"}
+  ],
+  "root_cause": "The REPLACEMENT 1 bytecode transformer rewrote the SectionOffset cache helper's own ShaderInstance.getUniform lookup into a recursive sectionOffsetUniform call. First use therefore returned the still-null cached uniform and drawSections dereferenced it.",
+  "repair": {"type": "render-thread-performance-regression-fix", "changes": ["Rebuild from the untouched upstream Grassier Grass 1.4.5 JAR.", "Exclude sectionOffsetUniform itself from the SectionOffset lookup rewrite pass.", "Retain exactly two optimized external SectionOffset call sites.", "Preserve the section-build scheduling, dirty-scan, culling, and uniform-cache performance improvements."]},
+  "visual_identity": {"policy": "repair-mark-v2", "official_source": "modrinth-project + exact-release embedded upstream artwork", "modrinth_project_id": "3jCB9cn2", "canonical_project_url": "https://modrinth.com/mod/grassier-grass", "canonical_art_url": "https://cdn.modrinth.com/data/3jCB9cn2/8a0b80c7fe66355ca81bc0b25ff262f7b756f1dd_96.webp", "source_dimensions": [958, 958], "normalized_art_sha256": "ac002748371d861809fb528cc563520cae209729fec87c5a03f79503203768ab", "marked_art_sha256": "7e3abc159d75fe4ac7f2fc0a0ff3eaa3ff0a34bdf3b9f86d15726fc8d5a4f659", "embedded_icon_entry": "icon.png", "integration": "embedded", "marker_only_diff": "PASS: exactly icon.png changed; zero added/removed/metadata-only entries"},
+  "verification": {"static": ["Final ZIP/JAR integrity PASS; final SHA-256 91006e8220e65572d7e9e1e54b6058526c4adf908faedc750c9f19f13623df8c.", "ASM verification PASS for GrassDrawDispatcher (13 methods) and GrassSectionCache (33 methods).", "Uniform-cache regression guard PASS: helper self-calls 0; helper real SectionOffset lookup 1; optimized external SectionOffset call sites 2.", "Upstream -> unmarked replacement changes exactly GrassDrawDispatcher.class and GrassSectionCache.class; zero added/removed/metadata-only entries.", "Unmarked replacement -> final Repair Mark v2 changes exactly icon.png; zero added/removed/metadata-only entries.", "META-INF/mods.toml and META-INF/MANIFEST.MF are byte-identical to upstream; internal ID/version/display identity remains grassiergrass/1.4.5/Grassier Grass.", "Neutral/private-label scan PASS for final JAR, verification report, and source bundle.", "Repair Mark v2 closeout gate PASS; 48x48 visual QA PASS."], "runtime": ["REPLACEMENT 1 failure reproduced by user on Forge 47.4.20 and captured in crash/latest logs.", "REPLACEMENT 2 target-instance relaunch pending; do not promote outcome to success until the same world/render path completes without the prior signature."], "user_feedback": "User supplied crash-2026-09-13_23.07.18-client.txt, latest(9).log, and launcher_log(2).txt after testing REPLACEMENT 1."},
+  "id": "mc-1.20.1-forge-47.4.20-grassiergrass-1.4.5-sectionoffset-uniform-cache-regression-replacement-2",
+  "recorded_at": "2026-09-13T23:08:00-06:00",
+  "updated_at": "2026-09-13T23:08:00-06:00",
+  "confidence": "high static/package/bytecode proof; exact target runtime relaunch pending",
+  "symptoms": ["Client reaches the target singleplayer world and crashes on the Render thread during Grassier Grass section rendering.", "REPLACEMENT 1 returns null from sectionOffsetUniform(ShaderInstance) and drawSections dereferences the null AbstractUniform."],
+  "signatures": ["java.lang.NullPointerException: Cannot invoke \"com.mojang.blaze3d.shaders.AbstractUniform.m_5889_(float, float, float)\" because the return value of \"com.leonardoinc22.shortgrass.client.render.GrassDrawDispatcher.sectionOffsetUniform(net.minecraft.client.renderer.ShaderInstance)\" is null", "com.leonardoinc22.shortgrass.client.render.GrassDrawDispatcher.drawSections(GrassDrawDispatcher.java:90)", "Grassier-Grass-1.4.5-Render-Performance-Fix-REPLACEMENT-1.jar"],
+  "applicability": ["Grassier Grass 1.4.5 on Minecraft 1.20.1 Forge where the Render Performance Fix REPLACEMENT 1 is present.", "Especially applicable when the crash signature names sectionOffsetUniform(ShaderInstance) returning null from GrassDrawDispatcher.drawSections."],
+  "anti_patterns": ["Do not reuse REPLACEMENT 1: its transformer rewrites the helper own ShaderInstance.getUniform(\"SectionOffset\") call into a recursive self-call.", "Do not remove Grassier Grass or lower its visual fidelity to avoid this regression; the root cause is the replacement transformer and is repaired in REPLACEMENT 2.", "Do not blame Oculus/Embeddium for this exact signature; the replacement helper bytecode itself is causally defective."],
+  "supersedes": [],
+  "superseded_by": null
+}
