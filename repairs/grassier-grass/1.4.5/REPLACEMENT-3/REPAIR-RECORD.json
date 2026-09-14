@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "mc-1.20.1-forge-47.4.20-grassiergrass-1.4.5-renderperf-safety-hardened-replacement-3",
+  "recorded_at": "2026-09-14T17:11:00-06:00",
+  "updated_at": "2026-09-14T17:11:00-06:00",
+  "outcome": "partial",
+  "confidence": "high static/package/bytecode proof; exact target runtime launch pending",
+  "minecraft": "1.20.1",
+  "loader": {"name": "Forge", "version": "47.4.20"},
+  "java": "17",
+  "mods": [{"id":"grassiergrass","version":"1.4.5","filename":"Grassier-Grass-1.4.5-Render-Performance-Fix-REPLACEMENT-3.jar"}],
+  "symptoms": ["REPLACEMENT-1 crashed in GrassDrawDispatcher.drawSections because sectionOffsetUniform returned null."],
+  "signatures": ["GrassDrawDispatcher.sectionOffsetUniform(net.minecraft.client.renderer.ShaderInstance) is null", "GrassDrawDispatcher.drawSections(GrassDrawDispatcher.java:90)"],
+  "root_cause": "REPLACEMENT-1 recursively rewrote its own SectionOffset cache helper. REPLACEMENT-2 fixed recursion, but R3 additionally removes the entire cross-frame uniform cache lifetime assumption and restores upstream direct uniform lookup semantics.",
+  "repair": {"type":"jar-patch","changes":["Rebuilt from pristine upstream.","Removed the SectionOffset uniform cache/helper entirely.","Retained persistent build-queue scheduling and cull-before-coordinate-decode optimizations.","Preserved upstream mod identity and Repair Mark v2."]},
+  "verification": {"static":["ZIP integrity PASS.","ASM verification PASS: GrassDrawDispatcher 12 methods; GrassSectionCache 33 methods.","Uniform cache symbols absent and exactly two direct SectionOffset lookups remain, matching upstream.","Original to unmarked changes exactly two class entries; unmarked to final changes exactly icon.png.","mods.toml and MANIFEST.MF byte-identical to upstream.","Deterministic unmarked rebuild PASS.","Queue safety audit PASS.","Neutral private-label scan PASS."],"runtime":["Exact final REPLACEMENT-3 target-instance launch pending."]},
+  "artifacts": [{"filename":"Grassier-Grass-1.4.5-Render-Performance-Fix-REPLACEMENT-3.jar","role":"active replacement","sha256":"a2122e4402cc583087cc2262f91dde458c05be5d9fc4eabb06df2ef7a0ed0dc5"},{"filename":"Grassier-Grass-1.4.5-Repair-Mark-v2.png","role":"repair mark sidecar","sha256":"7e3abc159d75fe4ac7f2fc0a0ff3eaa3ff0a34bdf3b9f86d15726fc8d5a4f659"}],
+  "visual_identity": {"policy":"repair-mark-v2","official_source":"modrinth-project + exact-release embedded upstream artwork","modrinth_project_id":"3jCB9cn2","canonical_project_url":"https://modrinth.com/mod/grassier-grass","canonical_art_url":"https://cdn.modrinth.com/data/3jCB9cn2/8a0b80c7fe66355ca81bc0b25ff262f7b756f1dd_96.webp","source_dimensions":[958,958],"normalized_art_sha256":"ac002748371d861809fb528cc563520cae209729fec87c5a03f79503203768ab","marked_art_sha256":"7e3abc159d75fe4ac7f2fc0a0ff3eaa3ff0a34bdf3b9f86d15726fc8d5a4f659","embedded_icon_entry":"icon.png","integration":"embedded","marker_only_diff":"PASS: exactly icon.png; no added/removed/metadata-only changes"},
+  "applicability": ["Grassier Grass 1.4.5 on Minecraft 1.20.1 Forge."],
+  "anti_patterns": ["Do not use REPLACEMENT-1.","Do not reintroduce cross-frame SectionOffset uniform caching without a runtime-proven invalidation contract."],
+  "supersedes": ["mc-1.20.1-forge-47.4.20-grassiergrass-1.4.5-sectionoffset-uniform-cache-regression-replacement-2"],
+  "superseded_by": null
+}
