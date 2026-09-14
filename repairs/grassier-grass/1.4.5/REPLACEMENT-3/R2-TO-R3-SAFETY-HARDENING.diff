@@ -1,0 +1,23 @@
+--- REPLACEMENT-2
++++ REPLACEMENT-3
+@@
+- Added cross-frame cachedSectionUniformShader / cachedSectionOffsetUniform state.
+- Replaced two direct ShaderInstance.getUniform("SectionOffset") calls with sectionOffsetUniform(ShaderInstance).
++ Removed the cross-frame uniform cache and sectionOffsetUniform helper entirely.
++ Restored both direct ShaderInstance.getUniform("SectionOffset") calls to upstream semantics.
+
+ Retained:
+ - persistent pending build queue
+ - full-scan invalidation on camera-section/radius/dirty/LOD changes
+ - in-flight duplicate suppression
+ - completed cached queue-entry retirement
+ - frustum culling before coordinate/key decode
+ - disposeAll() reset of added private scan state
+
+Safety proof:
+- sectionOffsetUniform symbols = 0
+- cachedSectionUniformShader symbols = 0
+- cachedSectionOffsetUniform symbols = 0
+- direct SectionOffset lookups = 2 (same count as upstream)
+- GrassDrawDispatcher ASM verification = 12/12 methods
+- GrassSectionCache ASM verification = 33/33 methods
