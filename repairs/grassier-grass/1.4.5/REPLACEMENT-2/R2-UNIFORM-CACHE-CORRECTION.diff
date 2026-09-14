@@ -1,0 +1,19 @@
+--- REPLACEMENT-1/PatchGrassierGrass.java
++++ REPLACEMENT-2/PatchGrassierGrass.java
+@@
+         int uniformReplacements = 0;
+         for (MethodNode m : cn.methods) {
++            // Never rewrite the cache helper's own real shader lookup into a self-call.
++            if (m.name.equals("sectionOffsetUniform")
++                    && m.desc.equals("(L" + SHADER + ";)L" + ABSTRACT_UNIFORM + ";")) continue;
+             for (AbstractInsnNode n = m.instructions.getFirst(); n != null; ) {
+@@
+-        if (uniformReplacements < 2)
+-            throw new IllegalStateException("Expected >=2 SectionOffset uniform replacements, got " + uniformReplacements);
++        if (uniformReplacements != 2)
++            throw new IllegalStateException("Expected exactly 2 SectionOffset uniform replacements, got " + uniformReplacements);
+
+# Regression proof for the produced REPLACEMENT-2 bytecode:
+# helper self-calls = 0
+# helper real ShaderInstance.getUniform("SectionOffset") lookups = 1
+# optimized external helper call sites = 2
