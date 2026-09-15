@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "id": "mc-1.20.1-forge-even-more-magic-2.986-hot-path-player-variable-sync-replacement-1-2026-09-15",
+  "recorded_at": "2026-09-15T11:57:00-06:00",
+  "updated_at": "2026-09-15T12:36:00-06:00",
+  "outcome": "partial",
+  "confidence": "high static/package/bytecode/hot-path-behavior confidence; exact target runtime and Spark re-profile pending",
+  "minecraft": "1.20.1",
+  "java": "17",
+  "loader": {"name": "Forge", "version": "47.x"},
+  "mods": [{
+    "filename": "Even-More-Magic-2.986-Hot-Path-Performance-Fix-REPLACEMENT-1.jar",
+    "id": "even_more_magic",
+    "version": "2.986",
+    "sha256": "835a6324292338245eda356dd8ca52eed046901b21a851fcb345f87ac624480d",
+    "size_bytes": 78274539
+  }],
+  "supersedes": [],
+  "superseded_by": null,
+  "global_policy_id": "minecraft-global-hot-path-event-driven-indexing-policy-2026-09-14",
+  "root_cause": "Generated MCreator bookkeeping repeatedly allocated fallback capability objects, serialized/sent the entire large player capability from many independent change sites, recomputed derived cooldown display state at PlayerTick cadence, and registered 22 redundant global GUI tick wrappers. These costs were outside genuine spell/animation/equipment simulation.",
+  "repair": {
+    "type": "lazy-capability-access-coalesced-sync-change-driven-derived-state-and-tick-subscriber-consolidation",
+    "changes": [
+      "Replace all 3,588 exact eager LazyOptional.orElse(new PlayerVariables()) sequences with PlayerVariableAccess.resolve so the normal present-capability path allocates no fallback object.",
+      "Reduce PlayerVariables constructor explicit writes from 173 to the 20 values that are genuinely non-JVM-default.",
+      "Preserve public syncPlayerVariables(Entity) while routing it through PlayerVariableSyncQueue, a one-shot server-task coalescer with per-player syncQueued fast-path; retain the original direct packet send internally as syncPlayerVariablesNow(Entity).",
+      "Do not network-sync the private AttributeChecking round-robin iterator; preserve genuine mutable armor/Curios NBT reconciliation cadence.",
+      "Maintain cooldown seconds/type at the 292 source cooldown writes and remove the derived SpellCooldownTicksToSeconds PlayerTick subscription.",
+      "Consolidate 22 menu PlayerTick subscriptions into one existing menu dispatcher while preserving the exact 22 procedure targets and once-per-END-tick-open semantics.",
+      "Repair seven one-frame animation metadata files so all 151 invalid frame references are removed without inventing texture frames.",
+      "Preserve genuine animated-item and mutable equipment reconciliation tick paths, gameplay/content/visual quality, network payload identity, resource IDs and compatibility descriptors."
+    ]
+  },
+  "artifacts": [
+    {"filename":"Even-More-Magic-2.986-Hot-Path-Performance-Fix-REPLACEMENT-1.jar","role":"final-replacement","sha256":"835a6324292338245eda356dd8ca52eed046901b21a851fcb345f87ac624480d","size_bytes":78274539,"drive_file_id":"1TquQWXgScCtsyPM3ARdq2ry2R7UHeqMG"},
+    {"filename":"Even-More-Magic-2.986-Hot-Path-Performance-Fix-REPLACEMENT-1-unmarked.jar","role":"verification-only-unmarked-baseline","sha256":"e803086d9c046a1c214db86e33d76fd0006bc2e8697a597b3c3ab9c56da6c59f","size_bytes":78275179},
+    {"filename":"Even-More-Magic-2.986-Hot-Path-Performance-Fix-REPLACEMENT-1-VERIFICATION.md","role":"verification-report","sha256":"9e67cbff74107496b28f5ee671c324cc75f26b7572347f4876e530330a14cd8e","size_bytes":13285,"drive_file_id":"1Y2VV3dATM5O1W2oatlfy32ZHO6diS3lD"},
+    {"filename":"Even-More-Magic-2.986-Exact-Release-Art-Repair-Mark-v2.png","role":"repair-mark-v2","sha256":"2777c52278059862b6480666ea53e5062430ce9ab3220b5032e2c10a3102a8ee","size_bytes":2052,"drive_file_id":"1gto6gXePkwuP98LD8SSffYPI2c-UygNG"},
+    {"filename":"Even-More-Magic-2.986-Exact-Release-Art-Repair-Mark-v2-48.png","role":"repair-mark-v2-48","sha256":"5507743742339138fa5b1d09ec16e86dee249447e828cc91618be7ab9706576d","size_bytes":5253,"drive_file_id":"102g0kDEelx7kq4nIPOaNANQP7m9u77el"},
+    {"filename":"Even-More-Magic-2.986-Hot-Path-Performance-Fix-REPLACEMENT-1-SOURCE-EVIDENCE.zip","role":"source-evidence","sha256":"b0efe06b9754a57caef7b61cfe1edb918978d98035db4d5a5a717fcdd5627b8f","size_bytes":147556,"drive_file_id":"1bsFEla4-FStCgH8nmsFOjYPKOI6l33mn"}
+  ],
+  "verification": {
+    "static": [
+      "Final strict Info-ZIP unzip -t and Python ZIP validation PASS: 17,861 entries, 8,204 Java-17 classes, no archive signatures.",
+      "Whole-JAR ASM BasicVerifier PASS: 8,204 classes, 38,098 methods, 0 failures.",
+      "Stock -> unmarked: add exactly 2 neutral helper classes; remove 0; change 1,229 original entries; metadata-only changes 0; 16,630 original contents unchanged; intersecting ZIP metadata drift 0.",
+      "Automated API surface audit across all 8,202 stock classes preserves every existing hierarchy, method descriptor and field descriptor; only internal syncQueued and syncPlayerVariablesNow are added to PlayerVariables.",
+      "Hot-path audit PASS: 0 eager fallback sites, 3,588 resolver calls, 292 cooldown source setters, 3 total PlayerTick subscribers, 20 PlayerVariables constructor writes, and no TickEvent reference in PlayerVariableSyncQueue.",
+      "Sync queue behavior harness PASS: 12 checks, 1,000 burst requests, one queued task per server burst, latest-state-wins and removed-player skip semantics; helper class byte-identical to shipped helper.",
+      "PlayerVariableAccess behavior harness PASS: 28 checks, zero present-capability fallback allocations, one missing-capability fallback allocation, eight cooldown derivation cases; helper class byte-identical to shipped helper.",
+      "Menu dispatcher equivalence PASS: stock 22 menu tick subscribers -> final 1 menu dispatcher with exactly the same 22 procedure targets.",
+      "Stock 25 total PlayerTick subscribers -> final 3: animated-item state, mutable equipment/Curios reconciliation, consolidated open-menu dispatcher.",
+      "Final animation metadata scan PASS: 273 mcmeta files, 0 issues, 0 invalid frame indices; 151 stock invalid references addressed.",
+      "Unmarked -> final changes exactly logo.png; added/removed/metadata-only changes 0; 17,860 other entry contents unchanged.",
+      "Loader metadata and manifest are byte-identical to stock."
+    ],
+    "runtime": [
+      "Pending exact target instance: install only the replacement, exercise representative spells/wands/cooldown UI/quest GUIs/Ring Synthesizer/Curios/animated items/resource reload/Save-Quit-reload and inspect fresh latest.log.",
+      "Run /sparkc profiler start --timeout 90 --thread * under an equivalent workload before promoting this exact SHA to runtime-verified or claiming measured FPS/tick-time improvement."
+    ]
+  },
+  "visual_identity": {
+    "policy": "repair-mark-v2",
+    "official_source": "exact-upstream-jar-declared-logo",
+    "canonical_project_url": "https://www.curseforge.com/minecraft/mc-mods/even-more-magic",
+    "curseforge_project_id": 928654,
+    "curseforge_file_id": 8417373,
+    "canonical_art_url": "exact official Even More Magic 2.986 Forge 1.20.1 JAR entry logo.png",
+    "source_jar_entry": "logo.png",
+    "source_dimensions": [40,40],
+    "normalized_art_sha256": "31100df43915f8cf0d178086b2d6d6c999447560927330ecd78f56dad6157ee9",
+    "marked_art_sha256": "2777c52278059862b6480666ea53e5062430ce9ab3220b5032e2c10a3102a8ee",
+    "qa_48_sha256": "5507743742339138fa5b1d09ec16e86dee249447e828cc91618be7ab9706576d",
+    "embedded_icon_entry": "logo.png",
+    "integration": "embedded",
+    "marker_only_diff": "PASS - unmarked REPLACEMENT-1 to final changes exactly logo.png; zero added/removed/metadata-only changes",
+    "image_generation_used": false,
+    "remote_cdn_byte_hash_verified": false
+  },
+  "drive_folder": {"id":"1ypmXGWbQBsGJtTQbcHlqws73O2rtFJtb","url":"https://drive.google.com/drive/folders/1ypmXGWbQBsGJtTQbcHlqws73O2rtFJtb"},
+  "drive_record_file_id": "1YkVNFM4_466p6fjY6OXfJdMBqM-Z-D4Z"
+}
