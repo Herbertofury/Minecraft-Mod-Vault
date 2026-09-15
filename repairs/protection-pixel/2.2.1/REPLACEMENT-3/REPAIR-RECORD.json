@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "id": "mc-1.20.1-forge-protection-pixel-2.2.1-event-driven-armor-render-index-replacement-3-2026-09-14",
+  "recorded_at": "2026-09-14T22:45:00-06:00",
+  "updated_at": "2026-09-14T22:58:00-06:00",
+  "outcome": "partial",
+  "confidence": "high static/package/bytecode/lifecycle-stress confidence; exact target runtime and Spark re-profile pending",
+  "minecraft": "1.20.1",
+  "java": "17",
+  "loader": {
+    "name": "Forge",
+    "version": "47.x"
+  },
+  "mods": [
+    {
+      "filename": "Protection-Pixel-2.2.1-Event-Driven-Armor-Render-Index-REPLACEMENT-3.jar",
+      "id": "protection_pixel",
+      "version": "2.2.1",
+      "sha256": "2a750dcfda368e2e205587aae26d81a20ba66c73e57f8b4ab705a68956bd3613"
+    }
+  ],
+  "supersedes": [
+    "mc-1.20.1-forge-protection-pixel-2.2.1-armor-render-target-cache-replacement-2-2026-09-14"
+  ],
+  "superseded_by": null,
+  "applicability": [
+    "Minecraft 1.20.1 Forge with Protection Pixel 2.2.1 and the same two armor-preview target block-entity classes.",
+    "Reuse the event-driven index pattern while onLoad/setRemoved lifecycle semantics and ArmorrenderProcedure target-render contract remain structurally compatible."
+  ],
+  "symptoms": [
+    "ArmorrenderProcedure.execute was ~1.7555% inclusive / ~1.6755% self in the prior render-thread Spark profile.",
+    "Original/R1 scanned all block entities in every render-distance chunk every frame; R2 still performed a full discovery scan once per game tick."
+  ],
+  "root_cause": "Polling architecture repeatedly rediscovered a sparse set of armor hanger/load-platform targets from broad loaded-world state even though target membership changes on exact block-entity lifecycle events.",
+  "repair": {
+    "type": "event-driven-lifecycle-index-with-allocation-free-reusable-render-view",
+    "global_policy_id": "minecraft-global-hot-path-event-driven-indexing-policy-2026-09-14",
+    "changes": [
+      "Replace the R2 per-tick ArmorRenderTargetCache with lifecycle-driven ArmorRenderTargetIndex.",
+      "Register ArmorhangerBlockEntity and ArmorloadplatformBlockEntity positions from onLoad() and unregister from their existing setRemoved() path.",
+      "Maintain a sparse position/chunk-coordinate index only on actual lifecycle changes; perform no chunk/block-entity discovery scan per frame or per tick.",
+      "Preserve the original render-distance radius while filtering only actual indexed Protection Pixel targets.",
+      "Reuse the map view, entry set and iterator/entry cursor; normal render binds perform no WeakReference allocation.",
+      "Hold active world identity by WeakReference only; retain no static strong Level or BlockEntity reference.",
+      "Live-resolve indexed targets and self-heal stale positions defensively if another mod bypasses normal lifecycle removal.",
+      "Keep the entire existing armor/load-platform render body and per-frame render cadence unchanged.",
+      "Add no timer, tick subscriber, thread, executor, scheduler, off-thread world access, content/radius/fidelity reduction, entity cap or simulation throttle."
+    ]
+  },
+  "anti_patterns": [
+    "Do not reintroduce render-distance chunk/block-entity scans in a render or tick callback.",
+    "Do not downgrade this event-driven index back to scan-once-per-tick when exact lifecycle hooks remain valid.",
+    "Do not retain worlds or block entities strongly in static render caches.",
+    "Do not move world/render access off-thread.",
+    "Do not reduce render distance, target counts, preview cadence, content, simulation or fidelity to manufacture a performance gain.",
+    "Do not install this REPLACEMENT beside stock Protection Pixel, REPLACEMENT-1 or REPLACEMENT-2."
+  ],
+  "artifacts": [
+    {
+      "filename": "Protection-Pixel-2.2.1-Event-Driven-Armor-Render-Index-REPLACEMENT-3.jar",
+      "role": "final-replacement",
+      "sha256": "2a750dcfda368e2e205587aae26d81a20ba66c73e57f8b4ab705a68956bd3613",
+      "size_bytes": 3251907,
+      "drive_file_id": "1a5_wTzfQTobbfh0d9-3JvksKH9zGCHyu"
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-Event-Driven-Armor-Render-Index-REPLACEMENT-3-unmarked.jar",
+      "role": "verification-only-unmarked-baseline",
+      "sha256": "936134b624f6afd1178f3fa45959b758d3b4af4cabd416b27e6e3dcfa9cc5950",
+      "size_bytes": 3266617
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-Event-Driven-Armor-Render-Index-REPLACEMENT-3-VERIFICATION.md",
+      "role": "verification-report",
+      "sha256": "a4c8199e3e44126f89091b72b1ed5d715a8a1af463372a31a9738e067baf87a4",
+      "size_bytes": 10369,
+      "drive_file_id": "1XPhoDFZubdC_NBxxRIxtpHXBl2Rx7gDf"
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-Exact-Release-Art-Repair-Mark-v2.png",
+      "role": "repair-mark-v2",
+      "sha256": "e27243ad79a36646f53f0bd37b4b8b27a1ba57ebcf0011ff4eba5a87498ff9fc",
+      "size_bytes": 240186,
+      "drive_file_id": "1tyRabQ4oWvZCe7kic3LwQ4mKofzHn8BG"
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-Exact-Release-Art-Repair-Mark-v2-48.png",
+      "role": "repair-mark-v2-48",
+      "sha256": "14eb18197f696a371c1e046fc3e69cee781ed3caed083068b91437b10b7f9c23",
+      "size_bytes": 5524,
+      "drive_file_id": "13OMWM7B2R5kQP1q6BgzfvYqeB-c7aF5E"
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-UI-and-Armor-Render-Performance-Fix-REPLACEMENT-2.jar",
+      "role": "superseded-r2-baseline",
+      "sha256": "8805c7b504d7f7e68c714770cbfdd4551c492a423e722ce970f71dde89297511",
+      "drive_file_id": "1EUXPA4RZVycjSV6VD3IJ2JcBy7JcXml_"
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-Event-Driven-Armor-Render-Index-REPLACEMENT-3-SOURCE-EVIDENCE.zip",
+      "role": "source-evidence",
+      "sha256": "a9966b862de434c5c6f546fd34142471a1e6d502110ab8a560ab754382b4ea92",
+      "size_bytes": 298608,
+      "note": "ZIP contains the pre-source-hash repair-record snapshot to avoid recursive self-hashing; final record is authoritative.",
+      "drive_file_id": "1AEtAgoLG6zrlbsDV_AeAcmsQDOAglIDs"
+    }
+  ],
+  "verification": {
+    "static": [
+      "Final ZIP/JAR integrity PASS: 1,407 entries, 713 Java-17 classes, no duplicates/signatures.",
+      "Whole-JAR ASM BasicVerifier PASS: 713 classes, 3,202 methods, 0 failures.",
+      "R2 -> R3 jar_diff: add exactly 5 ArmorRenderTargetIndex classes; remove exactly ArmorRenderTargetCache.class; change exactly two target block-entity classes plus ArmorrenderProcedure; metadata-only changes 0; 1,399 existing contents unchanged.",
+      "All exposed ZipInfo metadata fields are identical for every intersecting R2/R3 entry.",
+      "ArmorrenderProcedure descriptor surface unchanged; each target block entity adds only public onLoad()V and preserves every existing descriptor.",
+      "Each onLoad invokes register exactly once; each existing setRemoved retains original cleanup and invokes unregister exactly once before return.",
+      "Helper symbol gate contains no net/minecraft/client, LevelChunk or getChunk references.",
+      "50,000-operation lifecycle torture test PASS: 17,786 render queries, 1,373 stale self-heals, 20,000 unrelated block entities, reusable map view/iterator, server no-op and world transition behavior.",
+      "Normal render bind path performs no WeakReference construction; new WeakReference occurs only at static initialization/world transition.",
+      "Unmarked R3 -> final changes exactly logo.png; add/remove/metadata-only changes are zero.",
+      "Loader metadata/manifest hashes remain identical to R2 and neutral/private-label scan reports zero hits."
+    ],
+    "runtime": [
+      "Pending exact target instance: install only REPLACEMENT-3; validate existing/new/removed hangers and load platforms, equipment changes, chunk/radius/dimension transitions, ALT+U, Save/Quit/reload, then inspect fresh latest.log.",
+      "Run /sparkc profiler start --timeout 90 --thread * and compare ArmorrenderProcedure.execute against the prior equivalent profile before promoting to runtime-verified."
+    ]
+  },
+  "visual_identity": {
+    "policy": "repair-mark-v2",
+    "official_source": "exact-upstream-jar-declared-logo",
+    "canonical_project_url": "https://www.curseforge.com/minecraft/mc-mods/protection-pixel",
+    "canonical_art_url": "exact official Protection Pixel 2.2.1 JAR entry logo.png",
+    "curseforge_project_id": 1023409,
+    "curseforge_file_id": 7549820,
+    "source_jar_entry": "logo.png",
+    "source_dimensions": [
+      1000,
+      1000
+    ],
+    "normalized_art_sha256": "d90b38ebea3da4ca2eef94a2e6b668e749a789706210b3884f7ee5ee6b676bef",
+    "marked_art_sha256": "e27243ad79a36646f53f0bd37b4b8b27a1ba57ebcf0011ff4eba5a87498ff9fc",
+    "qa_48_sha256": "14eb18197f696a371c1e046fc3e69cee781ed3caed083068b91437b10b7f9c23",
+    "embedded_icon_entry": "logo.png",
+    "integration": "embedded",
+    "marker_only_diff": "PASS - unmarked REPLACEMENT-3 to final changes exactly logo.png; zero added/removed/metadata-only changes",
+    "image_generation_used": false,
+    "remote_cdn_byte_hash_verified": false
+  },
+  "drive_folder": {
+    "id": "1xJ-cw4uHGDuLEEXvrHaS-dPQaK1vh2LP",
+    "url": "https://drive.google.com/drive/folders/1xJ-cw4uHGDuLEEXvrHaS-dPQaK1vh2LP"
+  },
+  "drive_record_file_id": "1ZtNB5Lx_-DTnEoSdPypbO7uEyFSTehlm"
+}
