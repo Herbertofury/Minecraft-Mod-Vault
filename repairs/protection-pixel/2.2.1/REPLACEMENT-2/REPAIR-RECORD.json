@@ -1,0 +1,145 @@
+{
+  "anti_patterns": [
+    "Do not install this REPLACEMENT beside stock Protection Pixel or REPLACEMENT-1.",
+    "Do not reduce render distance, entity/block-entity counts, preview rendering frequency, content, simulation, or fidelity to manufacture a performance gain.",
+    "Do not cache BlockEntity or client-world objects strongly across render ticks/world transitions.",
+    "Do not move render/world access off-thread.",
+    "Do not change Protection Pixel internal mod ID/version, registry/resource IDs, network identity, config keys, or public descriptors for repair branding."
+  ],
+  "artifacts": [
+    {
+      "drive_file_id": "1EUXPA4RZVycjSV6VD3IJ2JcBy7JcXml_",
+      "filename": "Protection-Pixel-2.2.1-UI-and-Armor-Render-Performance-Fix-REPLACEMENT-2.jar",
+      "role": "final-replacement",
+      "sha256": "8805c7b504d7f7e68c714770cbfdd4551c492a423e722ce970f71dde89297511",
+      "size_bytes": 3247645
+    },
+    {
+      "filename": "Protection-Pixel-2.2.1-UI-and-Armor-Render-Performance-Fix-REPLACEMENT-2-unmarked.jar",
+      "role": "verification-only-unmarked-baseline",
+      "sha256": "8c10d63d9a867f2a546be1d8daadf056e43202d55933dfa18b49a5e5b2f8ef68",
+      "size_bytes": 3262224
+    },
+    {
+      "drive_file_id": "15njxmTDqazVuDQgPWShEnvNroKZjATR_",
+      "filename": "Protection-Pixel-2.2.1-UI-and-Armor-Render-Performance-Fix-REPLACEMENT-2-VERIFICATION.md",
+      "role": "verification-report",
+      "sha256": "b78871e7ab19f6e887e06da8bedc8296776500f42cb0480b1dbd1edf09333463",
+      "size_bytes": 12365
+    },
+    {
+      "drive_file_id": "1ttVifQ3GHXM1kmb28cqER966a2vWo0ln",
+      "filename": "Protection-Pixel-2.2.1-Exact-Release-Art-Repair-Mark-v2.png",
+      "role": "repair-mark-v2",
+      "sha256": "e27243ad79a36646f53f0bd37b4b8b27a1ba57ebcf0011ff4eba5a87498ff9fc",
+      "size_bytes": 240186
+    },
+    {
+      "drive_file_id": "117fh7fexdinj7MfrZcTALvU8THZUTXmq",
+      "filename": "Protection-Pixel-2.2.1-Exact-Release-Art-Repair-Mark-v2-48.png",
+      "role": "repair-mark-v2-48",
+      "sha256": "14eb18197f696a371c1e046fc3e69cee781ed3caed083068b91437b10b7f9c23",
+      "size_bytes": 5524
+    },
+    {
+      "drive_file_id": "1arBKF2naEi8x6e_1hvDC3PYEdkiL7NqX",
+      "filename": "Protection-Pixel-2.2.1-UI-QoL-Performance-Fix-REPLACEMENT-1.jar",
+      "role": "accepted-r1-baseline",
+      "sha256": "dc605fccd565ce16239e615189db4b484e862cd72b8b187831626c8e58b79c7b",
+      "size_bytes": 3245545
+    },
+    {
+      "drive_file_id": "1X61LkAXtwcawtWKa_whGrHZbOrR1Q7fc",
+      "filename": "Protection-Pixel-2.2.1-UI-and-Armor-Render-Performance-Fix-REPLACEMENT-2-SOURCE-EVIDENCE.zip",
+      "note": "ZIP contains pre-source-hash repair-record snapshot to avoid recursive self-hashing.",
+      "role": "source-evidence",
+      "sha256": "7d81b29e13c5740a65fa1b9a37484e9007bbf491a44a60154debaf705f530975",
+      "size_bytes": 795421
+    }
+  ],
+  "confidence": "high static/package/bytecode/cache-equivalence confidence; exact target runtime and Spark re-profile pending",
+  "drive_folder": {
+    "id": "1kcaoFsI7P1qQ0XyTHqt1Cq0IX0BxX83X",
+    "url": "https://drive.google.com/drive/folders/1kcaoFsI7P1qQ0XyTHqt1Cq0IX0BxX83X"
+  },
+  "drive_record_file_id": "1hWpxJWTAtY6FZfyED5Fele5xwebGdG74",
+  "id": "mc-1.20.1-forge-protection-pixel-2.2.1-armor-render-target-cache-replacement-2-2026-09-14",
+  "java": "17",
+  "loader": {
+    "name": "Forge",
+    "version": "47.x"
+  },
+  "minecraft": "1.20.1",
+  "mods": [
+    {
+      "filename": "Protection-Pixel-2.2.1-UI-and-Armor-Render-Performance-Fix-REPLACEMENT-2.jar",
+      "id": "protection_pixel",
+      "sha256": "8805c7b504d7f7e68c714770cbfdd4551c492a423e722ce970f71dde89297511",
+      "version": "2.2.1"
+    }
+  ],
+  "outcome": "partial",
+  "recorded_at": "2026-09-14T20:50:00-06:00",
+  "repair": {
+    "changes": [
+      "Preserve the accepted REPLACEMENT-1 UI/QoL render repair byte-for-byte.",
+      "Add neutral ArmorRenderTargetCache and route only ArmorrenderProcedure target discovery through it.",
+      "Preserve the original render-distance radius and chunk-Z/chunk-X/block-entity encounter order.",
+      "Cache only filtered BlockPos target positions for a stable client game tick, center chunk, render distance, and client-level identity.",
+      "Hold cached client-level identity via WeakReference and retain no static BlockEntity/world references.",
+      "Re-resolve the small filtered target-position set every rendered frame so same-tick removal/replacement at a known target position is observed without a full chunk-grid rescan.",
+      "Keep all actual armor/load-platform preview rendering on every frame with original equipment, transforms, folded-model, cog, lighting and render-buffer behavior.",
+      "Add no new thread, scheduler, off-thread world access, content/radius/fidelity reduction, entity cap, or gameplay throttling."
+    ],
+    "same_tick_note": "A newly introduced target at a position that was not in the first discovery scan of the current game tick is discovered on the next game tick, or immediately when world/player-chunk/render-distance cache keys change. Existing known target positions are live-revalidated every frame.",
+    "type": "render-thread-target-discovery-tick-cache-with-live-target-resolution"
+  },
+  "root_cause": "Protection Pixel performs render-distance-wide armor-preview target discovery from the AFTER_ENTITIES render callback every frame. At high FPS, immutable tick-owned chunk/block-entity membership is rediscovered many times per client game tick even though only sparse ARMORHANGER/ARMORLOADPLATFORM targets are rendered.",
+  "schema_version": 1,
+  "superseded_by": null,
+  "supersedes": [
+    "mc-1.20.1-forge-protection-pixel-2.2.1-ui-qol-performance-replacement-neutralization-2026-09-07"
+  ],
+  "symptoms": [
+    "Spark profile shows net.mcreator.protectionpixel.procedures.ArmorrenderProcedure.execute as a render-thread hotspot (~1.7555% inclusive / ~1.6755% self in the prior 90-second profile).",
+    "The armor preview render event scans every block entity in every client chunk inside render distance on every rendered frame before filtering to armor hanger/load-platform targets."
+  ],
+  "updated_at": "2026-09-14T20:57:00-06:00",
+  "verification": {
+    "runtime": [
+      "Pending exact target instance: install only REPLACEMENT-2, exercise armor hangers/load platforms and R1 ALT+U UI behavior, cross chunk/render-distance boundaries, place/remove/change equipment, Save & Quit/reload, inspect latest.log.",
+      "Run /sparkc profiler start --timeout 90 --thread * and compare ArmorrenderProcedure.execute against the prior profile before promoting to runtime-verified."
+    ],
+    "static": [
+      "Final ZIP/JAR integrity PASS: 1,403 entries, 709 Java-17 classes, no signatures.",
+      "Whole-JAR ASM BasicVerifier PASS: 709 classes, 3,177 methods, 0 failures.",
+      "R1 -> R2 final jar_diff: add exactly ArmorRenderTargetCache.class; content-change exactly ArmorrenderProcedure.class; remove 0; metadata-only change 0; 1,401 existing contents unchanged.",
+      "ArmorrenderProcedure complete field/method descriptor surface is unchanged from R1; changed class verifies with valid frames.",
+      "All 13 pre-existing REPLACEMENT-1 repair-layer class files, mixin config, loader metadata, manifest, and embedded Repair Mark remain content-identical.",
+      "10,000 randomized cache-equivalence cases PASS for target filtering/order, stable-key chunk-scan reuse, tick/chunk/radius/level invalidation, and same-tick live replacement/removal revalidation.",
+      "Unmarked R2 -> final Repair Mark diff changes exactly logo.png; add/remove/metadata-only change counts are zero.",
+      "Neutral/private-label scan PASS with zero prohibited labels in final JAR paths/decompressed bytes and current source/evidence names."
+    ]
+  },
+  "visual_identity": {
+    "canonical_art_url": "exact official Protection Pixel 2.2.1 JAR entry logo.png",
+    "canonical_project_url": "https://www.curseforge.com/minecraft/mc-mods/protection-pixel",
+    "curseforge_file_id": 7549820,
+    "curseforge_project_id": 1023409,
+    "embedded_icon_entry": "logo.png",
+    "image_generation_used": false,
+    "integration": "embedded",
+    "marked_art_sha256": "e27243ad79a36646f53f0bd37b4b8b27a1ba57ebcf0011ff4eba5a87498ff9fc",
+    "marker_only_diff": "PASS - unmarked REPLACEMENT-2 to final changes exactly logo.png; zero added/removed/metadata-only changes",
+    "normalized_art_sha256": "d90b38ebea3da4ca2eef94a2e6b668e749a789706210b3884f7ee5ee6b676bef",
+    "official_source": "exact-upstream-jar-declared-logo",
+    "policy": "repair-mark-v2",
+    "qa_48_sha256": "14eb18197f696a371c1e046fc3e69cee781ed3caed083068b91437b10b7f9c23",
+    "remote_cdn_byte_hash_verified": false,
+    "source_dimensions": [
+      1000,
+      1000
+    ],
+    "source_jar_entry": "logo.png"
+  }
+}
