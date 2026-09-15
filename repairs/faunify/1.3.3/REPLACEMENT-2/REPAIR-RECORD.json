@@ -1,0 +1,133 @@
+{
+  "anti_patterns": [
+    "Do not reduce Silk Moth search radius or disable light attraction to improve profiling numbers.",
+    "Do not cache world/light results across updates without explicit invalidation proof.",
+    "Do not remove or undo the accepted Beefly entity-random repair while the paired C2ME baseline still requires it.",
+    "Do not install this replacement beside another Faunify JAR."
+  ],
+  "artifacts": [
+    {
+      "drive_file_id": "1Yt19-VzKtvQIF7NbOzeCj9J6Ow1bCF6P",
+      "filename": "faunify-forge-1.20.1-1.3.3-Entity-Random-and-Silk-Moth-Light-Search-Fix-REPLACEMENT-2.jar",
+      "role": "final-replacement",
+      "sha256": "653961530090b0067e8aaf2f7a746d2bd3a0230ec9a03b76c29bcb99ab2ea6af",
+      "size_bytes": 5508247
+    },
+    {
+      "drive_file_id": "1uw6rxVvsy3xm6mbmLq3rlhWOtU5_Ssqs",
+      "filename": "faunify-forge-1.20.1-1.3.3-Entity-Random-and-Silk-Moth-Light-Search-Fix-REPLACEMENT-2-VERIFICATION.md",
+      "role": "verification-report",
+      "sha256": "39466d369dbe9f4e1872a0fd21edf0870ad1ceafe5fadfd9f72458df51b5ef8e",
+      "size_bytes": 8183
+    },
+    {
+      "drive_file_id": "1nKZU4NofjaCtHFXKyxR24WtSTFOYK-ap",
+      "filename": "faunify-forge-1.20.1-1.3.3-Exact-Release-Art-Repair-Mark-v2.png",
+      "role": "repair-mark-v2",
+      "sha256": "115c7c4ef5a039c6337a1ef9a419e9ff2fe1cc112e1a5afcd3106820a02da91f",
+      "size_bytes": 8216
+    },
+    {
+      "drive_file_id": "1XSkuzdviqVx7Nvi3Qh-9hUDzY0TYSF7i",
+      "filename": "faunify-forge-1.20.1-1.3.3-Exact-Release-Art-Repair-Mark-v2-48.png",
+      "role": "repair-mark-v2-48",
+      "sha256": "4858b67c82704b98bd42715eadf7e2deb7b490f8be69b9a1288466ba098eb774"
+    },
+    {
+      "distribution": "verification-only; not uploaded as install artifact",
+      "filename": "faunify-forge-1.20.1-1.3.3-Entity-Random-and-Silk-Moth-Light-Search-Fix-REPLACEMENT-2-unmarked.jar",
+      "role": "unmarked-repair-baseline",
+      "sha256": "00891a80f2e778e829e07c292955c2abe7c3009e460d115d304e75e8c15f433a",
+      "size_bytes": 5509065
+    },
+    {
+      "drive_file_id": "1I9xHl9ORxriUS22n4Ll6DNdkV0ukDcBQ",
+      "filename": "faunify-forge-1.20.1-1.3.3-Entity-Random-and-Silk-Moth-Light-Search-Fix-REPLACEMENT-2-SOURCE-EVIDENCE.zip",
+      "note": "Distribution ZIP contains the pre-hash form of this record to avoid recursive self-hashing; all gameplay/source evidence is final.",
+      "role": "source-evidence",
+      "sha256": "2e64b267f33db755865197f969da49ed26bedc0672632a8ae7780abd32acaedf",
+      "size_bytes": 31648
+    }
+  ],
+  "confidence": "high static/package/bytecode/behavioral-equivalence confidence; exact target runtime and Spark re-profile pending",
+  "drive_folder": {
+    "id": "1Qwt0E9AkqGsdS_iyD4y3t0BFchYZkzhl",
+    "url": "https://drive.google.com/drive/folders/1Qwt0E9AkqGsdS_iyD4y3t0BFchYZkzhl"
+  },
+  "id": "mc-1.20.1-forge-faunify-1.3.3-silk-moth-light-search-performance-replacement-2-2026-09-14",
+  "java": "17",
+  "loader": {
+    "name": "Forge",
+    "version": "47.x"
+  },
+  "minecraft": "1.20.1",
+  "mods": [
+    {
+      "filename": "faunify-forge-1.20.1-1.3.3-Entity-Random-and-Silk-Moth-Light-Search-Fix-REPLACEMENT-2.jar",
+      "id": "faunify",
+      "sha256": "653961530090b0067e8aaf2f7a746d2bd3a0230ec9a03b76c29bcb99ab2ea6af",
+      "version": "1.3.3"
+    }
+  ],
+  "outcome": "partial",
+  "recorded_at": "2026-09-14T20:23:02-06:00",
+  "repair": {
+    "changes": [
+      "Retain the previously accepted Beefly entity-owned RandomSource repair byte-for-byte.",
+      "Rewrite only SilkMothEntity$LightAttractionGoal.findHighestPriorityLightSource to iterate BlockPos.betweenClosed directly.",
+      "Preserve exact +/-15 search bounds, blacklist, emission >= 8 filter, highest block-light priority, nearest squared-distance tie-break, encounter order, and null result semantics.",
+      "Copy a BlockPos to immutable only when it becomes the current best candidate.",
+      "Add no caching, delayed refresh, new thread, scheduler, off-thread world access, content reduction, search-radius reduction, or behavior cap."
+    ],
+    "type": "behavior-preserving-ai-search-loop-optimization"
+  },
+  "root_cause": "The Silk Moth light-attraction search used BlockPos.betweenClosedStream(...).map(BlockPos::immutable) plus filters and a comparator/min pipeline for a fixed 29,791-position cube. This creates avoidable stream/lambda/comparator overhead and many short-lived BlockPos allocations on an AI hot path.",
+  "schema_version": 1,
+  "superseded_by": null,
+  "supersedes": [
+    "mc-1.20.1-forge-faunify-1.3.3-c2me-entity-random-replacement-1-closeout-2026-09-08"
+  ],
+  "symptoms": [
+    "SilkMothEntity$LightAttractionGoal.findHighestPriorityLightSource consumes disproportionate world-thread time even with very few Silk Moths loaded.",
+    "The search scans a 31x31x31 cube using a Stream pipeline that copies positions to immutable objects and performs lambda/comparator work across up to 29,791 positions per full scan."
+  ],
+  "updated_at": "2026-09-14T20:23:02-06:00",
+  "verification": {
+    "runtime": [
+      "Pending exact target runtime: launch with only this Faunify replacement, exercise Silk Moths around added/removed qualifying lights, verify normal approach/orbit behavior, generate chunks that can instantiate Beeflies, Save & Quit/reload, then repeat.",
+      "Run the same 90-second Spark profile and compare SilkMothEntity$LightAttractionGoal.findHighestPriorityLightSource against the previous profile."
+    ],
+    "static": [
+      "Final JAR ZIP integrity PASS; 1,270 entries; 275 Java-17 classes; no signature files.",
+      "Whole-JAR ASM BasicVerifier PASS: 275 classes, 2,401 methods, 0 failures.",
+      "Changed class public/private descriptor surface is identical to baseline.",
+      "Changed method has a valid StackMapTable and retains exact search/filter/priority/tie semantics.",
+      "10,000 randomized behavioral-equivalence cases matched the original comparator selection exactly.",
+      "Minecraft Repair jar_diff baseline -> unmarked: exactly SilkMothEntity$LightAttractionGoal.class content-changed; zero added/removed/metadata-only changes.",
+      "Unmarked -> final: exactly icon.png content-changed; zero added/removed/metadata-only changes.",
+      "Previous Beefly repair class SHA-256 cd45ae4699aa7c2e0a76a4404f51173ca745eadb5c318db24cbcef9efbb4dad2 retained exactly.",
+      "Loader metadata and manifest remain unchanged.",
+      "Neutral/private-label scan PASS."
+    ]
+  },
+  "visual_identity": {
+    "canonical_art_url": "exact Faunify 1.3.3 embedded icon.png; current storefront bytes unavailable to the repair runtime",
+    "canonical_project_url": "https://www.curseforge.com/minecraft/mc-mods/faunify",
+    "curseforge_file_id": 8497803,
+    "curseforge_project_id": 1123041,
+    "embedded_icon_entry": "icon.png",
+    "image_generation_used": false,
+    "integration": "embedded",
+    "marked_art_sha256": "115c7c4ef5a039c6337a1ef9a419e9ff2fe1cc112e1a5afcd3106820a02da91f",
+    "marker_only_diff": "PASS - unmarked repaired JAR to final changes exactly icon.png; zero added/removed/metadata-only changes",
+    "normalized_art_sha256": "b009064c78ae9a31ea7ee7f7896cfb34d177558c0f5b25a2b9f4285690b6a4a8",
+    "official_source": "curseforge exact-release upstream-authored embedded icon",
+    "policy": "repair-mark-v2",
+    "qa_48_sha256": "4858b67c82704b98bd42715eadf7e2deb7b490f8be69b9a1288466ba098eb774",
+    "remote_cdn_byte_hash_verified": false,
+    "source_dimensions": [
+      300,
+      55
+    ]
+  }
+}
