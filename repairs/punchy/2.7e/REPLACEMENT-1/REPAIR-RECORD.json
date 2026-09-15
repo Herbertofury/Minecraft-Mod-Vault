@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "id": "mc-1.20.1-forge-punchy-2.7e-hot-path-cache-allocation-replacement-1-2026-09-15",
+  "recorded_at": "2026-09-15T01:11:00-06:00",
+  "updated_at": "2026-09-15T01:34:00-06:00",
+  "outcome": "partial",
+  "confidence": "high static/package/bytecode/hot-path-allocation confidence; exact target runtime and Spark re-profile pending",
+  "minecraft": "1.20.1",
+  "java": "17",
+  "loader": {"name": "Forge", "version": "47.x"},
+  "mods": [{
+    "filename": "Punchy-2.7e-Hot-Path-Performance-Fix-REPLACEMENT-1.jar",
+    "id": "punchy",
+    "version": "2.7e",
+    "sha256": "58b2ac2261047a04bc6ebd66e606d6616322f2a5355f2d998bf773666f300698",
+    "size_bytes": 1865607
+  }],
+  "global_policy_id": "minecraft-global-hot-path-event-driven-indexing-policy-2026-09-14",
+  "root_cause": "Stable compatibility metadata and identifier/linkage information was rediscovered through reflection at tick cadence, Better Combat animation layers were scanned redundantly, the stable tick-handler list allocated an iterator each tick, and first-person rendering allocated a fresh transformation map each frame. These costs were bookkeeping around real animation simulation rather than required simulation itself.",
+  "repair": {
+    "type": "stable-metadata-method-handle-cache-and-steady-hot-path-allocation-elimination",
+    "changes": [
+      "Add neutral punchy.repair.HotPathCache with classloader-stable metadata caches and cached MethodHandle/VarHandle links for Better Combat, player-animation and TaCZ hot calls.",
+      "Replace repeated Better Combat identifier/reflection work and two animation-layer scans with cached identifiers and one semantic pass while preserving original stop/pose side-effect counts.",
+      "Replace repeated TaCZ IGun reflective discovery/invoke with cached MethodHandle linkage.",
+      "Replace stable client tick-handler Iterator traversal with indexed dispatch preserving list order.",
+      "Replace first-person per-frame HashMap construction with a fixed-capacity reusable Map whose warmed test path allocates zero bytes.",
+      "Release the reusable pose map immediately after final use so ModelPart references are not retained between normal frames.",
+      "Preserve actual animation-state ticks, per-frame rendering cadence, visuals, combat behavior, configuration behavior, content and compatibility descriptor surface."
+    ]
+  },
+  "artifacts": [
+    {"filename":"Punchy-2.7e-Hot-Path-Performance-Fix-REPLACEMENT-1.jar","role":"final-replacement","sha256":"58b2ac2261047a04bc6ebd66e606d6616322f2a5355f2d998bf773666f300698","size_bytes":1865607,"drive_file_id":"1bPzSddLhoMn481tbttbGdcdoZINvJAZO"},
+    {"filename":"Punchy-2.7e-Hot-Path-Performance-Fix-REPLACEMENT-1-unmarked.jar","role":"verification-only-unmarked-baseline","sha256":"4332d16fc48e4acaa892d0bae23b6ec51910748fd74a543fc176638e6687ffda","size_bytes":1866394},
+    {"filename":"Punchy-2.7e-Hot-Path-Performance-Fix-REPLACEMENT-1-VERIFICATION.md","role":"verification-report","sha256":"0bb5b99304e8626540dec2a288d9be6d95a5fd27c9216b9dafb662742b991b02","size_bytes":10531,"drive_file_id":"12j2fS1o38fZOjUMQdzjMqcmv6H5VTbax"},
+    {"filename":"Punchy-2.7e-Hot-Path-Performance-Fix-REPLACEMENT-1-SOURCE-EVIDENCE.zip","role":"source-evidence","sha256":"80613a3bc62b86a8046ff1246d7b6d5f1e896a6110e1d07e7cc57b48a35f198e","size_bytes":44199,"drive_file_id":"1G8G9s_d0t7U0dZ8-EGC2gDldOqSrFp8A"},
+    {"filename":"Punchy-2.7e-Exact-Release-Art-Repair-Mark-v2.png","role":"repair-mark-v2","sha256":"d9e707e00da1f06ac7264deaeb756129dbe8edfc1507096493f232c200ef38f3","size_bytes":3153,"drive_file_id":"17Bgs9eBKDlo2JDVQPwVqo0pqYzTJIenb"},
+    {"filename":"Punchy-2.7e-Exact-Release-Art-Repair-Mark-v2-48.png","role":"repair-mark-v2-48","sha256":"0a3504fdfcc2a1abefbb3ff72480c751a0d6050f237e3383837fe746f8f959b1","size_bytes":3034,"drive_file_id":"1noP4s8y4f-DmLO4OOMB2vHRexHVq_vkP"}
+  ],
+  "verification": {
+    "static": [
+      "Strict ZIP/JAR integrity PASS under Info-ZIP unzip -t, Python ZipFile.testzip and Java/JAR parsing: 547 entries, 448 Java-17 classes, no archive signatures.",
+      "Whole-JAR ASM BasicVerifier PASS: 448 classes, 5,371 methods, 0 failures.",
+      "Stock -> unmarked: add exactly 28 neutral HotPathCache classes; remove 0; change exactly BetterCombatCompat, TaczBlacklistCompat, ForgeClientPlatform and PunchyArmRenderer; metadata-only changes 0; 515 original entry contents unchanged.",
+      "javap -p -s descriptor-surface diff is empty for all four changed upstream classes.",
+      "Functional harness PASS: 38 checks.",
+      "Fixed pose-map JVM allocation probe PASS: 1,000,000 warmed cycles, 0 allocated bytes for the tested clear/nine-put/view-traversal/get workload.",
+      "Hot-path bytecode audit PASS: 27 checks; no direct Better Combat metadata discovery in repaired hot paths, no tick Iterator, no render HashMap construction and no steady fixed-map array/HashMap allocation opcodes.",
+      "Unmarked -> final changes exactly assets/punchy/icon.png; zero added/removed/metadata-only changes; 546 other contents unchanged.",
+      "Loader metadata, manifest and both Punchy mixin config files are byte-identical to stock."
+    ],
+    "runtime": [
+      "Pending exact target instance runtime and Spark re-profile.",
+      "Run /sparkc profiler start --timeout 90 --thread * under equivalent workload before promoting this exact SHA to runtime-verified or claiming measured FPS/frame-time improvement."
+    ]
+  },
+  "visual_identity": {
+    "policy":"repair-mark-v2",
+    "official_source":"exact-upstream-jar-declared-logo",
+    "canonical_project_url":"https://www.curseforge.com/minecraft/mc-mods/punchy",
+    "curseforge_project_id":1374153,
+    "curseforge_file_id":8801809,
+    "source_jar_entry":"assets/punchy/icon.png",
+    "normalized_art_sha256":"8533db84f11e30bc00161c5a58e521efefca1f5a10956b9ef0ea8d5da45340ce",
+    "marked_art_sha256":"d9e707e00da1f06ac7264deaeb756129dbe8edfc1507096493f232c200ef38f3",
+    "qa_48_sha256":"0a3504fdfcc2a1abefbb3ff72480c751a0d6050f237e3383837fe746f8f959b1",
+    "embedded_icon_entry":"assets/punchy/icon.png",
+    "integration":"embedded",
+    "image_generation_used":false
+  },
+  "drive_folder": {"id":"1QTfuR6GCV16fgduLjqucwJbTVhMOdkIM","url":"https://drive.google.com/drive/folders/1QTfuR6GCV16fgduLjqucwJbTVhMOdkIM"},
+  "drive_record_file_id":"1A8thcmjJbCMVBsZahRAyGiGpJsX3ToQH",
+  "repair_brain": {"records":149,"sha256":"cf3e846767c528dd3ab0e1f538eba45b9befca62b1030a39810c2efcfac54ba4","previous_prefix_size":745942,"previous_prefix_sha256":"b454f0cfddd51cb47990b1aee443d64d64407a8c991df61ad4f19bc6b26c920d"}
+}
