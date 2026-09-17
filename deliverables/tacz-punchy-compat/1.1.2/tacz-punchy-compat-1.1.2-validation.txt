@@ -1,0 +1,31 @@
+PASS: uploaded Punchy metadata reports 2.8a
+PASS: compat Punchy range is [2.7,2.9), covering 2.8a
+PASS: bridge manifest version is 1.1.2
+PASS: PunchyArmRenderer target survives 2.8a: renderFirstPerson
+PASS: PunchyConfig target survives 2.8a: isItemBlacklisted
+PASS: PunchyConfig target survives 2.8a: isHandBlacklisted
+PASS: HandEquipStateMachine target survives 2.8a: wasItemBlacklisted
+PASS: HandRenderBobContext target survives 2.8a: updateBobSample
+PASS: HandRenderBobContext target survives 2.8a: hasBobSample
+PASS: MovementStateMachine target survives 2.8a: isSprintSwingActive
+PASS: MovementStateMachine target survives 2.8a: isWalkSwingActive
+PASS: MovementStateMachine target survives 2.8a: getSprintBlendAlpha
+PASS: MovementStateMachine target survives 2.8a: applyCameraLookToRoot
+PASS: MovementStateMachine target survives 2.8a: applyCameraYawLagToArm
+PASS: MovementStateMachine target survives 2.8a: applyToMatrix
+PASS: MovementStateMachine target survives 2.8a: applyRootSpaceMotion
+PASS: TaczBlacklistCompat target survives 2.8a: appendVirtualKeys
+PASS: TaczBlacklistCompat target survives 2.8a: resolveGunId
+PASS: appendVirtualKeys still invokes resolveGunId at the redirect site
+PASS: declared mixin class exists: PunchyConfigMixin
+PASS: declared mixin class exists: PunchyTaczBlacklistCompatMixin
+PASS: declared mixin class exists: PunchyArmRendererMixin
+PASS: declared mixin class exists: PunchyHandEquipStateMachineMixin
+PASS: declared mixin class exists: PunchyMovementStateMachineMixin
+PASS: declared mixin class exists: PunchyHandRenderBobContextMixin
+SHA256: 1b1a87801c279ab8e3a640c0462452426c23f66b2952aaed9ae015154bf8e7d4
+SIZE: 9215 bytes
+
+All static binary compatibility checks passed against Punchy 2.8a.
+
+Runtime note: this run did not include a full Forge 1.20.1 client runtime, so this is static binary/mixin-target compatibility evidence rather than native in-game proof.
