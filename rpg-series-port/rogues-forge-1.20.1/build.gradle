@@ -1,0 +1,30 @@
+plugins {
+    id 'dev.architectury.loom' version '1.7.435' apply false
+    id 'architectury-plugin' version '3.4.164'
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+}
+architectury { minecraft = project.minecraft_version }
+allprojects { group = rootProject.maven_group; version = rootProject.mod_version }
+subprojects {
+    apply plugin: 'dev.architectury.loom'
+    apply plugin: 'architectury-plugin'
+    apply plugin: 'maven-publish'
+    base { archivesName = "$rootProject.archives_name-$project.name" }
+    repositories {
+        mavenCentral(); maven { url = 'https://maven.architectury.dev/' }; maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.fabricmc.net/' }; maven { url = 'https://maven.kosmx.dev/' }; maven { url = 'https://maven.shedaniel.me/' }; maven { url = 'https://maven.theillusivec4.top/' }
+    }
+    dependencies { minecraft "com.mojang:minecraft:$rootProject.minecraft_version"; mappings "net.fabricmc:yarn:$rootProject.yarn_mappings:v2" }
+    java { toolchain { languageVersion = JavaLanguageVersion.of(17) }; withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+    tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
+    tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
+    if (project.name == 'forge') {
+        tasks.named('remapJar').configure {
+            outputs.upToDateWhen { false }
+            outputs.cacheIf { false }
+            doLast {
+                exec { commandLine 'python3', rootProject.file('canonicalize_release.py').absolutePath, archiveFile.get().asFile.absolutePath }
+            }
+        }
+    }
+}
