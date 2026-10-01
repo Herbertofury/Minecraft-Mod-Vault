@@ -1,0 +1,66 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+issueTrackerURL="https://github.com/ZsoltMolnarrr/Paladins/issues"
+
+[[mods]]
+modId="paladins"
+version="${version}"
+displayName="Paladins & Priests (RPG Series)"
+authors="Daedelus"
+description='''
+Protect and heal your friends as a Paladin or a Priest.
+'''
+logoFile="icon.png"
+
+[[dependencies.paladins]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.23,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.paladins]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.paladins]]
+modId="armor_model_api"
+mandatory=true
+versionRange="[${armor_model_api_version},)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.paladins]]
+modId="spell_engine"
+mandatory=true
+versionRange="[${spell_engine_version},)"
+ordering="BEFORE"
+side="BOTH"
+
+[[dependencies.paladins]]
+modId="runes"
+mandatory=true
+versionRange="[${runes_version},)"
+ordering="NONE"
+side="BOTH"
+
+# Upstream 3.1.1 embeds Shield API and declares Shield/Structure Pool as required on its
+# publication surfaces. This port deliberately keeps all foundations as separate real Forge mods,
+# so their runtime ownership is explicit instead of silently shading them into Paladins.
+[[dependencies.paladins]]
+modId="shield_api"
+mandatory=true
+versionRange="[2.1.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.paladins]]
+modId="structure_pool_api"
+mandatory=true
+versionRange="[1.2.1,)"
+ordering="NONE"
+side="BOTH"

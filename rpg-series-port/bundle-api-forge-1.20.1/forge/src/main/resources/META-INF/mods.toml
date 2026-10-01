@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="bundleapi"
+version="${version}"
+displayName="Bundle API"
+description='''Native Forge 1.20.1 compatibility port of Bundle API 1.1.0 for RPG Series.''' 
+
+[[dependencies.bundleapi]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.23,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.bundleapi]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
