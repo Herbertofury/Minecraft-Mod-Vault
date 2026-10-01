@@ -1,0 +1,39 @@
+name: CSS5 QEMU User Static Seal
+
+on:
+  push:
+    branches:
+      - combat-style-suite-5way-qa-20260828
+    paths:
+      - .github/workflows/css5-qemu-user-static-seal.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seal-qemu:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fetch exact public QEMU x86_64 user static binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-x86_64-static'
+          curl --fail --location --retry 3 --output qemu-x86_64-static "$url"
+          test "$(stat -c %s qemu-x86_64-static)" = '8689936'
+          chmod 0755 qemu-x86_64-static
+          ./qemu-x86_64-static --version | tee qemu-version.txt
+          sha256sum qemu-x86_64-static | tee SHA256SUMS.txt
+          printf '%s\n' "$url" > SOURCE.txt
+      - name: Upload sealed QA tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-qemu-x86_64-static-v7.2.0-1
+          path: |
+            qemu-x86_64-static
+            qemu-version.txt
+            SHA256SUMS.txt
+            SOURCE.txt
+          if-no-files-found: error
+          retention-days: 3

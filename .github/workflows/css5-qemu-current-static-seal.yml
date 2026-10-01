@@ -1,0 +1,42 @@
+name: CSS5 Current QEMU Static Seal
+
+on:
+  push:
+    branches:
+      - combat-style-suite-5way-qa-20260828
+    paths:
+      - .github/workflows/css5-qemu-current-static-seal.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seal-qemu:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install distro QEMU user static
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+          src=$(command -v qemu-x86_64-static)
+          cp "$src" qemu-x86_64-static
+          chmod 0755 qemu-x86_64-static
+          dpkg-query -W -f='${Package} ${Version}\n' qemu-user-static | tee PACKAGE.txt
+          ./qemu-x86_64-static --version | tee VERSION.txt
+          sha256sum qemu-x86_64-static | tee SHA256SUMS.txt
+          apt-cache policy qemu-user-static | tee APT-POLICY.txt
+      - name: Upload sealed QA tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-qemu-current-static-ubuntu2404
+          path: |
+            qemu-x86_64-static
+            PACKAGE.txt
+            VERSION.txt
+            SHA256SUMS.txt
+            APT-POLICY.txt
+          if-no-files-found: error
+          retention-days: 3

@@ -1,0 +1,198 @@
+name: CSS5 Full-System YSM Runner Seal v2
+
+on:
+  push:
+    branches: [combat-style-suite-5way-qa-20260828]
+    paths: [.github/workflows/css5-fullsystem-ysm-runner-seal-v2.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-runner:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Build and smoke sealed guest
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y debootstrap qemu-system-x86 qemu-utils zstd e2fsprogs
+
+          ROOT=/tmp/css5-rootfs
+          sudo debootstrap --variant=minbase noble "$ROOT" http://archive.ubuntu.com/ubuntu
+          sudo cp /etc/resolv.conf "$ROOT/etc/resolv.conf"
+          sudo tee "$ROOT/etc/apt/sources.list" >/dev/null <<'EOSOURCES'
+          deb http://archive.ubuntu.com/ubuntu noble main universe
+          deb http://archive.ubuntu.com/ubuntu noble-updates main universe
+          deb http://security.ubuntu.com/ubuntu noble-security main universe
+          EOSOURCES
+          sudo mount -t proc proc "$ROOT/proc"
+          sudo mount --rbind /sys "$ROOT/sys"
+          sudo mount --make-rslave "$ROOT/sys"
+          sudo mount --rbind /dev "$ROOT/dev"
+          sudo mount --make-rslave "$ROOT/dev"
+          cleanup_chroot_mounts() {
+            sudo umount -R "$ROOT/dev" 2>/dev/null || true
+            sudo umount -R "$ROOT/sys" 2>/dev/null || true
+            sudo umount "$ROOT/proc" 2>/dev/null || true
+          }
+          trap cleanup_chroot_mounts EXIT
+          sudo chroot "$ROOT" /bin/bash -lc 'set -e; apt-get update; DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-17-jre-headless xvfb xauth libgl1-mesa-dri libglx-mesa0 libgl1 libx11-6 libxext6 libxi6 libxrandr2 libxcursor1 libxinerama1 libxrender1 libxxf86vm1 libasound2t64 iproute2 procps kmod initramfs-tools linux-image-virtual ca-certificates; apt-get clean; rm -rf /var/lib/apt/lists/*'
+          cleanup_chroot_mounts
+          trap - EXIT
+
+          sudo mkdir -p "$ROOT/opt/css5" "$ROOT/mnt/host"
+          cat > /tmp/css5-init.sh <<'EOS'
+          #!/bin/bash
+          set -u
+          mount -t proc proc /proc || true
+          mount -t sysfs sysfs /sys || true
+          mount -t devtmpfs devtmpfs /dev || true
+          mkdir -p /dev/pts /run /tmp /mnt/host
+          mount -t devpts devpts /dev/pts || true
+          mount -t tmpfs tmpfs /run || true
+          mount -t tmpfs tmpfs /tmp || true
+          modprobe 9p || true
+          modprobe 9pnet || true
+          modprobe 9pnet_virtio || true
+          if ! mount -t 9p -o trans=virtio,version=9p2000.L,cache=loose hostshare /mnt/host; then
+            echo 'CSS5_GUEST_FAIL hostshare_mount'
+            exec sleep 86400
+          fi
+          echo 'CSS5_GUEST_READY'
+          exec /mnt/host/run-guest.sh
+          EOS
+          sudo install -m 0755 /tmp/css5-init.sh "$ROOT/opt/css5/init.sh"
+
+          KERNEL=$(basename "$(readlink -f "$ROOT/vmlinuz")")
+          INITRD=$(basename "$(readlink -f "$ROOT/initrd.img")")
+          sudo test -f "$ROOT/boot/$KERNEL"
+          sudo test -f "$ROOT/boot/$INITRD"
+          sudo install -m 0644 "$ROOT/boot/$KERNEL" ./vmlinuz-css5
+          sudo install -m 0644 "$ROOT/boot/$INITRD" ./initrd-css5
+
+          truncate -s 3072M css5-guest.ext4
+          mkfs.ext4 -F -q css5-guest.ext4
+          mkdir /tmp/css5-mnt
+          sudo mount -o loop css5-guest.ext4 /tmp/css5-mnt
+          sudo cp -a "$ROOT"/. /tmp/css5-mnt/
+          sudo umount /tmp/css5-mnt
+
+          mkdir -p /tmp/css5-hostshare
+          cat > /tmp/css5-hostshare/run-guest.sh <<'EOSMOKE'
+          #!/bin/bash
+          set -euo pipefail
+          echo 'CSS5_SMOKE_START'
+          if grep -qw hypervisor /proc/cpuinfo; then
+            echo 'CSS5_GUEST_FAIL hypervisor_flag_present'
+            exec sleep 86400
+          fi
+          echo 'CSS5_HYPERVISOR_FLAG=0'
+          java -version 2>&1 | tee /mnt/host/java-version.txt
+          echo 'CSS5_JAVA_OK'
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 640x480x24 -nolisten tcp >/mnt/host/xvfb.log 2>&1 &
+          xvfb_pid=$!
+          sleep 2
+          kill -0 "$xvfb_pid"
+          echo 'CSS5_XVFB_OK'
+          kill "$xvfb_pid" || true
+          wait "$xvfb_pid" 2>/dev/null || true
+          echo 'CSS5_GUEST_SMOKE_PASS'
+          sync
+          exec sleep 86400
+          EOSMOKE
+          chmod 0755 /tmp/css5-hostshare/run-guest.sh
+
+          qemu-system-x86_64 \
+            -machine q35,accel=tcg \
+            -cpu max,hypervisor=off \
+            -smp 2 \
+            -m 1536 \
+            -kernel vmlinuz-css5 \
+            -initrd initrd-css5 \
+            -append 'root=/dev/vda rw rootfstype=ext4 console=ttyS0 init=/opt/css5/init.sh' \
+            -drive file=css5-guest.ext4,format=raw,if=virtio \
+            -virtfs local,path=/tmp/css5-hostshare,mount_tag=hostshare,security_model=none \
+            -nographic -monitor none -no-reboot >FULLSYSTEM-SMOKE.log 2>&1 &
+          qemu_pid=$!
+          state=timeout
+          for i in $(seq 1 90); do
+            if grep -q 'CSS5_GUEST_FAIL' FULLSYSTEM-SMOKE.log 2>/dev/null; then state=fail; break; fi
+            if grep -q 'CSS5_GUEST_SMOKE_PASS' FULLSYSTEM-SMOKE.log 2>/dev/null; then state=pass; break; fi
+            if ! kill -0 "$qemu_pid" 2>/dev/null; then state=early-exit; break; fi
+            sleep 2
+          done
+          cat FULLSYSTEM-SMOKE.log
+          kill -TERM "$qemu_pid" 2>/dev/null || true
+          wait "$qemu_pid" 2>/dev/null || true
+          test "$state" = pass
+          grep -q 'CSS5_GUEST_READY' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_HYPERVISOR_FLAG=0' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_JAVA_OK' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_XVFB_OK' FULLSYSTEM-SMOKE.log
+          grep -q 'CSS5_GUEST_SMOKE_PASS' FULLSYSTEM-SMOKE.log
+          if grep -q 'CSS5_GUEST_FAIL' FULLSYSTEM-SMOKE.log; then exit 1; fi
+
+          zstd -T0 -15 --sparse -f css5-guest.ext4 -o css5-guest.ext4.zst
+          rm css5-guest.ext4
+
+          mkdir -p qemu-portable/bin qemu-portable/lib qemu-portable/share
+          cp /usr/bin/qemu-system-x86_64 qemu-portable/bin/
+          ldd /usr/bin/qemu-system-x86_64 | awk '/=> \/|^\//{for(i=1;i<=NF;i++) if($i ~ /^\//) print $i}' | sort -u | while read -r lib; do cp -L "$lib" qemu-portable/lib/; done
+          cp -a /usr/share/qemu qemu-portable/share/
+          if [ -d /usr/share/seabios ]; then cp -a /usr/share/seabios qemu-portable/share/; fi
+          tar -C qemu-portable -cf - . | zstd -T0 -15 -o qemu-portable.tar.zst
+          sha256sum vmlinuz-css5 initrd-css5 css5-guest.ext4.zst qemu-portable.tar.zst FULLSYSTEM-SMOKE.log | tee SHA256SUMS.txt
+          qemu-system-x86_64 --version | tee QEMU-VERSION.txt
+          printf 'Ubuntu 24.04 noble minimal guest; full-system TCG; CPUID hypervisor bit suppressed at machine boundary; guest smoke host-terminated only after pass marker; no YSM modification.\n' > PROVENANCE.txt
+
+      - name: Upload runner core
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-fullsystem-ysm-runner-core-v2
+          path: |
+            vmlinuz-css5
+            initrd-css5
+            qemu-portable.tar.zst
+            SHA256SUMS.txt
+            QEMU-VERSION.txt
+            PROVENANCE.txt
+            FULLSYSTEM-SMOKE.log
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Split guest image
+        shell: bash
+        run: |
+          set -euo pipefail
+          split -b 300M -d -a 2 css5-guest.ext4.zst css5-guest.ext4.zst.part-
+          sha256sum css5-guest.ext4.zst css5-guest.ext4.zst.part-* > GUEST-SHA256SUMS.txt
+          count=$(find . -maxdepth 1 -name 'css5-guest.ext4.zst.part-*' | wc -l)
+          test "$count" -le 2
+
+      - name: Upload guest part 00
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-fullsystem-ysm-guest-v2-part-00
+          path: css5-guest.ext4.zst.part-00
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload guest part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-fullsystem-ysm-guest-v2-part-01
+          path: css5-guest.ext4.zst.part-01
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Upload guest manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: css5-fullsystem-ysm-guest-v2-manifest
+          path: GUEST-SHA256SUMS.txt
+          retention-days: 3
+          if-no-files-found: error

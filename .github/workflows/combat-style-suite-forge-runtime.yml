@@ -1,0 +1,127 @@
+name: Combat Style Suite Production Forge VM-Compatible Client
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/combat-style-suite-forge-runtime.yml'
+      - 'combat-style-suite-5way-qa/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-runtime:
+    if: startsWith(github.head_ref, 'combat-style-suite-5way-qa-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Fetch exact corpus; quarantine only YSM from VM launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-production"; RUN="$ROOT/run"; HMC="$ROOT/HeadlessMC"; MCDIR="$ROOT/minecraft"; SEALED="$ROOT/sealed-all-five"
+          mkdir -p "$RUN/mods" "$HMC" "$MCDIR" "$SEALED"
+          fetch_url(){ local url="$1" out="$2"; curl -fL --retry 5 --retry-all-errors --retry-delay 2 -A 'Minecraft-Dev-Kit-CSS5-QA/5.0.0' "$url" -o "$RUN/mods/$out"; test -s "$RUN/mods/$out"; }
+          modrinth_version(){ local id="$1" out="$2" json url; json="$(curl -fsSL --retry 4 -A 'Minecraft-Dev-Kit-CSS5-QA/5.0.0' "https://api.modrinth.com/v2/version/$id")"; url="$(jq -r '.files[] | select(.primary == true) | .url' <<<"$json" | head -1)"; fetch_url "$url" "$out"; }
+          modrinth_latest(){ local project="$1" regex="$2" out="$3" api json chosen url; api="https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%221.20.1%22%5D&loaders=%5B%22forge%22%5D"; json="$(curl -fsSL --retry 4 -A 'Minecraft-Dev-Kit-CSS5-QA/5.0.0' "$api")"; chosen="$(jq -r --arg re "$regex" '[.[] | select(.version_number | test($re; "i"))][0].id // empty' <<<"$json")"; [ -n "$chosen" ] || chosen="$(jq -r '.[0].id // empty' <<<"$json")"; url="$(curl -fsSL -A 'Minecraft-Dev-Kit-CSS5-QA/5.0.0' "https://api.modrinth.com/v2/version/$chosen" | jq -r '.files[] | select(.primary == true) | .url' | head -1)"; fetch_url "$url" "$out"; }
+          fetch_url 'https://mediafilez.forgecdn.net/files/8049/910/epic-fight-20.14.17-mc1.20.1-forge.jar' 'epic-fight-20.14.17-mc1.20.1-forge.jar'
+          modrinth_version 'rnhiaw3t' 'bettercombat-forge-1.9.0+1.20.1.jar'
+          modrinth_version 'Zqooxsd2' 'ysm-2.6.5-forge+mc1.20.1-release.jar'
+          modrinth_version 'RC3kKPlO' 'punchy-2.7d-forge-1.20.1.jar'
+          fetch_url 'https://mediafilez.forgecdn.net/files/8141/310/tacz-1.20.1-1.1.8-hotfix.jar' 'tacz-1.20.1-1.1.8-hotfix.jar'
+          modrinth_latest 'playeranimator' '1\\.0\\.2.*1\\.20' 'player-animation-lib-forge-1.0.2-rc1+1.20.jar'
+          modrinth_latest 'cloth-config' '^11\\.1\\.' 'cloth-config-forge-1.20.1.jar'
+          modrinth_latest 'spark' '^1\\.10\\.53' 'spark-1.10.53-forge.jar'
+          modrinth_latest 'observable' '^4\\.4\\.2' 'observable-4.4.2-forge.jar'
+          modrinth_latest 'architectury-api' '^9\\.' 'architectury-forge-1.20.1.jar'
+          modrinth_latest 'kotlin-for-forge' '.*' 'kotlin-for-forge-1.20.1.jar'
+          cd "$RUN/mods"
+          echo '69566cf70ae2d91d3f2564c608f014c87e290cef6215c2a27719851165485f73  epic-fight-20.14.17-mc1.20.1-forge.jar' | sha256sum -c -
+          echo '49c69dccf2c641246b4e3deca81ebac21f0ee119e81fc713b838b8e33569eea1  bettercombat-forge-1.9.0+1.20.1.jar' | sha256sum -c -
+          echo '25b5e902b96f4c298690208f8b433cbc31737c23f87590354dbd86f00207bc8f  ysm-2.6.5-forge+mc1.20.1-release.jar' | sha256sum -c -
+          echo '27234cac35eda3b2c16cd9b7a594534f4d417065c40810307a09c1ecaf9225aa  punchy-2.7d-forge-1.20.1.jar' | sha256sum -c -
+          echo '9ed8ada1283ed7a793a70cc1b51c4a340f367ce84707e1a7b8cf21ee3d288d77  tacz-1.20.1-1.1.8-hotfix.jar' | sha256sum -c -
+          sha256sum *.jar | sort -k2 > "$ROOT/UPSTREAM-SHA256SUMS.txt"
+          mv ysm-2.6.5-forge+mc1.20.1-release.jar "$SEALED/"
+          printf 'YSM exact publisher JAR quarantined only because YSM 2.6.5 native core rejects virtual machines before Minecraft world entry. SHA-256 remains sealed above.\n' > "$SEALED/WHY-NOT-LAUNCHED-IN-CI.txt"
+          curl -fL --retry 5 --retry-all-errors -o "$ROOT/headlessmc-launcher-2.10.0.jar" 'https://github.com/3arthqu4ke/headlessmc/releases/download/2.10.0/headlessmc-launcher-2.10.0.jar'
+          curl -fL --retry 5 --retry-all-errors -o "$RUN/mods/mc-runtime-test-1.20.1-4.5.1-lexforge-release.jar" 'https://github.com/headlesshq/mc-runtime-test/releases/download/4.5.1/mc-runtime-test-1.20.1-4.5.1-lexforge-release.jar'
+          echo '992240a481ce45f2536a64114278615abeb0cd708dffca69770756b50c428e56  mc-runtime-test-1.20.1-4.5.1-lexforge-release.jar' | sha256sum -c -
+          cat > "$HMC/config.properties" <<EOF
+          hmc.java.versions=$JAVA_HOME/bin/java
+          hmc.gamedir=$RUN
+          hmc.mcdir=$MCDIR
+          hmc.offline=true
+          hmc.rethrow.launch.exceptions=true
+          hmc.exit.on.failed.command=true
+          EOF
+      - name: Install exact packaged Forge 47.4.23
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-production"; cd "$ROOT"
+          java -jar headlessmc-launcher-2.10.0.jar --command download 1.20.1 > hmc-download.log 2>&1
+          java -jar headlessmc-launcher-2.10.0.jar --command forge 1.20.1 --uid 47.4.23 > hmc-forge.log 2>&1
+          java -jar headlessmc-launcher-2.10.0.jar --command versions | tee hmc-versions.log
+          grep -E '1\.20\.1.*47\.4\.23|47\.4\.23.*1\.20\.1' hmc-versions.log
+      - name: Boot VM-faithful four-core packaged client and integrated world
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-production"; export LIBGL_ALWAYS_SOFTWARE=1; export ALSOFT_DRIVERS=null
+          sudo apt-get update -qq; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils zstd >/dev/null
+          cd "$ROOT"; set +e
+          timeout 240s xvfb-run -a -s '-screen 0 1280x720x24 +extension GLX +render' java -Dhmc.check.xvfb=true -jar headlessmc-launcher-2.10.0.jar --command launch '.*1\\.20\\.1.*47\\.4\\.23.*' -regex -offline -keep --jvm '-Xms2G -Xmx4G -Djava.awt.headless=true' > production-client.log 2>&1
+          rc=$?; set -e; echo "production_client_exit=$rc" | tee production-client-exit.txt
+          LOG="$ROOT/run/logs/latest.log"; test -s "$LOG"; cp "$LOG" latest-production.log; tail -400 "$LOG" || true
+          # mc-runtime-test writes its final completion marker through the launcher console, while Forge's latest.log owns mod/runtime evidence.
+          grep -F 'Successfully finished.' production-client.log
+          grep -E 'Offline.*logged in with entity id|Offline joined the game' "$LOG"
+          grep -F 'Starting integrated minecraft server version 1.20.1' "$LOG"
+          for p in 'epicfight|epic fight' 'bettercombat|better combat' 'punchy' 'tacz|timeless' 'spark' 'observable'; do grep -Eiq "$p" "$LOG"; done
+          ! grep -Eiq 'ModLoadingException|Failed to create mod instance|Mixin apply failed|Reported exception thrown|Preparing crash report' "$LOG"
+          case "$rc" in 0|124) ;; *) exit "$rc";; esac
+      - name: Seal reusable VM-faithful client runtime
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/css5-production"; rm -f "$ROOT/run/mods/mc-runtime-test-1.20.1-4.5.1-lexforge-release.jar"; rm -rf "$ROOT/run/crash-reports" "$ROOT/run/logs"
+          cat > "$ROOT/PRODUCTION-RUNTIME.txt" <<'EOF'
+          Minecraft 1.20.1 / Forge 47.4.23 / Java 17 packaged client.
+          Epic Fight + Better Combat + Punchy + TaCZ + Spark + Observable ran in a real integrated world.
+          Exact YSM 2.6.5 is preserved under sealed-all-five but intentionally absent from the VM launch because its native core refuses any virtual machine. Do not mistake this lane for an all-five YSM benchmark.
+          EOF
+          cd "$RUNNER_TEMP"; tar --zstd -cf combat-style-suite-production-forge-vm-client-runtime.tar.zst css5-production; sha256sum combat-style-suite-production-forge-vm-client-runtime.tar.zst > combat-style-suite-production-forge-vm-client-runtime.tar.zst.sha256
+      - name: Upload client diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-production-forge-vm-client-diagnostics
+          path: |
+            ${{ runner.temp }}/css5-production/hmc-versions.log
+            ${{ runner.temp }}/css5-production/production-client.log
+            ${{ runner.temp }}/css5-production/production-client-exit.txt
+            ${{ runner.temp }}/css5-production/latest-production.log
+            ${{ runner.temp }}/css5-production/UPSTREAM-SHA256SUMS.txt
+            ${{ runner.temp }}/css5-production/sealed-all-five
+          if-no-files-found: warn
+          retention-days: 5
+      - name: Upload reusable client runtime
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-style-suite-production-forge-vm-client-runtime
+          path: |
+            ${{ runner.temp }}/combat-style-suite-production-forge-vm-client-runtime.tar.zst
+            ${{ runner.temp }}/combat-style-suite-production-forge-vm-client-runtime.tar.zst.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
