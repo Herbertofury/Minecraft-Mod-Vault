@@ -1,0 +1,121 @@
+name: Ragdoll Sable Direct Build
+
+on:
+  push:
+    branches:
+      - ragdoll-sable-source-export-build-v3
+    paths:
+      - 'ragdoll-port/tools/**'
+      - '.github/workflows/ragdoll-sable-direct.yml'
+      - 'sable-source-export-trigger/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout conversion controls
+        uses: actions/checkout@v4
+        with:
+          path: vault
+      - name: Checkout pinned Sable Forge backport
+        uses: actions/checkout@v4
+        with:
+          repository: CamelPoem32/sable-backport
+          ref: 6dd48142a62347f1454559b546cbaa63eca648ac
+          path: sable
+          fetch-depth: 1
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Stage exact target dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target_modpack/mods sable/forge/build/targetModpackRepository
+          curl -fL --retry 4 --retry-delay 2 -o target_modpack/mods/create-1.20.1-6.0.8.jar 'https://edge.forgecdn.net/files/7178/761/create-1.20.1-6.0.8.jar'
+          echo '6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0  target_modpack/mods/create-1.20.1-6.0.8.jar' | sha256sum -c -
+          lz4="$HOME/.gradle/caches/modules-2/files-2.1/at.yawk.lz4/lz4-java/1.11.0/b9669fb5e3ccf50a579c9a4f750cab37ce8fce1b/lz4-java-1.11.0.jar"
+          mkdir -p "$(dirname "$lz4")"
+          curl -fL --retry 4 --retry-delay 2 -o "$lz4" 'https://repo1.maven.org/maven2/at/yawk/lz4/lz4-java/1.11.0/lz4-java-1.11.0.jar'
+          echo "535c5578cab5dcd0a438e202df80091632b873c0370c25d9b1c1ad1d73577207  $lz4" | sha256sum -c -
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, zipfile
+          create = Path('target_modpack/mods/create-1.20.1-6.0.8.jar')
+          repo = Path('sable/forge/build/targetModpackRepository')
+          specs = [
+              ('create-1.20.1','6.0.8',None,'create-1.20.1-6.0.8.jar','6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0'),
+              ('flywheel-forge-1.20.1','1.0.5','META-INF/jarjar/flywheel-forge-1.20.1-1.0.5.jar','flywheel-forge-1.20.1-1.0.5.jar','316ca250f19244956b5f0cd75329309ea65a77b4b8da854389b6a9222e7f427c'),
+              ('Registrate','MC1.20-1.3.3','META-INF/jarjar/Registrate-MC1.20-1.3.3.jar','Registrate-MC1.20-1.3.3.jar','226862d4638b77273f4627fbac871aa0b3af584dde377f4ce2cb0c7cc228cf00'),
+              ('Ponder-Forge-1.20.1','1.0.91','META-INF/jarjar/Ponder-Forge-1.20.1-1.0.91.jar','Ponder-Forge-1.20.1-1.0.91.jar','86e6b64372aba6d9c56f2c35725ea26d8febf2c75eed9950566e7f2849443b34'),
+          ]
+          with zipfile.ZipFile(create) as zf:
+              for artifact, version, member, filename, expected in specs:
+                  data = create.read_bytes() if member is None else zf.read(member)
+                  actual = hashlib.sha256(data).hexdigest()
+                  if actual != expected:
+                      raise SystemExit(f'{artifact}:{version} SHA mismatch: {actual}')
+                  (repo / filename).write_bytes(data)
+                  module = repo / 'local' / 'target' / artifact / version
+                  module.mkdir(parents=True, exist_ok=True)
+                  (module / filename).write_bytes(data)
+                  (module / f'{artifact}-{version}.pom').write_text(
+                      f'<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><groupId>local.target</groupId><artifactId>{artifact}</artifactId><version>{version}</version><packaging>jar</packaging></project>',
+                      encoding='utf-8')
+                  print(f'PRESTAGED local.target:{artifact}:{version} sha256={actual}')
+          PY
+      - name: Apply deterministic Sable patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 vault/ragdoll-port/tools/patch_sable_forge_1_20_1.py sable
+          chmod +x sable/gradlew
+      - name: Build Companion sequentially
+        working-directory: sable
+        run: ./gradlew --no-daemon --no-parallel :sable_companion_1_20:build
+      - name: Build and verify Sable production artifact
+        working-directory: sable
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon --no-parallel :forge:spotlessApply
+          ./gradlew --no-daemon --no-parallel \
+            :forge:verifyTargetModpackDependencies \
+            :forge:verifySubLevelEntityCollisionBoundary \
+            :forge:verifyBasicSubLevelRenderLifecycle \
+            :forge:verifySableSpawnCommandBoundary \
+            :forge:build \
+            :forge:verifyRapierPackagedArtifact \
+            :forge:verifyRapierProductionNamespace \
+            :forge:verifyCompanionProductionNamespace \
+            :forge:verifyProductionMinecraftAccessBoundary \
+            :forge:prepareStandaloneSableUserdevArtifact
+      - name: Collect exact production and userdev artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          cp sable/forge/build/libs/sable-forge-1.20.1-2.0.0-all.jar export/
+          cp sable/forge/build/standaloneRuntime/sable-forge-1.20.1-2.0.0-all-userdev.jar export/
+          cp sable/forge/build/createMcpToSrg/output.tsrg export/createMcpToSrg-output.tsrg
+          cp sable/forge/build/createSrgToMcp/output.srg export/createSrgToMcp-output.srg
+          sha256sum export/* > export/SHA256SUMS.txt
+          printf '%s\n' \
+            'sable_backport_source=6dd48142a62347f1454559b546cbaa63eca648ac' \
+            'sable_1_1_0_source=165cf388f775d40c414cf1284c45f6a00a80f74f' \
+            'forge=47.4.23' \
+            'verifier_fix=java.lang.Enum inherited ordinal/name only' \
+            > export/PROVENANCE.txt
+      - name: Upload Sable production/userdev bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sable-forge-1.20.1-final-with-userdev
+          path: export
+          if-no-files-found: error
+          retention-days: 7
