@@ -8,7 +8,7 @@ on:
       - '.github/workflows/rpg-series-active-port.yml'
 
 concurrency:
-  group: rpg-series-active-port-${{ github.event.pull_request.number }}
+  group: rpg-series-active-port-workbench-rpg-series-forge-1.20.1
   cancel-in-progress: true
 
 permissions:
@@ -36,11 +36,12 @@ jobs:
           gradle-version: '8.8'
           cache-read-only: false
 
-      - name: Run active RPG port verifier from PR head
+      - name: Run active RPG port verifier from exact head
         shell: bash
         run: |
           set -euo pipefail
           ACTIVE_FILE='rpg-series-port/ci/ACTIVE_RUNNER'
+          LOG='rpg-series-port/active-port-verifier.log'
           test -f "$ACTIVE_FILE"
           RUNNER="$(tr -d '\r\n ' < "$ACTIVE_FILE")"
           case "$RUNNER" in
@@ -49,8 +50,8 @@ jobs:
           esac
           SCRIPT="rpg-series-port/ci/$RUNNER"
           test -f "$SCRIPT"
-          echo "[RPG CI] Active runner: $SCRIPT"
-          bash "$SCRIPT"
+          echo "[RPG CI] Active runner: $SCRIPT" | tee "$LOG"
+          bash "$SCRIPT" 2>&1 | tee -a "$LOG"
 
       - name: Preserve active-port evidence
         if: always()
@@ -60,7 +61,14 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           path: |
+            rpg-series-port/active-port-verifier.log
+            rpg-series-integration-client.log
+            rpg-series-integration-server.log
+            rpg-series-port/rogues-forge-1.20.1/forge/run/logs/latest.log
+            rpg-series-port/paladins-forge-1.20.1/.fresh-paladins-forge-server/logs/latest.log
             rpg-series-port/*/forge/build/libs/*.jar
+            rpg-series-port/*/generated/forge/build/libs/*.jar
+            rpg-series-port/*/*.jar
             rpg-series-port/*/*sha256
             rpg-series-port/*/*smoke.log
             *-source-ci.zip
