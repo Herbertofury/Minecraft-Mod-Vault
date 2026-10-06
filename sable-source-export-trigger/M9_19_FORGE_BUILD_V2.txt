@@ -1,0 +1,1 @@
+Trigger repaired Sable M9.19 Forge 47.4.23 build after prestaging the exact local target Maven modules before ForgeGradle dependency graph construction.
