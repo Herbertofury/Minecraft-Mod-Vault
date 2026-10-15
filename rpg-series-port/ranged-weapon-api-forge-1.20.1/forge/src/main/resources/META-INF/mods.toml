@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+[[mods]]
+modId="ranged_weapon_api"
+version="${version}"
+displayName="Ranged Weapon API"
+description='''Native Forge 1.20.1 backport of Ranged Weapon API 2.3.4 behavior and public configuration surface.'''
+[[dependencies.ranged_weapon_api]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.ranged_weapon_api]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
