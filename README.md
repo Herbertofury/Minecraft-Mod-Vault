@@ -80,3 +80,8 @@ See also:
 The earlier recovered build remains preserved with ZIP SHA-256 `35d48f7f392b268819c653a57032bdf3a8f62f665d9d03d80b6716ce83d0565f` and JAR SHA-256 `0f6f9e8d349bc092197e25c99e3a992eda1dab3a6dd1b62d15f75dbbd16cd393`.
 
 </details>
+
+
+## Competing apps and alternative workflows
+
+[Comparison hub](COMPETITORS.md): relevant baselines, source-backed alternatives, existing research catalogs and concrete validation priorities. Candidate ideas are not claims of measured superiority.
