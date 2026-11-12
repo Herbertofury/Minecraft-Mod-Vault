@@ -17,6 +17,21 @@ Start with the existing [launcher landscape](research/minecraft-launcher-landsca
 - [ ] Keep TestGrid server evidence separate from real rendered-client evidence.
 - [ ] Conversion comparisons must report lost entities, blocks, scripts and behavior explicitly; unsupported conversion is not success.
 
+
+## Potential foundations, reuse and differentiation
+
+| Candidate foundation | Specific component/pattern to investigate | Intended improvement | Compatibility and empirical gate |
+|---|---|---|---|
+| packwiz | Inspect manifest/hash and distribution semantics for a possible import/export adapter | Reviewable pack changes without losing local overrides or optional content | Round-trip identical permitted packs; preserve filenames, hashes, provider identities, side constraints and optional choices. Do not equate loader migration with semantic mod porting. |
+| Prism Launcher | Study instance boundaries, launch configuration and diagnostic UX; reuse code only if licensing permits | Make failed launches explainable without burying logs or corrupting working instances | Compare clean install, custom Java arguments, dependency failure and rollback on the same pack and hardware. |
+| Modrinth App / official provider interfaces | Investigate provider identity and compatible-version metadata through permitted interfaces | Show exact installed-to-candidate changes and provenance rather than filename guesses | Test API unavailability, ambiguous matches, removed versions and custom patches. Provider access restrictions remain binding. |
+| Vault's current identity and transaction contracts | Reuse existing artifact-first identifiers, receipt/undo semantics and TestGrid evidence | Avoid replacing working foundations with duplicate managers | Future Enderloom/other-tool interoperability should exchange versioned manifests and sanitized receipts first, not share writable profile directories. |
+| Existing world/conversion catalog | Reuse knowledge of format and behavior boundaries | Make conversion loss visible and reversible | Clone a permitted test world, compare entities/blocks/scripts and verify restoration. No unsupported conversion may be advertised as complete. |
+
+**License and interoperability gate:** inspect exact upstream code licenses, dependency licenses, notices, API terms and redistribution permissions before importing code. Pack metadata does not confer mod redistribution rights. Record edition, loader, game, Java/runtime and provider API versions. Exported manifests must exclude account tokens and personal paths.
+
+**Empirical evidence required:** cold/warm install-to-play, update and rollback journeys; peak RAM; UI latency at full library size; complete identity/dependency output; byte-level recovery; real-client behavior where relevant. An import/export adapter remains a candidate until tested against Vault's current baseline with its complete requirements preserved. No new integration was implemented or benchmarked by this documentation expansion.
+
 ## Review and evidence rules
 
 Review date: **2026-11-12**. This is a comparison agenda, not a benchmark result or proof of superiority. Official-source capability descriptions and our proposed experiments are separate. Pin actual versions and licenses before reuse; record publication date separately from the date checked. Retain failed comparisons and rejected candidates.
