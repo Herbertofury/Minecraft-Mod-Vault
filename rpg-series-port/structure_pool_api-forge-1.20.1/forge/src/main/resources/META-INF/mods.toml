@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+issueTrackerURL="https://github.com/FabricExtras/StructurePoolAPI/issues"
+
+[[mods]]
+modId="structure_pool_api"
+version="${version}"
+displayName="Structure Pool API"
+authors="Daedelus; Forge 1.20.1 backport maintained for the RPG Series port project"
+description='''
+Allows injecting structures into structure pools.
+Native Forge 1.20.1 backport of upstream Structure Pool API 1.2.1 behavior,
+including the upstream second-world-load injection fix.
+'''
+
+[[dependencies.structure_pool_api]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.structure_pool_api]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
