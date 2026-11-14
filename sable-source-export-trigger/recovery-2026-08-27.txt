@@ -1,0 +1,4 @@
+Trigger the existing validated Ragdoll Sable Forge Build workflow for recovery.
+Frozen Sable Forge backport source: 6dd48142a62347f1454559b546cbaa63eca648ac
+Forge target: 47.4.23
+Reason: recover a fresh exact dependency artifact for continued Forge 1.20.1 ragdoll port QA.
