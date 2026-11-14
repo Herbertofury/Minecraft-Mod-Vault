@@ -1,0 +1,15 @@
+architectury { common 'forge' }
+File requiredJar(String name) { def v=providers.gradleProperty(name).orNull; if(v==null||v.trim().isEmpty()) throw new GradleException("Missing -P${name}=..."); def f=rootProject.file(v.trim()); if(!f.isFile()) throw new GradleException("${name} does not exist: ${f}"); return f }
+def commonAbi=[requiredJar('armor_model_api_common_jar'),requiredJar('structure_pool_api_common_jar'),requiredJar('spell_power_common_jar'),requiredJar('spell_engine_common_jar'),requiredJar('tiny_config_common_jar')]
+dependencies {
+    commonAbi.each { compileOnly files(it) }
+    modCompileOnly('me.shedaniel.cloth:cloth-config-fabric:11.1.136') { transitive=false }
+    modCompileOnly('dev.kosmx.player-anim:player-animation-lib-fabric:1.0.2+1.19.4') { transitive=false }
+    compileOnly 'net.fabricmc:fabric-loader:0.15.11'
+    compileOnly 'org.spongepowered:mixin:0.8.5'; annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    compileOnly "io.github.llamalad7:mixinextras-common:$rootProject.mixinextras_version"
+}
+def generatedJava=rootProject.file('generated/common/java'); def generatedResources=rootProject.file('generated/common/resources')
+sourceSets.main.java.setSrcDirs([generatedJava]); sourceSets.main.resources.setSrcDirs([generatedResources])
+tasks.register('materializeCurrentRogues', Exec) { workingDir rootProject.projectDir; commandLine 'bash', rootProject.file('materialize_port.sh').absolutePath; outputs.dir generatedJava; outputs.dir generatedResources }
+tasks.named('compileJava').configure { dependsOn 'materializeCurrentRogues' }; tasks.named('processResources').configure { dependsOn 'materializeCurrentRogues' }
