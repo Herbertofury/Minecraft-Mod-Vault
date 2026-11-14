@@ -1,0 +1,18 @@
+architectury { common(rootProject.enabled_platforms.split(',')) }
+sourceSets {
+    main {
+        java.srcDir 'src/generatedUpstream/java'
+        resources.srcDir 'src/generatedUpstream/resources'
+    }
+}
+repositories {
+    maven { name = 'EMI'; url = 'https://maven.terraformersmc.com/releases/' }
+}
+dependencies {
+    compileOnly "org.spongepowered:mixin:0.8.5"
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    implementation "io.github.llamalad7:mixinextras-common:$rootProject.mixinextras_version"
+    annotationProcessor "io.github.llamalad7:mixinextras-common:$rootProject.mixinextras_version"
+    // Full compile-only EMI artifact is needed for EmiAnvilRecipe; it remains optional at runtime.
+    modCompileOnly "dev.emi:emi-fabric:$rootProject.emi_version"
+}
