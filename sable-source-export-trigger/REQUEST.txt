@@ -1,0 +1,2 @@
+Export exact Sable sources and build the current Forge 1.20.1 M9.19 backport against Forge 47.4.23 for ragdoll parity acceptance.
+Fresh trigger after the prestaged target-mod ForgeGradle workflow became live on main.
