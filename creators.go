@@ -512,14 +512,14 @@ func largestThumbnail(v any) string {
 
 func (a *App) analyzeCreatorVideo(ctx context.Context, rawURL string) (CreatorVideo, error) {
 	u, err := url.Parse(strings.TrimSpace(rawURL))
-	if err != nil || u.Host == "" {
+	if err != nil || !creatorPublicWebURL(u) {
 		return CreatorVideo{}, errors.New("invalid video URL")
 	}
-	host := strings.ToLower(strings.TrimPrefix(u.Host, "www."))
+	host := strings.ToLower(strings.TrimPrefix(u.Hostname(), "www."))
 	switch {
-	case strings.Contains(host, "youtube.com") || host == "youtu.be":
+	case creatorHostMatches(host, []string{"youtube.com"}) || host == "youtu.be":
 		return a.analyzeYouTube(ctx, rawURL)
-	case strings.Contains(host, "tiktok.com") || strings.Contains(host, "tiktokv.com"):
+	case creatorHostMatches(host, []string{"tiktok.com"}) || creatorHostMatches(host, []string{"tiktokv.com"}):
 		return a.analyzeTikTok(ctx, rawURL)
 	default:
 		return CreatorVideo{}, errors.New("Creator Picks currently analyzes YouTube and TikTok URLs")
@@ -871,7 +871,7 @@ func (a *App) extractCreatorMods(ctx context.Context, video CreatorVideo, segmen
 		if nameKey == "" {
 			return
 		}
-		key := nameKey + ":" + strings.ToLower(cm.Provider)
+		key := creatorResolvedIdentity(cm)
 		if idx, ok := seenResolved[key]; ok {
 			old := &mods[idx]
 			old.SourceKinds = uniqueStringsPreserve(append(old.SourceKinds, cm.SourceKinds...))
@@ -1072,201 +1072,201 @@ func timestampedDescriptionCandidate(line string) string {
 
 func creatorModFromURL(raw string, ts int64, video CreatorVideo) (CreatorMod, bool) {
 	u, err := url.Parse(strings.TrimRight(raw, ".,);]"))
-	if err != nil {
+	if err != nil || !creatorPublicWebURL(u) {
 		return CreatorMod{}, false
 	}
-	host := strings.ToLower(strings.TrimPrefix(u.Host, "www."))
+	host := strings.ToLower(strings.TrimPrefix(u.Hostname(), "www."))
 	provider := ""
 	id := ""
 	name := ""
 	switch {
-	case strings.Contains(host, "modrinth.com"):
+	case creatorHostMatches(host, []string{"modrinth.com"}):
 		provider = "modrinth"
 		parts := splitPath(u.Path)
-		if len(parts) >= 2 {
-			id = parts[len(parts)-1]
+		if len(parts) >= 2 && creatorModrinthKind(parts[0]) {
+			id = parts[1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "curseforge.com"):
+	case creatorHostMatches(host, []string{"curseforge.com"}):
 		provider = "curseforge"
 		parts := splitPath(u.Path)
-		if len(parts) > 0 {
-			id = parts[len(parts)-1]
+		if len(parts) >= 3 && parts[0] == "minecraft" && creatorCurseForgeKind(parts[1]) {
+			id = parts[2]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "github.com"):
+	case creatorHostMatches(host, []string{"github.com"}):
 		provider = "github"
 		parts := splitPath(u.Path)
 		if len(parts) >= 2 {
 			id = parts[0] + "/" + parts[1]
 			name = humanizeRepoName(parts[1])
 		}
-	case strings.Contains(host, "planetminecraft.com"):
+	case creatorHostMatches(host, []string{"planetminecraft.com"}):
 		provider = "planetminecraft"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			name = humanizeRepoName(parts[len(parts)-1])
 			id = u.Path
 		}
-	case strings.Contains(host, "mcpedl.com"):
+	case creatorHostMatches(host, []string{"mcpedl.com"}):
 		provider = "mcpedl"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			name = humanizeRepoName(parts[len(parts)-1])
 			id = u.Path
 		}
-	case strings.Contains(host, "hangar.papermc.io"):
+	case creatorHostMatches(host, []string{"hangar.papermc.io"}):
 		provider = "hangar"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "spigotmc.org"):
+	case creatorHostMatches(host, []string{"spigotmc.org"}):
 		provider = "spigot"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = strings.TrimSuffix(parts[len(parts)-1], ".")
 			name = humanizeRepoName(strings.TrimSuffix(id, "."))
 		}
-	case strings.Contains(host, "dev.bukkit.org"):
+	case creatorHostMatches(host, []string{"dev.bukkit.org"}):
 		provider = "bukkitdev"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "builtbybit.com"):
+	case creatorHostMatches(host, []string{"builtbybit.com"}):
 		provider = "builtbybit"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = strings.TrimSuffix(parts[len(parts)-1], ".")
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "polymart.org"):
+	case creatorHostMatches(host, []string{"polymart.org"}):
 		provider = "polymart"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "ore.spongepowered.org"):
+	case creatorHostMatches(host, []string{"ore.spongepowered.org"}):
 		provider = "spongeore"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "smithed.dev"):
+	case creatorHostMatches(host, []string{"smithed.dev"}):
 		provider = "smithed"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "moddb.com"):
+	case creatorHostMatches(host, []string{"moddb.com"}):
 		provider = "moddb"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "atlauncher.com"):
+	case creatorHostMatches(host, []string{"atlauncher.com"}):
 		provider = "atlauncher"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "technicpack.net"):
+	case creatorHostMatches(host, []string{"technicpack.net"}):
 		provider = "technic"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "feed-the-beast.com"), strings.Contains(host, "modpacks.ch"):
+	case creatorHostMatches(host, []string{"feed-the-beast.com"}), creatorHostMatches(host, []string{"modpacks.ch"}):
 		provider = "ftb"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = parts[len(parts)-1]
 			name = humanizeRepoName(id)
 		}
-	case strings.Contains(host, "nexusmods.com"):
+	case creatorHostMatches(host, []string{"nexusmods.com"}):
 		provider = "nexusmods"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "vanillatweaks.net"):
+	case creatorHostMatches(host, []string{"vanillatweaks.net"}):
 		provider = "vanillatweaks"
 		id = strings.Trim(u.Path, "/")
 		name = "Vanilla Tweaks"
-	case strings.Contains(host, "minecraftmaps.com"):
+	case creatorHostMatches(host, []string{"minecraftmaps.com"}):
 		provider = "minecraftmaps"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "resourcepack.net"):
+	case creatorHostMatches(host, []string{"resourcepack.net"}):
 		provider = "resourcepacknet"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "texture-packs.com"):
+	case creatorHostMatches(host, []string{"texture-packs.com"}):
 		provider = "texturepacks"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "mcreator.net"):
+	case creatorHostMatches(host, []string{"mcreator.net"}):
 		provider = "mcreator"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "shaderpacks.com"):
+	case creatorHostMatches(host, []string{"shaderpacks.com"}):
 		provider = "shaderpackscom"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "shaderpacks.net"):
+	case creatorHostMatches(host, []string{"shaderpacks.net"}):
 		provider = "shaderpacksnet"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "minecraftshader.com"):
+	case creatorHostMatches(host, []string{"minecraftshader.com"}):
 		provider = "minecraftshader"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "minecraftskins.com"):
+	case creatorHostMatches(host, []string{"minecraftskins.com"}):
 		provider = "skindex"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "minecrafthub.io"):
+	case creatorHostMatches(host, []string{"minecrafthub.io"}):
 		provider = "minecrafthub"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
 			id = u.Path
 			name = humanizeRepoName(parts[len(parts)-1])
 		}
-	case strings.Contains(host, "minecraft.net") && strings.Contains(strings.ToLower(u.Path), "marketplace"):
+	case creatorHostMatches(host, []string{"minecraft.net"}) && strings.Contains(strings.ToLower(u.Path), "marketplace"):
 		provider = "marketplace"
 		parts := splitPath(u.Path)
 		if len(parts) > 0 {
