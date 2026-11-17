@@ -77,6 +77,10 @@ var recommendedCreatorChannels = []CreatorChannelSuggestion{
 }
 
 type CreatorChannel struct {
+	ArchiveCoverage            string                   `json:"archiveCoverage,omitempty"`
+	ArchiveWarning             string                   `json:"archiveWarning,omitempty"`
+	ArchiveExpected            int                      `json:"archiveExpected,omitempty"`
+	ArchiveEnumerated          int                      `json:"archiveEnumerated,omitempty"`
 	Platform                   string                   `json:"platform"`
 	Handle                     string                   `json:"handle"`
 	URL                        string                   `json:"url"`
@@ -219,6 +223,9 @@ func normalizeCreatorChannelInput(raw string) (CreatorChannel, error) {
 	}
 	u, err := url.Parse(candidate)
 	if err == nil && u.Host != "" {
+		if strings.EqualFold(u.Hostname(), "space.bilibili.com") {
+			return normalizeBilibiliCreator(candidate)
+		}
 		host := strings.ToLower(strings.TrimPrefix(strings.TrimPrefix(u.Hostname(), "www."), "m."))
 		if host == "tiktok.com" || host == "tiktokv.com" {
 			parts := splitPath(u.Path)
@@ -232,7 +239,7 @@ func normalizeCreatorChannelInput(raw string) (CreatorChannel, error) {
 			return CreatorChannel{Platform: "tiktok", Handle: h, URL: "https://www.tiktok.com/" + h}, nil
 		}
 		if host != "youtube.com" {
-			return CreatorChannel{}, errors.New("only YouTube and TikTok creators can be added to the Creator Archive")
+			return CreatorChannel{}, errors.New("only YouTube, TikTok and Bilibili creators can be added to the Creator Archive")
 		}
 		parts := splitPath(u.Path)
 		if len(parts) == 0 {
@@ -258,7 +265,7 @@ func normalizeCreatorChannelInput(raw string) (CreatorChannel, error) {
 	if h := canonicalCreatorHandle(raw); h != "" {
 		return CreatorChannel{Platform: "youtube", Handle: h, URL: "https://www.youtube.com/" + h}, nil
 	}
-	return CreatorChannel{}, errors.New("could not recognize that YouTube or TikTok creator")
+	return CreatorChannel{}, errors.New("could not recognize that YouTube, TikTok or Bilibili creator")
 }
 
 func creatorPlatform(values ...string) string {
@@ -784,6 +791,8 @@ func (a *App) syncCreatorChannel(ctx context.Context, ch CreatorChannel, full bo
 	var videos []CreatorVideo
 	var err error
 	switch creatorPlatform(ch.Platform, ch.URL) {
+	case "bilibili":
+		resolved, videos, err = a.enumerateBilibiliCreator(ctx, ch, full)
 	case "tiktok":
 		resolved, videos, err = a.enumerateTikTokChannelYTDLP(ctx, ch, full)
 	default:
@@ -815,7 +824,7 @@ func (a *App) syncCreatorChannel(ctx context.Context, ch CreatorChannel, full bo
 	if packed, _ := a.refreshCreatorModpacks(ctx, resolved); packed.URL != "" {
 		resolved = packed
 	}
-	if len(videos) == 0 {
+	if len(videos) == 0 && !(resolved.Platform == "bilibili" && resolved.ArchiveCoverage == "public-upload-list-complete" && resolved.ArchiveExpected == 0) {
 		return errors.New("channel enumeration returned zero videos")
 	}
 	for _, v := range videos {
@@ -828,7 +837,9 @@ func (a *App) syncCreatorChannel(ctx context.Context, ch CreatorChannel, full bo
 	resolved.Source = firstNonEmpty(ch.Source, resolved.Source)
 	resolved.AddedAt = firstNonEmpty(ch.AddedAt, resolved.AddedAt)
 	resolved.Paused = ch.Paused
-	resolved.TotalVideos = len(videos)
+	if resolved.Platform != "bilibili" {
+		resolved.TotalVideos = len(videos)
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	resolved.LastSyncedAt = now
 	if full {

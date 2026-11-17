@@ -49,7 +49,7 @@ func bilibiliVideoInput(raw string) (string, int, error) {
 	}
 	parts := splitPath(u.Path)
 	if len(parts) != 2 || parts[0] != "video" || !bilibiliVideoID.MatchString(parts[1]) {
-		return "", 0, errors.New("paste a Bilibili /video/BV… URL; creator archives and short links are not supported yet")
+		return "", 0, errors.New("paste a Bilibili /video/BV… URL; paste creator profiles in the Follow form; short links are not supported yet")
 	}
 	page := 1
 	if rawPage := u.Query().Get("p"); rawPage != "" {
@@ -67,7 +67,7 @@ func bilibiliAccessError(code int) error {
 		return fmt.Errorf("Bilibili access restricted or authentication required (code %d); no login or access bypass attempted", code)
 	case -404, 62002, 62012:
 		return fmt.Errorf("Bilibili video is unavailable or private (code %d)", code)
-	case -412, -509:
+	case -412, -509, -799:
 		return fmt.Errorf("Bilibili rate/access limit (code %d); retry later", code)
 	default:
 		return fmt.Errorf("Bilibili API rejected request (code %d)", code)
