@@ -208,6 +208,7 @@ type CreatorTranscriptRecord struct {
 	Segments     []TranscriptSegmentJSON `json:"segments"`
 }
 type TranscriptSegmentJSON struct {
+	VideoLink string `json:"videoLink,omitempty"`
 	StartMS   int64  `json:"startMs"`
 	EndMS     int64  `json:"endMs"`
 	Timestamp string `json:"timestamp"`

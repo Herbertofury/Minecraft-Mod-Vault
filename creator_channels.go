@@ -264,7 +264,7 @@ func normalizeCreatorChannelInput(raw string) (CreatorChannel, error) {
 func creatorPlatform(values ...string) string {
 	for _, raw := range values {
 		v := strings.ToLower(strings.TrimSpace(raw))
-		if v == "youtube" || v == "tiktok" {
+		if v == "youtube" || v == "tiktok" || v == "bilibili" {
 			return v
 		}
 		if strings.Contains(v, "tiktok.com") || strings.Contains(v, "tiktokv.com") {
@@ -1558,6 +1558,21 @@ func (a *App) handleCreatorTranscript(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, APIError{Error: err.Error()})
 		return
+	}
+	a.dataMu.RLock()
+	var source CreatorVideo
+	matches := 0
+	for _, video := range a.creatorVideos {
+		if video.ID == id {
+			source = video
+			matches++
+		}
+	}
+	a.dataMu.RUnlock()
+	if matches == 1 {
+		for i := range t.Segments {
+			t.Segments[i].VideoLink = timestampVideoLink(source, t.Segments[i].StartMS/1000)
+		}
 	}
 	writeJSON(w, http.StatusOK, t)
 }
