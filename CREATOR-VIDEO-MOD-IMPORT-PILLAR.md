@@ -6,7 +6,7 @@ Owner requirement: pasted videos, Shorts and entire creator video archives shoul
 
 Minecraft-Mod-Vault's Creator Vault already has YouTube/TikTok channel enumeration, captions/local speech transcription, sampled-frame OCR, provider resolution, unresolved mentions, persistent creator catalogs and a recommendation browser. See `creators.go`, `creator_channels.go`, `creator_ocr.go`, `creator_catalogs.go`, issue #5 and release gate #40. Tests/fixtures do not establish complete live-source coverage.
 
-This source-identity checkpoint integrates directly into that extractor: reject lookalike provider hosts, retain original source links/timestamps, identify Modrinth/CurseForge projects rather than version/file IDs, and deduplicate by project identity instead of display name. It does not add X/Bilibili ingestion or bulk downloading.
+This source-identity checkpoint integrates directly into that extractor: reject lookalike provider hosts, retain original source links/timestamps, identify Modrinth/CurseForge projects rather than version/file IDs, and deduplicate by project identity instead of display name. The next checkpoint adds Bilibili single-BV-video public metadata/caption ingestion through the existing analyze endpoint. X ingestion, Bilibili creator archives and bulk downloading remain pending.
 
 ## Required continuation backlog (not shipped)
 
@@ -20,3 +20,13 @@ This source-identity checkpoint integrates directly into that extractor: reject 
 - [ ] Validate current real YouTube, Shorts, TikTok, Bilibili and X examples against a human-checked complete mod list, plus deleted media, repeated mentions, title collisions, broken links, login-required sources and interrupted large archives. Report recall/precision and unresolved items rather than promise zero errors.
 
 Visual feedback and organization remain first-class: rich source cards, image carousel/video preview where available, evidence links, sortable/filterable project columns, saved views, meaningful stage/progress counters and cancel/pause/resume controls. Pending work stays visible until verified, not hidden behind a generic success message.
+
+## Bilibili single-video checkpoint
+
+Implemented: strict BV URL/part validation; official-host public metadata and available subtitle retrieval; namespaced per-part IDs; canonical creator/artwork/source attribution; reuse of shared mod extraction; correct platform-aware transcript timestamp links. Errors distinguish unavailable/private content, authentication/access requirements and rate limits. Caption failures retain description analysis with explicit coverage warnings. Subtitle redirects must stay within the trusted CDN family; no cookie import, login or access bypass is performed.
+
+Not implemented: Bilibili creator enumeration, b23 short links/legacy AV URLs, speech/OCR/comment extraction, robust Chinese mod-name matching, X adapters or bulk downloading. Missing captions are not evidence of absent mods. Multi-part videos analyze only the selected part and disclose the rest.
+
+Verification: fixture tests cover multi-part identity, access errors, untrusted subtitle URLs/redirects and the full analyze-to-existing-project-extraction path. An opt-in live metadata test (`MMV_BILIBILI_LIVE=1 go test -run TestBilibiliLiveMetadata -v .`) verified https://www.bilibili.com/video/BV1JV4y1y71n/ and its creator-provided sophisticated-backpacks project link on 2026-11-17. That proves public metadata/link extraction only, not complete video recall or a live subtitle track.
+
+Reference inspected: yt-dlp's Bilibili extractor https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/bilibili.py . No upstream code copied. Existing YouTube channel enumeration uses the uploads playlist and contained video IDs; do not replace it with search results, which are not a complete channel inventory.

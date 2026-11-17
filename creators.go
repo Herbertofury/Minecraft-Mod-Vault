@@ -519,10 +519,12 @@ func (a *App) analyzeCreatorVideo(ctx context.Context, rawURL string) (CreatorVi
 	switch {
 	case creatorHostMatches(host, []string{"youtube.com"}) || host == "youtu.be":
 		return a.analyzeYouTube(ctx, rawURL)
+	case creatorHostMatches(host, []string{"bilibili.com"}):
+		return a.analyzeBilibili(ctx, rawURL)
 	case creatorHostMatches(host, []string{"tiktok.com"}) || creatorHostMatches(host, []string{"tiktokv.com"}):
 		return a.analyzeTikTok(ctx, rawURL)
 	default:
-		return CreatorVideo{}, errors.New("Creator Picks currently analyzes YouTube and TikTok URLs")
+		return CreatorVideo{}, errors.New("Creator Picks currently analyzes YouTube, TikTok and Bilibili video URLs")
 	}
 }
 
@@ -1483,6 +1485,15 @@ func formatTimestamp(sec int64) string {
 	return fmt.Sprintf("%d:%02d", m, s)
 }
 func timestampVideoLink(v CreatorVideo, sec int64) string {
+	if v.Platform == "bilibili" {
+		u, err := url.Parse(v.URL)
+		if err == nil {
+			q := u.Query()
+			q.Set("t", strconv.FormatInt(sec, 10))
+			u.RawQuery = q.Encode()
+			return u.String()
+		}
+	}
 	if v.Platform == "youtube" {
 		return fmt.Sprintf("https://www.youtube.com/watch?v=%s&t=%ds", url.QueryEscape(v.ID), sec)
 	}
