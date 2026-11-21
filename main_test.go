@@ -218,7 +218,7 @@ func TestInstallModrinthProjectResolvesRequiredDependency(t *testing.T) {
 	mux.HandleFunc("/v2/project/dep-mod", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(ModrinthProject{ID: "dep-id", Slug: "dep-mod", Title: "Furniture API", ProjectType: "mod"})
 	})
-	mux.HandleFunc("/v2/project/main-mod/version", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v2/project/main-id/version", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode([]ModrinthVersion{{
 			ID: "main-v1", ProjectID: "main-id", VersionNumber: "1.0.0", DatePublished: "2026-08-01T00:00:00Z",
 			GameVersions: []string{"1.21.1"}, Loaders: []string{"fabric"},
@@ -226,7 +226,7 @@ func TestInstallModrinthProjectResolvesRequiredDependency(t *testing.T) {
 			Files:        []ModrinthVersionFile{{URL: server.URL + "/files/main.jar", Filename: "main.jar", Primary: true, Size: int64(len(mainBytes)), Hashes: map[string]string{"sha512": sha512hex(mainBytes)}}},
 		}})
 	})
-	mux.HandleFunc("/v2/project/dep-mod/version", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v2/project/dep-id/version", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode([]ModrinthVersion{{
 			ID: "dep-v1", ProjectID: "dep-id", VersionNumber: "2.0.0", DatePublished: "2026-07-01T00:00:00Z",
 			GameVersions: []string{"1.21.1"}, Loaders: []string{"fabric"},
@@ -242,7 +242,7 @@ func TestInstallModrinthProjectResolvesRequiredDependency(t *testing.T) {
 	root := t.TempDir()
 	app := &App{settings: Settings{JavaRoot: root, GameVersion: "1.21.1", Loader: "fabric"}, httpClient: server.Client()}
 	installed := []InstalledProject{}
-	if err := app.installModrinthProject(context.Background(), "main-mod", "", "1.21.1", "fabric", "mods", false, map[string]bool{}, &installed); err != nil {
+	if err := app.installModrinthProject(context.Background(), "main-mod", "", "1.21.1", "fabric", "mods", false, &installed); err != nil {
 		t.Fatal(err)
 	}
 	if len(installed) != 2 {
@@ -2023,7 +2023,7 @@ func TestMinecraftHubDelegatesInstallToOriginalProvider(t *testing.T) {
 	mux.HandleFunc("/v2/project/create", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(ModrinthProject{ID: "create-id", Slug: "create", Title: "Create", ProjectType: "mod"})
 	})
-	mux.HandleFunc("/v2/project/create/version", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/v2/project/create-id/version", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode([]ModrinthVersion{{
 			ID: "create-v1", ProjectID: "create-id", VersionNumber: "1.0.0", DatePublished: "2026-08-19T00:00:00Z",
 			GameVersions: []string{"1.21.1"}, Loaders: []string{"fabric"},

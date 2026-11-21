@@ -1221,9 +1221,8 @@ func (a *App) handleModrinthInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	a.mu.RUnlock()
 
-	visited := map[string]bool{}
 	installed := make([]InstalledProject, 0, 4)
-	if err := a.installModrinthProject(r.Context(), in.ProjectID, "", in.GameVersion, in.Loader, in.Target, false, visited, &installed); err != nil {
+	if err := a.installModrinthProject(r.Context(), in.ProjectID, "", in.GameVersion, in.Loader, in.Target, false, &installed); err != nil {
 		writeJSON(w, http.StatusBadGateway, APIError{Error: err.Error()})
 		return
 	}
@@ -1245,81 +1244,26 @@ func (a *App) handleModrinthInstall(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (a *App) installModrinthProject(ctx context.Context, projectID, exactVersionID, gameVersion, loader, requestedTarget string, dependency bool, visited map[string]bool, installed *[]InstalledProject) error {
-	visitKey := projectID + "|" + exactVersionID
-	if visited[visitKey] {
-		return nil
-	}
-	visited[visitKey] = true
-
-	project, err := a.fetchModrinthProject(ctx, projectID)
+func (a *App) installModrinthProject(ctx context.Context, projectID, exactVersionID, gameVersion, loader, requestedTarget string, dependency bool, installed *[]InstalledProject) error {
+	order, err := a.planModrinthAcquisition(ctx, projectID, exactVersionID, gameVersion, loader, requestedTarget, dependency)
 	if err != nil {
-		return err
+		return fmt.Errorf("Modrinth acquisition needs review before downloading: %w. No package download started for this group", err)
 	}
-	var version ModrinthVersion
-	if exactVersionID != "" {
-		version, err = a.fetchModrinthVersion(ctx, exactVersionID)
-		if err != nil {
+	for _, node := range order {
+		dir := a.javaTargetDir(node.target)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
-	} else {
-		versions, lookupErr := a.fetchModrinthVersions(ctx, projectID, gameVersion, loader, project.ProjectType)
-		if lookupErr != nil {
-			return lookupErr
+		dst := uniquePath(filepath.Join(dir, safeFilename(node.file.Filename)))
+		if err := a.downloadVerified(ctx, node.file, dst); err != nil {
+			_ = os.Remove(dst)
+			return err
 		}
-		if len(versions) == 0 {
-			return fmt.Errorf("no compatible %s version was found for Minecraft %s / %s", project.Title, gameVersion, loader)
-		}
-		version = versions[0]
+		*installed = append(*installed, InstalledProject{
+			Project: node.project.Title, ProjectID: node.project.ID, ProjectType: node.project.ProjectType,
+			Version: node.version.VersionNumber, File: filepath.Base(dst), Path: dst, Target: node.target, Dependency: node.dependency,
+		})
 	}
-
-	// Resolve required Modrinth dependencies before the requested project. Optional,
-	// incompatible, and embedded dependencies are deliberately left untouched.
-	for _, dep := range version.Dependencies {
-		if dep.DependencyType != "required" || dep.ProjectID == "" {
-			continue
-		}
-		if err := a.installModrinthProject(ctx, dep.ProjectID, dep.VersionID, gameVersion, loader, "auto", true, visited, installed); err != nil {
-			return fmt.Errorf("required dependency for %s failed: %w", project.Title, err)
-		}
-	}
-
-	if len(version.Files) == 0 {
-		return fmt.Errorf("compatible version of %s has no downloadable files", project.Title)
-	}
-	file := version.Files[0]
-	for _, f := range version.Files {
-		if f.Primary {
-			file = f
-			break
-		}
-	}
-	target := requestedTarget
-	if target == "" || target == "auto" {
-		switch project.ProjectType {
-		case "mod":
-			target = "mods"
-		case "resourcepack":
-			target = "resourcepacks"
-		case "shader":
-			target = "shaderpacks"
-		default:
-			target = "downloads"
-		}
-	}
-	dir := a.javaTargetDir(target)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	dst := uniquePath(filepath.Join(dir, safeFilename(file.Filename)))
-	if err := a.downloadVerified(ctx, file, dst); err != nil {
-		_ = os.Remove(dst)
-		return err
-	}
-	*installed = append(*installed, InstalledProject{
-		Project: project.Title, ProjectID: project.ID, ProjectType: project.ProjectType,
-		Version: version.VersionNumber, File: filepath.Base(dst), Path: dst, Target: target, Dependency: dependency,
-	})
 	return nil
 }
 
