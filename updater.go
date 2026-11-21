@@ -1393,7 +1393,7 @@ func (a *App) applyUpdatePlan(ctx context.Context, plan UpdatePlan, selected map
 					continue
 				}
 				installed := []InstalledProject{}
-				if err := a.installModrinthProject(ctx, dep.ProjectID, dep.VersionID, plan.GameVersion, plan.Loader, "mods", true, map[string]bool{}, &installed); err != nil {
+				if err := a.installModrinthProject(ctx, dep.ProjectID, dep.VersionID, plan.GameVersion, plan.Loader, "mods", true, &installed); err != nil {
 					rollback()
 					return nil, fmt.Errorf("dependency update for %s failed: %w", item.Local.Filename, err)
 				}

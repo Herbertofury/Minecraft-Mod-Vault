@@ -2041,7 +2041,7 @@ func (a *App) installProviderRequest(ctx context.Context, in ProviderInstallRequ
 	switch provider {
 	case "modrinth":
 		installed := []InstalledProject{}
-		err = a.installModrinthProject(ctx, firstNonEmpty(in.ID, in.Slug), "", in.GameVersion, in.Loader, in.Target, false, map[string]bool{}, &installed)
+		err = a.installModrinthProject(ctx, firstNonEmpty(in.ID, in.Slug), "", in.GameVersion, in.Loader, in.Target, false, &installed)
 		result = map[string]any{"ok": err == nil, "installed": installed}
 	case "github":
 		result, err = a.installGitHubRelease(ctx, firstNonEmpty(in.ID, in.Slug), in.GameVersion, in.Loader, in.Target)
