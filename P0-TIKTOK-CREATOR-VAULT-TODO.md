@@ -109,3 +109,7 @@ Implementation additions:
 - [x] AsianHalfSquat bootstrap records a verified 349-video channel target, 11 exact current video records, and 93 evidence-backed mod/modpack/resource-pack/shader recommendations. Coverage remains explicitly incomplete until the network-enabled full-history sync fills the remaining uploads.
 - [x] `@speedychunks`, `@noxusminecraft`, and `@unyxyt` are protected TikTok follows; NoxusMinecraft and UnyxYT are supplied through the data catalog path so adding future creators does not require creator-specific Go code.
 - [x] No provider identity, ownership, project URL, or recommendation is fabricated when evidence is absent.
+
+## Cross-platform video-to-mod import pillar
+
+- [ ] Continue the owner-requested pasted-video/Shorts/entire-creator archive extraction and reviewed bulk download flow, including YouTube, Bilibili, X and similar sources. Track exact adapter support, evidence, duplicate project identity, compatibility, missing/private content and per-item recovery. See `CREATOR-VIDEO-MOD-IMPORT-PILLAR.md`; X/Bilibili ingestion and the complete download journey remain unimplemented acceptance gates.
